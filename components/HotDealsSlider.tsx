@@ -14,11 +14,17 @@ export type Deal = {
   oldPrice: number;
   rating: number;
   badge: string;
+  price?: number;
+  originalPrice?: number | null;
+  isSupplierProduct?: boolean;
+  reviews?: number;
 };
 
 type HotDealsSliderProps = {
   categoryFilter: string;
   searchQuery: string;
+  newArrivals: Deal[];
+  onOpenProduct: (deal: Deal) => void;
   onAddToCart: (deal: Deal) => void;
 };
 
@@ -46,12 +52,15 @@ const hotDeals: Deal[] = [
   { id: "hot-groceries", name: "Premium Green Tea 100 Bags", category: "groceries", image: "https://images.unsplash.com/photo-1544787219-7f47ccb76574?auto=format&fit=crop&w=900&q=80", oldPrice: 4299, rating: 4.7, badge: "Pantry pick" }
 ];
 
-export default function HotDealsSlider({ categoryFilter, searchQuery, onAddToCart }: HotDealsSliderProps) {
+export default function HotDealsSlider({ categoryFilter, searchQuery, newArrivals, onOpenProduct, onAddToCart }: HotDealsSliderProps) {
   const [addedDeals, setAddedDeals] = useState<Set<string>>(() => new Set());
   const swiperRefs = useRef<Record<string, SwiperInstance | null>>({});
   const dealGroups = [
     { title: "Flash Deals", label: "Limited-time prices", deals: flashDeals },
-    { title: "Hot Deals", label: "Popular right now", deals: hotDeals }
+    { title: "Hot Deals", label: "Popular right now", deals: hotDeals },
+    ...(newArrivals.length
+      ? [{ title: "Zavi Collection", label: "New Arrivals", deals: newArrivals }]
+      : [])
   ];
 
   return (
@@ -120,32 +129,52 @@ export default function HotDealsSlider({ categoryFilter, searchQuery, onAddToCar
                   return (
                     <SwiperSlide key={deal.id}>
                       <article className="deal-card">
-                        <div className="deal-card-image">
-                          <Image src={deal.image} alt={deal.name} fill sizes="(max-width: 560px) 82vw, (max-width: 1120px) 40vw, 25vw" unoptimized />
-                          <span className="deal-badge">{deal.badge}</span>
-                        </div>
-                        <div className="deal-card-body">
-                          <span className="deal-category">{deal.category}</span>
-                          <h3>{deal.name}</h3>
-                          <div className="deal-rating" aria-label={`Rated ${deal.rating} out of 5`}>
-                            <span aria-hidden="true">★</span> {deal.rating.toFixed(1)}
+                        <div
+                          className={deal.isSupplierProduct ? "deal-card-clickable" : undefined}
+                          onClick={() => {
+                            if (deal.isSupplierProduct) onOpenProduct(deal);
+                          }}
+                          onKeyDown={(event) => {
+                            if (deal.isSupplierProduct && event.key === "Enter") onOpenProduct(deal);
+                          }}
+                          role={deal.isSupplierProduct ? "link" : undefined}
+                          tabIndex={deal.isSupplierProduct ? 0 : undefined}
+                          aria-label={deal.isSupplierProduct ? `View ${deal.name} details` : undefined}
+                        >
+                          <div className="deal-card-image">
+                            <Image src={deal.image} alt={deal.name} fill sizes="(max-width: 560px) 82vw, (max-width: 1120px) 40vw, 25vw" unoptimized />
+                            <span className="deal-badge">{deal.badge}</span>
                           </div>
-                          <div className="deal-prices">
-                            <strong>Rs 3,499</strong>
-                            <del>Rs {deal.oldPrice.toLocaleString("en-PK")}</del>
+                          <div className="deal-card-body">
+                            <span className="deal-category">{deal.category}</span>
+                            <h3>{deal.name}</h3>
+                            <div className="deal-rating" aria-label={`Rated ${deal.rating} out of 5`}>
+                              <span aria-hidden="true">★</span> {deal.rating.toFixed(1)}
+                              <small className="deal-review-count">({deal.reviews ?? 100}+ reviews)</small>
+                            </div>
+                            <div className="deal-prices">
+                              <strong>Rs {(deal.price ?? 3499).toLocaleString("en-PK")}</strong>
+                              {deal.isSupplierProduct
+                                ? deal.originalPrice && deal.originalPrice > (deal.price ?? 0)
+                                  ? <del>Rs {deal.originalPrice.toLocaleString("en-PK")}</del>
+                                  : null
+                                : <del>Rs {deal.oldPrice.toLocaleString("en-PK")}</del>}
+                            </div>
+                            {deal.isSupplierProduct && <span className="deal-category">Available from ZaviMart</span>}
                           </div>
-                          <button
-                            className="deal-add-button"
-                            type="button"
-                            disabled={isAdded}
-                            onClick={() => {
-                              setAddedDeals((current) => new Set(current).add(deal.id));
-                              onAddToCart(deal);
-                            }}
-                          >
-                            {isAdded ? "Added to cart" : "Add to cart"}
-                          </button>
                         </div>
+                        <button
+                          className="deal-add-button"
+                          type="button"
+                          disabled={isAdded}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setAddedDeals((current) => new Set(current).add(deal.id));
+                            onAddToCart(deal);
+                          }}
+                        >
+                          {isAdded ? "Added to cart" : "Add to cart"}
+                        </button>
                       </article>
                     </SwiperSlide>
                   );

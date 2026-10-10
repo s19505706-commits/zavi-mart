@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ZaviMart | Payment status</title>
+    <link rel="icon" type="image/png" href="/zavimart-favicon-transparent.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="top-strip">
+      <div class="container top-strip-inner">
+        <span>Free delivery on orders above PKR 2,999</span>
+        <span>Cash on Delivery available</span>
+        <span>Secure payment • Easy returns</span>
+      </div>
+    </div>
+
+    <header class="main-header">
+      <div class="container header-inner">
+        <div class="brand-block">
+          <img class="brand-logo" src="/zavimart-header-transparent.png" alt="ZaviMart" width="180" height="60" />
+          <span class="brand-tag">Pakistan's marketplace</span>
+        </div>
+        <div class="header-actions">
+          <a href="index.html" class="header-login">Back to shopping</a>
+        </div>
+      </div>
+    </header>
+
+    <main class="checkout-page">
+      <section class="container checkout-panel payment-result-panel">
+        <span class="mini-label">Payment status</span>
+        <h1>We’re checking your payment</h1>
+        <p class="payment-status" id="paymentStatus" role="status" aria-live="polite">
+          Connecting to ZaviMart order status...
+        </p>
+        <p class="payment-review-note" id="paymentWhatsAppNote" hidden></p>
+        <a class="primary-btn" id="paymentWhatsAppLink" target="_blank" rel="noopener noreferrer" hidden>Open WhatsApp order summary</a>
+        <a href="index.html#shop" class="primary-btn">Continue shopping</a>
+      </section>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>

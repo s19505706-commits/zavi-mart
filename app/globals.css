@@ -384,11 +384,23 @@ a:focus-visible {
 }
 
 .deal-card {
+  display: flex;
   height: 100%;
+  flex-direction: column;
   overflow: hidden;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--surface);
+}
+
+.deal-card-clickable {
+  flex: 1;
+  cursor: pointer;
+}
+
+.deal-card-clickable:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 3px;
 }
 
 .deal-card-image {
@@ -448,6 +460,13 @@ a:focus-visible {
 
 .deal-rating span {
   font-size: 1rem;
+}
+
+.deal-review-count {
+  margin-left: 4px;
+  color: var(--body);
+  font-size: 0.72rem;
+  font-weight: 400;
 }
 
 .deal-prices {
@@ -716,6 +735,37 @@ a:focus-visible {
   color: var(--body);
   font-size: 0.8rem;
   line-height: 1.45;
+}
+
+.login-page {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 24px;
+  background: #f2f5f9;
+}
+
+.login-panel {
+  width: min(420px, 100%);
+}
+
+.login-panel .panel-heading h1 {
+  margin: 0;
+  color: var(--heading);
+  font-size: 1.35rem;
+}
+
+.login-home-link {
+  display: inline-block;
+  margin-top: 18px;
+  color: var(--blue);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.login-home-link:hover {
+  text-decoration: underline;
 }
 
 .cart-page {

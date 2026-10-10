@@ -1,0 +1,177 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ZaviMart | Checkout</title>
+    <link rel="icon" type="image/png" href="/zavimart-favicon-transparent.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin=""
+    />
+  </head>
+  <body class="checkout-route">
+    <header class="main-header checkout-main-header">
+      <div class="container header-inner">
+        <a class="checkout-brand" href="index.html" aria-label="ZaviMart home">
+          <span class="checkout-brand-mark" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="9" cy="21" r="1" />
+              <circle cx="20" cy="21" r="1" />
+              <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H5" />
+            </svg>
+            <span class="checkout-brand-accent"></span>
+          </span>
+          <span class="checkout-brand-name">ZaviMart</span>
+        </a>
+
+        <div class="header-actions">
+          <a href="index.html" class="header-login">Back to shopping</a>
+        </div>
+      </div>
+    </header>
+
+    <main class="checkout-page">
+      <div class="container checkout-shell">
+        <section class="checkout-panel">
+          <span class="mini-label">Complete your order</span>
+          <h1>Checkout</h1>
+
+          <form class="checkout-form" id="checkoutForm">
+            <div class="form-row">
+              <label>
+                First name
+                <input type="text" name="firstName" placeholder="Your first name" required />
+              </label>
+
+              <label>
+                Last name
+                <input type="text" name="lastName" placeholder="Your last name" required />
+              </label>
+            </div>
+
+            <label>
+              Email
+              <input type="email" name="email" placeholder="you@example.com" required />
+            </label>
+
+            <label>
+              Mobile number
+              <input type="tel" name="phone" placeholder="03xx xxxxxxx" inputmode="tel" autocomplete="tel" required />
+            </label>
+
+            <label>
+              Address
+              <input type="text" name="address" placeholder="Street address" required />
+            </label>
+
+            <div class="form-row">
+              <label>
+                City
+                <input type="text" name="city" placeholder="Lahore" required />
+              </label>
+
+              <label>
+                Zip code
+                <input type="text" name="zip" placeholder="54000" required />
+              </label>
+            </div>
+
+            <section class="delivery-location" aria-labelledby="deliveryLocationTitle">
+              <div class="delivery-location-heading">
+                <div>
+                  <h2 id="deliveryLocationTitle">Delivery location</h2>
+                  <p>Find your address, then adjust the pin if needed.</p>
+                </div>
+                <button class="secondary-btn" id="locateAddressButton" type="button">Locate address</button>
+              </div>
+              <p class="map-status" id="mapStatus" role="status" aria-live="polite">Enter your street, city, and postal code to locate the address.</p>
+              <div id="deliveryMap" class="delivery-map" role="application" aria-label="Map for selecting delivery location"></div>
+              <input type="hidden" name="latitude" id="deliveryLatitude" />
+              <input type="hidden" name="longitude" id="deliveryLongitude" />
+              <p class="map-attribution">Map data © OpenStreetMap contributors. Address lookup uses OpenStreetMap Nominatim.</p>
+            </section>
+
+            <label>
+              Payment method
+              <select name="paymentMethod" id="paymentMethod">
+                <option value="safepay">Safepay secure online checkout</option>
+                <option value="easypaisa" selected>Easypaisa mobile account transfer</option>
+                <option value="cod">Cash on Delivery</option>
+              </select>
+            </label>
+
+            <p class="checkout-empty" id="checkoutError" role="alert" hidden></p>
+            <button type="submit" class="primary-btn order-button">Continue to payment</button>
+          </form>
+          <section class="easypaisa-panel" id="easypaisaPanel" hidden aria-live="polite">
+            <h2>Pay with Easypaisa</h2>
+            <p id="easypaisaInstructions"></p>
+            <div class="easypaisa-account-row">
+              <strong id="easypaisaAccount"></strong>
+              <button type="button" class="quick-view-btn" id="copyEasypaisaAccount">Copy</button>
+            </div>
+            <p class="payment-review-note">Your order stays pending until the transfer is checked against the Easypaisa account.</p>
+            <form id="easypaisaReferenceForm" class="checkout-form">
+              <label>
+                Easypaisa transaction ID
+                <input type="text" name="transactionReference" placeholder="Enter the transaction ID from your receipt" minlength="6" maxlength="64" required />
+              </label>
+              <p class="checkout-empty" id="easypaisaError" role="alert" hidden></p>
+              <button type="submit" class="primary-btn order-button">Submit payment reference</button>
+            </form>
+            <p class="payment-review-note" id="easypaisaSubmitted" role="status" hidden></p>
+            <p class="payment-review-note" id="easypaisaWhatsAppNote" hidden></p>
+            <a class="primary-btn" id="easypaisaWhatsAppLink" target="_blank" rel="noopener noreferrer" hidden>Open WhatsApp order summary</a>
+          </section>
+          <section class="easypaisa-panel" id="codPanel" hidden aria-live="polite">
+            <h2>Order confirmed</h2>
+            <p id="codConfirmation"></p>
+            <p class="payment-review-note">Pay the courier in cash when your order is delivered.</p>
+            <p class="payment-review-note" id="codWhatsAppNote" hidden></p>
+            <a class="primary-btn" id="codWhatsAppLink" target="_blank" rel="noopener noreferrer" hidden>Open WhatsApp order summary</a>
+            <a href="index.html#shop" class="primary-btn">Continue shopping</a>
+          </section>
+          <p class="checkout-empty" id="checkoutEmpty" hidden>
+            Your cart is empty. <a href="index.html#shop">Continue shopping</a>.
+          </p>
+        </section>
+
+        <aside class="summary-panel">
+          <span class="mini-label">Order summary</span>
+          <h2>Your items</h2>
+          <div class="checkout-summary-list" id="checkoutItems"></div>
+
+          <div class="summary-row">
+            <span>Subtotal</span>
+            <strong id="checkoutSubtotal">PKR 0</strong>
+          </div>
+          <div class="summary-row" id="checkoutDiscountRow" hidden>
+            <span>Discount</span>
+            <strong id="checkoutDiscount">- PKR 0</strong>
+          </div>
+          <div class="summary-row">
+            <span>Shipping</span>
+            <strong id="checkoutShipping">PKR 0</strong>
+          </div>
+          <div class="summary-row">
+            <span>Total</span>
+            <strong id="checkoutTotal">PKR 0</strong>
+          </div>
+        </aside>
+      </div>
+    </main>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="script.js"></script>
+  </body>
+</html>

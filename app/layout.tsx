@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { Poppins } from "next/font/google";
+import { AuthProvider } from "./auth-context";
 import "./globals.css";
 import "swiper/css";
 import "swiper/css/navigation";
@@ -14,7 +15,7 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "ZaviMart | Smart Shopping in Pakistan",
+  title: "ZaviMart - Smart Shopping",
   description:
     "Discover flash deals and hot offers across mobiles, electronics, fashion, home, beauty, and more.",
   manifest: "/manifest.json",
@@ -39,7 +40,9 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <html lang="en">
-      <body className={poppins.variable}>{children}</body>
+      <body className={poppins.variable}>
+        <AuthProvider>{children}</AuthProvider>
+      </body>
     </html>
   );
 }

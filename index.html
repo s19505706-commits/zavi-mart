@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ZaviMart | Smart Shopping in Pakistan</title>
+    <meta
+      name="description"
+      content="ZaviMart is a Daraz-inspired online marketplace offering electronics, fashion, home essentials, beauty and more across Pakistan."
+    />
+    <link rel="icon" type="image/png" href="/zavimart-favicon-transparent.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+      .auth-modal {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0.96);
+        width: min(420px, calc(100% - 24px));
+        background: #fff;
+        border-radius: 24px;
+        box-shadow: 0 25px 56px rgba(0, 0, 0, 0.18);
+        z-index: 60;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s ease, transform 0.2s ease;
+      }
+
+      .auth-modal.open {
+        opacity: 1;
+        pointer-events: auto;
+        transform: translate(-50%, -50%) scale(1);
+      }
+
+      .auth-modal-content {
+        padding: 30px 24px 20px;
+      }
+
+      .auth-subtitle {
+        margin: 6px 0 0;
+        color: #6e6e73;
+        line-height: 1.6;
+      }
+
+      .auth-form {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+        margin-top: 22px;
+      }
+
+      .auth-form label {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        font-weight: 600;
+      }
+
+      .auth-form input {
+        min-height: 46px;
+        border: 1px solid #ececec;
+        border-radius: 12px;
+        padding: 0 14px;
+        font: inherit;
+      }
+
+      .auth-submit {
+        width: 100%;
+      }
+
+      .auth-status {
+        min-height: 22px;
+        margin: 0;
+        font-size: 0.9rem;
+        color: #6e6e73;
+      }
+
+      .auth-status[data-state="success"] {
+        color: #0f8f5f;
+      }
+
+      .auth-status[data-state="error"] {
+        color: #b00020;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="top-strip">
+      <div class="container top-strip-inner">
+        <span>Free delivery on orders above PKR 2,999</span>
+        <span>Cash on Delivery available</span>
+        <span>Secure payment • Easy returns</span>
+      </div>
+    </div>
+
+    <header class="main-header">
+      <div class="container header-inner">
+        <div class="brand-block">
+          <img class="brand-logo" src="/zavimart-header-transparent.png" alt="ZaviMart" width="180" height="60" />
+          <span class="brand-tag">Pakistan's marketplace</span>
+        </div>
+
+        <label class="search-box" aria-label="Search products">
+          <span>⌕</span>
+          <input type="search" placeholder="Search for electronics, fashion, home & more" />
+          <button type="button">Search</button>
+        </label>
+
+        <div class="header-actions">
+          <button class="header-login" type="button">Login</button>
+          <button class="wishlist-header-btn" id="wishlistButton" type="button" aria-label="Show wishlist" aria-pressed="false">
+            <span class="wishlist-header-icon" aria-hidden="true">♡</span>
+            <span>Wishlist</span>
+            <span class="wishlist-header-count" id="wishlistCount">0</span>
+          </button>
+          <button class="icon-button cart-button" id="cartButton" aria-label="Cart" type="button">
+            🛒
+            <span class="cart-count" id="cartCount">0</span>
+          </button>
+        </div>
+      </div>
+
+      <nav class="category-nav" aria-label="Category navigation">
+        <div class="container category-row">
+          <a href="#shop">Mobiles</a>
+          <a href="#shop">Electronics</a>
+          <a href="#shop">Fashion</a>
+          <a href="#shop">Home & Living</a>
+          <a href="#shop">Beauty</a>
+          <a href="#shop">Groceries</a>
+          <a href="#shop">Appliances</a>
+          <a href="#shop">Health</a>
+        </div>
+      </nav>
+    </header>
+
+    <div class="cart-overlay" id="cartOverlay"></div>
+
+    <aside class="cart-drawer" id="cartDrawer" aria-label="Shopping cart">
+      <div class="cart-header">
+        <h3>Your cart</h3>
+        <button class="close-cart" id="closeCart" aria-label="Close cart" type="button">✕</button>
+      </div>
+
+      <div class="cart-items" id="cartItems"></div>
+
+      <div class="cart-summary">
+        <div class="summary-row">
+          <span>Subtotal</span>
+          <strong id="subtotalValue">PKR 0</strong>
+        </div>
+        <button class="primary-btn checkout-btn" type="button">Checkout</button>
+      </div>
+    </aside>
+
+    <div class="modal-overlay" id="modalOverlay"></div>
+
+    <aside class="auth-modal" id="loginModal" aria-label="Login" aria-hidden="true">
+      <button class="close-modal" id="closeLoginModal" aria-label="Close login" type="button">✕</button>
+      <div class="auth-modal-content">
+        <span class="mini-label">Welcome back</span>
+        <h2>Login to ZaviMart</h2>
+        <p class="auth-subtitle">Access your saved cart, wishlist and order updates.</p>
+
+        <form class="auth-form" id="loginForm">
+          <label>
+            Email
+            <input type="email" name="loginEmail" placeholder="you@example.com" required />
+          </label>
+
+          <label>
+            Password
+            <input type="password" name="loginPassword" placeholder="Enter your password" minlength="6" required />
+          </label>
+
+          <button type="submit" class="primary-btn auth-submit">Login</button>
+          <p class="auth-status" id="loginStatus" role="status" aria-live="polite"></p>
+        </form>
+      </div>
+    </aside>
+
+    <aside class="product-modal" id="productModal" aria-label="Product detail" aria-hidden="true">
+      <button class="close-modal" id="closeModal" aria-label="Close product details" type="button">✕</button>
+      <div class="modal-content" id="modalContent"></div>
+    </aside>
+
+    <main>
+      <section class="hero-section">
+        <div class="container hero-layout">
+          <div class="hero-banner">
+            <div class="promo-badge">Big savings</div>
+            <h1>Make the most of everyday deals.</h1>
+            <p>
+              Explore top electronics, fresh fashion, home essentials, beauty picks and
+              smart everyday upgrades for your family in Pakistan.
+            </p>
+            <div class="promo-actions">
+              <a href="#shop" class="primary-btn">Shop now</a>
+              <a href="#shop" class="secondary-btn">Flash deals</a>
+            </div>
+            <ul class="promo-stats">
+              <li><strong>250K+</strong><span>orders delivered</span></li>
+              <li><strong class="success-value">4.8/5</strong><span class="success-caption">customer rating</span></li>
+              <li><strong class="success-value">COD</strong><span class="success-caption">available</span></li>
+            </ul>
+          </div>
+
+          <div class="hero-side">
+            <article class="mini-banner accent-banner">
+              <span class="micro-tag">Hot deal</span>
+              <h3>Smartphones</h3>
+              <p>Up to 40% off</p>
+            </article>
+
+            <article class="mini-banner soft-banner">
+              <span class="micro-tag">New in</span>
+              <h3>Fashion picks</h3>
+              <p>Fresh arrivals</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="category-showcase">
+        <div class="container">
+          <div class="section-head">
+            <h2>Shop by category</h2>
+          </div>
+
+          <div class="category-grid">
+            <button class="category-card" type="button" data-category="mobiles" aria-pressed="false">
+              <span class="category-icon">📱</span>
+              <span class="category-name">Mobiles</span>
+            </button>
+            <button class="category-card" type="button" data-category="mobile accessories" aria-pressed="false">
+              <span class="category-icon">🔌</span>
+              <span class="category-name">Mobile Accessories</span>
+            </button>
+            <button class="category-card" type="button" data-category="electronics" aria-pressed="false">
+              <span class="category-icon">💻</span>
+              <span class="category-name">Electronics</span>
+            </button>
+            <button class="category-card" type="button" data-category="fashion" aria-pressed="false">
+              <span class="category-icon">👗</span>
+              <span class="category-name">Fashion</span>
+            </button>
+            <button class="category-card" type="button" data-category="home" aria-pressed="false">
+              <span class="category-icon">🏠</span>
+              <span class="category-name">Home &amp; Living</span>
+            </button>
+            <button class="category-card" type="button" data-category="beauty" aria-pressed="false">
+              <span class="category-icon">🧴</span>
+              <span class="category-name">Beauty</span>
+            </button>
+            <button class="category-card" type="button" data-category="appliances" aria-pressed="false">
+              <span class="category-icon">🧺</span>
+              <span class="category-name">Appliances</span>
+            </button>
+            <button class="category-card" type="button" data-category="health" aria-pressed="false">
+              <span class="category-icon">🩺</span>
+              <span class="category-name">Health</span>
+            </button>
+            <button class="category-card" type="button" data-category="groceries" aria-pressed="false">
+              <span class="category-icon">🥬</span>
+              <span class="category-name">Groceries</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section class="flash-deal-section" id="shop">
+        <div class="container">
+          <div class="section-head deal-head">
+            <div>
+              <span class="mini-label">Flash Deals</span>
+              <h2>Today’s best offers</h2>
+            </div>
+            <div class="deal-timer">Ends in 05:12:44</div>
+          </div>
+
+          <div class="product-grid" id="productGrid" aria-live="polite"></div>
+        </div>
+      </section>
+
+      <section class="promo-strip" id="flash-deals">
+        <div class="container promo-strip-inner">
+          <div class="promo-box">
+            <h3>Up to 70% off</h3>
+            <p>Top picks for home, kitchen and essentials</p>
+          </div>
+          <div class="promo-box dark-box">
+            <h3>Lowest price guarantee</h3>
+            <p>Authentic products from trusted sellers</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="features-section">
+        <div class="container">
+          <div class="section-head">
+            <h2>Why shoppers trust ZaviMart</h2>
+          </div>
+
+          <div class="feature-grid">
+            <article class="feature-card">
+              <div class="feature-icon">✅</div>
+              <h3>Trusted sellers</h3>
+              <p>Only verified and quality-checked stores.</p>
+            </article>
+            <article class="feature-card">
+              <div class="feature-icon">🚚</div>
+              <h3>Fast delivery</h3>
+              <p>Nationwide shipping with quick scheduling.</p>
+            </article>
+            <article class="feature-card">
+              <div class="feature-icon secure-payment-icon">💳</div>
+              <h3>Secure payments</h3>
+              <p>Bank transfer, card, wallet and COD support.</p>
+            </article>
+            <article class="feature-card">
+              <div class="feature-icon">↩️</div>
+              <h3>Easy returns</h3>
+              <p><a href="#return-policy">Review the return policy and request a return.</a></p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="return-section" id="return-policy">
+        <div class="container">
+          <div class="section-head">
+            <div>
+              <span class="mini-label">Returns &amp; exchanges</span>
+              <h2>A clear return process</h2>
+            </div>
+          </div>
+
+          <div class="return-layout">
+            <div class="return-policy-panel">
+              <h3>Return policy</h3>
+              <ul class="return-terms">
+                <li><strong>Request within 7 days.</strong> Contact us within 7 calendar days after delivery.</li>
+                <li><strong>Keep items in original condition.</strong> Items must be unused, unwashed, and returned with original packaging, tags, and included accessories.</li>
+                <li><strong>Wrong or damaged items.</strong> Tell us within 48 hours of delivery and include clear photos. Keep the item and packaging until support confirms the next step.</li>
+                <li><strong>Not eligible for change-of-mind returns.</strong> Opened personal-care or hygiene products, groceries and perishables, customized items, and products marked final sale cannot be returned unless wrong or damaged.</li>
+                <li><strong>Approval and resolution.</strong> We review each request before arranging an exchange or refund. Refund method and timing are confirmed with you after approval.</li>
+              </ul>
+              <p class="return-policy-note">Return requests are subject to applicable consumer-protection laws. Please wait for return instructions before shipping anything back.</p>
+            </div>
+
+            <div class="return-request-panel">
+              <h3>Start a return request</h3>
+              <p>Share your order details and we’ll prepare a WhatsApp message for support.</p>
+              <form class="return-request-form" id="returnRequestForm">
+                <label>
+                  Order number
+                  <input name="orderId" type="text" autocomplete="off" required />
+                </label>
+                <label>
+                  Phone used for the order
+                  <input name="phone" type="tel" autocomplete="tel" required />
+                </label>
+                <label>
+                  Return reason
+                  <select name="reason" required>
+                    <option value="">Select a reason</option>
+                    <option>Item arrived damaged or defective</option>
+                    <option>Wrong item received</option>
+                    <option>Item does not match its description</option>
+                    <option>Other</option>
+                  </select>
+                </label>
+                <label>
+                  Details (optional)
+                  <textarea name="details" rows="3" maxlength="500" placeholder="Add details about the item or issue"></textarea>
+                </label>
+                <button class="primary-btn" type="submit">Contact returns support</button>
+                <p class="return-request-status" id="returnRequestStatus" role="status" aria-live="polite"></p>
+              </form>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="newsletter-section" id="contact">
+        <div class="container newsletter-box">
+          <div>
+            <span class="mini-label">Stay updated</span>
+            <h2>Get exclusive Pakistani deals in your inbox.</h2>
+          </div>
+
+          <form class="newsletter-form" id="newsletterForm">
+            <label class="sr-only" for="email">Email address</label>
+            <input id="email" type="email" placeholder="Enter your email" required />
+            <button type="submit" class="primary-btn">Join now</button>
+          </form>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-wrap">
+        <div class="footer-brand">
+          <div class="brand-mark">Z</div>
+          <div>
+            <p class="brand-name">ZaviMart</p>
+          </div>
+        </div>
+
+        <div class="footer-links">
+          <a href="#shop">Shop</a>
+          <a href="#shop">Deals</a>
+          <a href="#return-policy">Returns</a>
+          <a href="#contact">Contact</a>
+        </div>
+
+        <p>© 2026 ZaviMart Pakistan</p>
+      </div>
+    </footer>
+
+    <script src="script.js"></script>
+  </body>
+</html>
