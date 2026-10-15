@@ -9,13 +9,17 @@ import {
   STARTER_CART_ITEMS,
   type CartItem
 } from "../../lib/cart";
+import { PAK_CITIES } from "../../lib/pak-cities";
+import type { ShippingSettings } from "../../lib/shippingSettings";
 import styles from "./checkout.module.css";
 
 type CheckoutItem = {
-  id: number;
+  id: string;
   quantity: number;
   name: string;
   price: number;
+  selectedVariants?: Record<string, string>;
+  variantId?: string;
 };
 
 type OrderResult = {
@@ -24,9 +28,15 @@ type OrderResult = {
   error?: string;
 };
 
-const FREE_DELIVERY_MINIMUM = 3000;
 const LEAFLET_CSS_URL = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
 const LEAFLET_JS_URL = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+const DEFAULT_SHIPPING: ShippingSettings = {
+  freeDeliveryEnabled: true,
+  minAmountForFree: 2999,
+  shippingFee: 149,
+  bannerText: "Free delivery above Rs 2,999",
+  updatedAt: ""
+};
 
 type MapPosition = { latitude: number; longitude: number };
 type LeafletLatLng = { lat: number; lng: number };
@@ -92,16 +102,22 @@ function formatRupees(amount: number) {
   return `Rs ${amount.toLocaleString("en-PK")}`;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 function getCheckoutItems(cart: CartItem[]): CheckoutItem[] {
   return cart.flatMap((item) => {
     const checkoutProduct = CHECKOUT_PRODUCTS_BY_CART_ID[item.id];
-    const id = item.checkoutProductId ?? checkoutProduct?.id;
+    const id = item.productId ?? (item.checkoutProductId ?? checkoutProduct?.id)?.toString();
     if (!id) return [];
     return [{
-      id,
+      id: String(id),
       quantity: item.quantity,
       name: checkoutProduct?.name ?? item.name,
-      price: checkoutProduct?.price ?? item.price
+      price: checkoutProduct?.price ?? item.price,
+      ...(item.selectedVariants ? { selectedVariants: item.selectedVariants } : {}),
+      ...(item.variantId ? { variantId: item.variantId } : {})
     }];
   });
 }
@@ -121,11 +137,15 @@ function loadCartFromStorage(): CartItem[] {
 export default function CheckoutForm() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [coupon, setCoupon] = useState("");
+  const [shippingSettings, setShippingSettings] = useState(DEFAULT_SHIPPING);
+  const [shippingError, setShippingError] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [order, setOrder] = useState<OrderResult | null>(null);
-  const [address, setAddress] = useState("");
-  const [city, setCity] = useState("Lahore");
+  const [streetAddress, setStreetAddress] = useState("");
+  const [areaSector, setAreaSector] = useState("");
+  const [city, setCity] = useState("Gujranwala-Punjab");
+  const [otherCity, setOtherCity] = useState("");
   const [postalCode, setPostalCode] = useState("");
   const [deliveryPin, setDeliveryPin] = useState<MapPosition | null>(null);
   const [mapStatus, setMapStatus] = useState("Enter your street address and city, then locate the delivery pin.");
@@ -174,6 +194,42 @@ export default function CheckoutForm() {
 
   useEffect(() => {
     let disposed = false;
+    fetch("/api/shipping", { cache: "no-store" })
+      .then(async (response) => {
+        const result: unknown = await response.json();
+        if (!response.ok || !isRecord(result)) {
+          throw new Error("Could not load delivery settings.");
+        }
+        const settings = result;
+        if (
+          typeof settings.freeDeliveryEnabled !== "boolean" ||
+          typeof settings.minAmountForFree !== "number" ||
+          typeof settings.shippingFee !== "number" ||
+          typeof settings.bannerText !== "string" ||
+          typeof settings.updatedAt !== "string"
+        ) {
+          throw new Error("Could not load delivery settings.");
+        }
+        if (!disposed) {
+          setShippingSettings({
+            freeDeliveryEnabled: settings.freeDeliveryEnabled,
+            minAmountForFree: settings.minAmountForFree,
+            shippingFee: settings.shippingFee,
+            bannerText: settings.bannerText,
+            updatedAt: settings.updatedAt
+          });
+        }
+      })
+      .catch((loadError: unknown) => {
+        if (!disposed) setShippingError(loadError instanceof Error ? loadError.message : "Could not load delivery settings.");
+      });
+    return () => {
+      disposed = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let disposed = false;
 
     loadLeaflet().then((leaflet) => {
       if (disposed || !mapElement.current) return;
@@ -211,11 +267,20 @@ export default function CheckoutForm() {
         if (!Array.isArray(parsed)) throw new Error("Cart data must be a list.");
         const savedCart = loadCartFromStorage();
         const resolved = parsed.flatMap((entry) => {
-          const id = Number(entry?.id);
+          const id = typeof entry?.id === "string" || typeof entry?.id === "number"
+            ? String(entry.id)
+            : "";
           const quantity = Number(entry?.quantity);
-          if (!Number.isInteger(id) || !Number.isInteger(quantity) || quantity < 1 || quantity > 20) return [];
-          const product = savedCart.find((item) => item.checkoutProductId === id)
-            ?? STARTER_CART_ITEMS.find((item) => item.checkoutProductId === id);
+          if (!id || !Number.isInteger(quantity) || quantity < 1 || quantity > 20) return [];
+          const rawSelected = entry?.selectedVariants;
+          const selectedVariants = isRecord(rawSelected) &&
+            Object.entries(rawSelected).every(([key, value]) => key.length > 0 && typeof value === "string")
+            ? rawSelected as Record<string, string>
+            : undefined;
+          const product = savedCart.find((item) =>
+            String(item.productId ?? item.checkoutProductId ?? CHECKOUT_PRODUCTS_BY_CART_ID[item.id]?.id ?? item.id) === id &&
+            JSON.stringify(item.selectedVariants ?? {}) === JSON.stringify(selectedVariants ?? {})
+          ) ?? STARTER_CART_ITEMS.find((item) => String(item.checkoutProductId) === id);
           if (!product) return [];
           return [{ ...product, quantity }];
         });
@@ -235,12 +300,14 @@ export default function CheckoutForm() {
   const items = getCheckoutItems(cart);
   const itemCount = items.reduce((count, item) => count + item.quantity, 0);
   const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const shipping = subtotal >= FREE_DELIVERY_MINIMUM ? 0 : subtotal === 0 ? 0 : 299;
+  const hasFreeDelivery = shippingSettings.freeDeliveryEnabled && subtotal >= shippingSettings.minAmountForFree;
+  const shipping = subtotal === 0 || hasFreeDelivery ? 0 : shippingSettings.shippingFee;
   const discount = coupon === "ZAVI10" ? Math.round(subtotal * 0.1) : 0;
   const total = subtotal - discount + shipping;
 
   async function locateAddress() {
-    if (!address.trim() || !city.trim()) {
+    const selectedCity = city === "Other" ? otherCity.trim() : city;
+    if (!streetAddress.trim() || !selectedCity) {
       setMapStatus("Enter your street address and select a city first.");
       return;
     }
@@ -249,7 +316,7 @@ export default function CheckoutForm() {
     setMapError("");
     setMapStatus("Searching for your address...");
     try {
-      const query = [address.trim(), city.trim(), postalCode.trim(), "Pakistan"].filter(Boolean).join(", ");
+      const query = [streetAddress.trim(), areaSector.trim(), selectedCity, postalCode.trim(), "Pakistan"].filter(Boolean).join(", ");
       const response = await fetch(`/api/geocode?q=${encodeURIComponent(query)}`);
       const result = await response.json() as {
         latitude?: number;
@@ -265,7 +332,7 @@ export default function CheckoutForm() {
       setPin(
         result.latitude,
         result.longitude,
-        `Address located: ${result.displayName || `${address}, ${city}`}. Drag the pin to adjust it.`
+        `Address located: ${result.displayName || `${streetAddress}, ${areaSector}, ${selectedCity}`}. Drag the pin to adjust it.`
       );
     } catch (lookupError) {
       setMapStatus(lookupError instanceof Error ? lookupError.message : "Address lookup failed.");
@@ -287,13 +354,21 @@ export default function CheckoutForm() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          items: items.map(({ id, quantity }) => ({ id, quantity })),
+          items: items.map(({ id, quantity, selectedVariants, variantId }) => ({
+            id,
+            quantity,
+            ...(selectedVariants ? { selectedVariants } : {}),
+            ...(variantId ? { variantId } : {})
+          })),
           customer: {
-            name: `${String(form.get("firstName") || "").trim()} ${String(form.get("lastName") || "").trim()}`.trim(),
+            name: String(form.get("name") || "").trim(),
             email: form.get("email"),
             phone: form.get("phone"),
-            address: form.get("address"),
-            city: form.get("city"),
+            alternatePhone: form.get("alternatePhone"),
+            city: city === "Other" ? otherCity.trim() : city,
+            areaSector: form.get("areaSector"),
+            streetAddress: form.get("streetAddress"),
+            address: [form.get("streetAddress"), form.get("areaSector")].filter(Boolean).join(", "),
             postalCode: form.get("postalCode"),
             deliveryLocation: deliveryPin
           },
@@ -350,22 +425,38 @@ export default function CheckoutForm() {
                 </div>
               ) : (
                 <form className={styles.form} onSubmit={placeOrder}>
+                  <h2 className={styles.sectionHeading}>Contact details</h2>
+                  <label>Customer name<input name="name" placeholder="Your full name" autoComplete="name" required /></label>
                   <div className={styles.formRow}>
-                    <label>First name<input name="firstName" placeholder="Your first name" autoComplete="given-name" required /></label>
-                    <label>Last name<input name="lastName" placeholder="Your last name" autoComplete="family-name" required /></label>
-                  </div>
-                  <label>Email<input name="email" type="email" placeholder="you@example.com" autoComplete="email" required /></label>
-                  <label>Mobile number<input name="phone" type="tel" placeholder="03xx xxxxxxx" autoComplete="tel" required /></label>
-                  <label>Address<input name="address" value={address} onChange={(event) => { setAddress(event.target.value); clearDeliveryPin("Address changed. Locate the updated address to place its pin."); }} placeholder="Street address" autoComplete="street-address" required /></label>
-                  <div className={styles.formRow}>
-                    <label>City
-                      <select name="city" autoComplete="address-level2" value={city} onChange={(event) => { setCity(event.target.value); clearDeliveryPin("City changed. Locate the updated address to place its pin."); }} required>
-                        {["Lahore", "Karachi", "Islamabad", "Faisalabad", "Multan", "Gujranwala", "Sialkot", "Rawalpindi", "Peshawar", "Quetta", "Other"].map((city) => (
-                          <option key={city}>{city}</option>
-                        ))}
-                      </select>
+                    <label>Phone number
+                      <input name="phone" type="tel" placeholder="0300 1234567" autoComplete="tel" pattern="(?:\+92|0092|0)?3[0-9]{2}[\s-]?[0-9]{7}" title="Enter a valid Pakistani mobile number, such as 03001234567." required />
                     </label>
-                    <label>Postal code<input name="postalCode" value={postalCode} onChange={(event) => { setPostalCode(event.target.value); clearDeliveryPin("Postal code changed. Locate the updated address to place its pin."); }} placeholder="54000" autoComplete="postal-code" required /></label>
+                    <label>Alternate phone (optional)
+                      <input name="alternatePhone" type="tel" placeholder="0300 1234567" autoComplete="tel" pattern="(?:\+92|0092|0)?3[0-9]{2}[\s-]?[0-9]{7}" title="Enter a valid Pakistani mobile number." />
+                    </label>
+                  </div>
+                  <label>Email (optional)<input name="email" type="email" placeholder="you@example.com" autoComplete="email" /></label>
+                  <h2 className={styles.sectionHeading}>Address details</h2>
+                  <label>City
+                    <select name="city" autoComplete="address-level2" value={city} onChange={(event) => { setCity(event.target.value); clearDeliveryPin("City changed. Locate the updated address to place its pin."); }} required>
+                      <option value="" disabled>Select city</option>
+                      {PAK_CITIES.map((entry) => <option key={entry.label} value={entry.label}>{entry.label}</option>)}
+                      <option value="Other">Other</option>
+                    </select>
+                  </label>
+                  {city === "Other" && (
+                    <label>Enter city and province
+                      <input value={otherCity} onChange={(event) => setOtherCity(event.target.value)} placeholder="City-Province" required />
+                    </label>
+                  )}
+                  <label>Area / Sector
+                    <input name="areaSector" value={areaSector} onChange={(event) => { setAreaSector(event.target.value); clearDeliveryPin("Area changed. Locate the updated address to place its pin."); }} placeholder="Nowshera Virkan, City Area-Nowshera Virkan" autoComplete="address-level3" required />
+                  </label>
+                  <label>Full Street Address / House No
+                    <textarea name="streetAddress" value={streetAddress} onChange={(event) => { setStreetAddress(event.target.value); clearDeliveryPin("Address changed. Locate the updated address to place its pin."); }} placeholder="House No, Street, Leel Virkan etc" autoComplete="street-address" rows={3} required />
+                  </label>
+                  <div className={styles.formRow}>
+                    <label>Postal code (optional)<input name="postalCode" value={postalCode} onChange={(event) => { setPostalCode(event.target.value); clearDeliveryPin("Postal code changed. Locate the updated address to place its pin."); }} placeholder="54000" autoComplete="postal-code" /></label>
                   </div>
                   <section className={styles.locationCard} aria-labelledby="deliveryLocationHeading">
                     <div className={styles.locationHeading}>
@@ -392,6 +483,7 @@ export default function CheckoutForm() {
                     </select>
                   </label>
                   {error && <p className={styles.error} role="alert">{error}</p>}
+                  {shippingError && <p className={styles.error} role="alert">{shippingError}</p>}
                   <button className={styles.primaryButton} type="submit" disabled={submitting}>
                     <LockKeyhole size={17} aria-hidden="true" />
                     {submitting ? "Placing order..." : `Place order · ${formatRupees(total)}`}
@@ -410,7 +502,13 @@ export default function CheckoutForm() {
             <div className={styles.items}>
               {items.map((item, index) => (
                 <div className={styles.item} key={`${item.id}-${index}`}>
-                  <div><strong>{item.name}</strong><span>Qty: {item.quantity}</span></div>
+                  <div>
+                    <strong>{item.name}</strong>
+                    {item.selectedVariants && Object.keys(item.selectedVariants).length > 0 && (
+                      <span>{Object.entries(item.selectedVariants).map(([name, value]) => `${name}: ${value}`).join(" · ")}</span>
+                    )}
+                    <span>Qty: {item.quantity}</span>
+                  </div>
                   <strong>{formatRupees(item.price * item.quantity)}</strong>
                 </div>
               ))}

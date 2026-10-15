@@ -7,8 +7,10 @@ import { MOCK_PRODUCTS } from "../../../../lib/mock-products";
 import { getLocalMarkazProducts, saveLocalMarkazProduct } from "../../../../lib/local-markaz-products";
 import { serializeProduct } from "../../../../lib/product-response";
 import Product from "../../../../models/Product";
-
-const DEFAULT_ADMIN_KEY = "zavi123";
+import { isProductImportSource, logProductHistory, type ProductImportSource } from "../../../../lib/product-history";
+import { cleanMarkazTitle, cleanProductDescription, extractProductCode } from "../../../../lib/product-codes";
+import { validateProductClassification } from "../../../../lib/department-category-store";
+import { normalizeVariantCombinations, normalizeVariantDefinitions } from "../../../../lib/markaz-variants";
 
 export const runtime = "nodejs";
 
@@ -49,22 +51,50 @@ function getProductIdFromUrl(value: string): string {
 }
 
 export async function POST(request: Request) {
-  const authError = requireAdmin(request, DEFAULT_ADMIN_KEY);
+  const authError = requireAdmin(request);
   if (authError) return authError;
 
   try {
     const value = await readJsonBody(request);
     if (!isRecord(value)) throw new ApiError("Product data must be a JSON object.", 400);
 
-    const title = typeof value.title === "string" ? value.title.trim() : "";
-    if (!title || title.length > 200) throw new ApiError("title is required and must be 200 characters or fewer.", 400);
+    const submittedTitle = typeof value.title === "string" ? value.title.trim() : "";
+    const suppliedOriginalTitle = value.originalMarkazTitle;
+    if (suppliedOriginalTitle !== undefined && suppliedOriginalTitle !== null &&
+        (typeof suppliedOriginalTitle !== "string" || suppliedOriginalTitle.length > 200)) {
+      throw new ApiError("originalMarkazTitle must be a string of 200 characters or fewer, or null.", 400);
+    }
+    const originalMarkazTitle = typeof suppliedOriginalTitle === "string" && suppliedOriginalTitle.trim()
+      ? suppliedOriginalTitle.trim()
+      : submittedTitle;
+    const title = cleanMarkazTitle(submittedTitle);
+    if (!title || title.length > 200) throw new ApiError("title is required and must be 200 characters or fewer after removing supplier branding.", 400);
 
     const category = typeof value.category === "string" ? normalizeCategory(value.category) : null;
-    if (!category) throw new ApiError("category must be one of the supported categories.", 400);
+    if (!category) throw new ApiError("category must be a non-empty string of 100 characters or fewer.", 400);
+    const departmentId = typeof value.departmentId === "string" ? value.departmentId : undefined;
+    const categoryId = typeof value.categoryId === "string" ? value.categoryId : undefined;
+    await validateProductClassification({ category, departmentId, categoryId });
 
     const markazUrl = parseWebUrl(value.markazUrl, "supplierUrl");
+    const inferredSource: ProductImportSource = new URL(markazUrl).hostname.toLowerCase().includes("aliexpress")
+      ? "aliexpress"
+      : "bulk-import";
+    if (value.source !== undefined && !isProductImportSource(value.source)) {
+      throw new ApiError("source must be manual, local, markaz, csv, json, aliexpress, or bulk-import.", 400);
+    }
+    const importSource: ProductImportSource = isProductImportSource(value.source) ? value.source : inferredSource;
+    if (value.sourceFileName !== undefined &&
+        (typeof value.sourceFileName !== "string" || !value.sourceFileName.trim() || value.sourceFileName.length > 255)) {
+      throw new ApiError("sourceFileName must be a non-empty string of 255 characters or fewer.", 400);
+    }
+    const sourceFileName = typeof value.sourceFileName === "string" ? value.sourceFileName.trim() : undefined;
     const wholesalePrice = value.wholesalePrice;
     const sellingPrice = value.sellingPrice;
+    const costPrice = value.costPrice;
+    if (typeof costPrice !== "number" || !Number.isFinite(costPrice) || costPrice < 0) {
+      throw new ApiError("costPrice must be a non-negative number.", 400);
+    }
     if (typeof wholesalePrice !== "number" || !Number.isFinite(wholesalePrice) || wholesalePrice < 0) {
       throw new ApiError("wholesalePrice must be a non-negative number.", 400);
     }
@@ -90,6 +120,10 @@ export async function POST(request: Request) {
       }
     }
     const uniqueImages = [...new Set(images)];
+    if (value.isNewArrival !== undefined && typeof value.isNewArrival !== "boolean") {
+      throw new ApiError("isNewArrival must be a boolean.", 400);
+    }
+    const isNewArrival = value.isNewArrival === true;
 
     const stock = value.stock ?? 100;
     if (typeof stock !== "number" || !Number.isInteger(stock) || stock < 0) {
@@ -99,6 +133,20 @@ export async function POST(request: Request) {
     if (typeof description !== "string" || description.length > 5000) {
       throw new ApiError("description must be 5000 characters or fewer.", 400);
     }
+    const originalDescription = value.originalDescription ?? description;
+    if (typeof originalDescription !== "string" || originalDescription.length > 5000) {
+      throw new ApiError("originalDescription must be 5000 characters or fewer.", 400);
+    }
+    const submittedProductCode = value.productCode;
+    if (submittedProductCode !== undefined && submittedProductCode !== null &&
+        (typeof submittedProductCode !== "string" ||
+          submittedProductCode.length > 200 ||
+          !/^[A-Z0-9-]+$/i.test(submittedProductCode.trim()))) {
+      throw new ApiError("productCode must contain only letters, numbers, or hyphens, or be null.", 400);
+    }
+    const productCode = extractProductCode(originalDescription) ??
+      (typeof submittedProductCode === "string" ? submittedProductCode.trim() : null);
+    const cleanedDescription = cleanProductDescription(description);
     const rating = value.rating === undefined ? 4.5 : Number(value.rating);
     if (!Number.isFinite(rating) || rating < 0 || rating > 5) {
       throw new ApiError("rating must be a number from 0 to 5.", 400);
@@ -106,6 +154,27 @@ export async function POST(request: Request) {
     const reviews = value.reviews === undefined ? 100 : Number(value.reviews);
     if (!Number.isInteger(reviews) || reviews < 0) {
       throw new ApiError("reviews must be a non-negative integer.", 400);
+    }
+    if (value.variants !== undefined && (!Array.isArray(value.variants) || value.variants.length > 20)) {
+      throw new ApiError("variants must contain no more than 20 attributes.", 400);
+    }
+    const variants = normalizeVariantDefinitions(value.variants ?? []);
+    if (Array.isArray(value.variants) && variants.length !== value.variants.length) {
+      throw new ApiError("Each variant requires a name and at least one valid option.", 400);
+    }
+    if (value.variantOptions !== undefined &&
+        (!Array.isArray(value.variantOptions) || value.variantOptions.length > 20)) {
+      throw new ApiError("variantOptions must contain no more than 20 options.", 400);
+    }
+    const variantOptions = Array.isArray(value.variantOptions) ? value.variantOptions : [];
+    if (value.variantCombinations !== undefined &&
+        (!Array.isArray(value.variantCombinations) || value.variantCombinations.length > 500)) {
+      throw new ApiError("variantCombinations must contain no more than 500 entries.", 400);
+    }
+    const variantCombinations = normalizeVariantCombinations(value.variantCombinations ?? []);
+    if (Array.isArray(value.variantCombinations) &&
+        variantCombinations.length !== value.variantCombinations.length) {
+      throw new ApiError("Each variant combination must include its attribute selections.", 400);
     }
 
     const supplierValue = value.supplier;
@@ -162,21 +231,36 @@ export async function POST(request: Request) {
         id,
         title,
         name: title,
+        originalMarkazTitle,
         slug,
         price: sellingPrice,
+        costPrice,
         originalPrice: null,
         oldPrice: sellingPrice,
         images: uniqueImages,
         image,
         category,
-        categoryId: getCategoryId(category),
+        departmentId: departmentId ?? null,
+        categoryId: categoryId ?? getCategoryId(category),
         stock,
-        description: description.trim(),
+        hasVariants: variants.length > 0,
+        variantOptions,
+        variants,
+        variantCombinations,
+        description: cleanedDescription,
+        productCode,
+        markazCode: productCode,
+        supplierCode: productCode,
+        originalDescription: originalDescription.trim() || null,
         isFlashDeal: false,
         isFeatured: false,
         isMarkazProduct: true,
+        isDropship: true,
         isActive: true,
+        importSource,
+        isNewArrival,
         markazProductId: markazProductIdValue,
+        markazProductUrl: markazUrl,
         wholesalePrice,
         sellingPrice,
         profit,
@@ -189,14 +273,19 @@ export async function POST(request: Request) {
         updatedAt: now
       };
       await saveLocalMarkazProduct(product);
+      await logProductHistory("imported", product, importSource, sourceFileName);
       return Response.json({ product, storage: "local" });
     }
 
     const product = await Product.create({
       title,
+      originalMarkazTitle,
       slug,
       category,
+      departmentId: departmentId ?? null,
+      categoryId: categoryId ?? null,
       price: sellingPrice,
+      costPrice,
       sellingPrice,
       wholesalePrice,
       profit,
@@ -204,16 +293,30 @@ export async function POST(request: Request) {
       supplier: { name: supplierName.trim(), productUrl: markazUrl, info: supplierInfo.trim() },
       images: uniqueImages,
       stock,
-      description: description.trim(),
+      hasVariants: variants.length > 0,
+      variantOptions,
+      variants,
+      variantCombinations,
+      description: cleanedDescription,
+      productCode,
+      markazCode: productCode,
+      supplierCode: productCode,
+      originalDescription: originalDescription.trim() || null,
       isMarkazProduct: true,
+      isDropship: true,
       isActive: true,
+      importSource,
+      isNewArrival,
+      markazProductUrl: markazUrl,
       isFlashDeal: false,
       isFeatured: false,
       ratings: rating || 4.5,
       reviews
     });
 
-    return Response.json({ product: serializeProduct(product), storage: "mongodb" }, { status: 200 });
+    const serializedProduct = serializeProduct(product, true);
+    await logProductHistory("imported", serializedProduct, importSource, sourceFileName);
+    return Response.json({ product: serializedProduct, storage: "mongodb" }, { status: 200 });
   } catch (error) {
     return handleApiError(error, "POST /api/products/import failed");
   }

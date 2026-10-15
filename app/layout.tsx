@@ -26,10 +26,10 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: "/zavimart-favicon-transparent.png" },
-      { url: "/zavimart-icon-192.png", sizes: "192x192", type: "image/png" }
+      { url: "/logos/zavimart-favicon-transparent.png" },
+      { url: "/logos/zavimart-icon-192.png", sizes: "192x192", type: "image/png" }
     ],
-    apple: [{ url: "/zavimart-apple-touch-icon.png", sizes: "180x180", type: "image/png" }]
+    apple: [{ url: "/logos/zavimart-apple-touch-icon.png", sizes: "180x180", type: "image/png" }]
   }
 };
 

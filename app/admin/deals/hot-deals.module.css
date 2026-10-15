@@ -1,0 +1,158 @@
+.badge {
+  display: inline-flex;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #1a237e;
+  font-size: 0.72rem;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.strike {
+  color: #94a3b8 !important;
+  text-decoration: line-through;
+}
+
+.priorityCell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.priorityCell > div {
+  display: grid;
+  gap: 3px;
+}
+
+.priorityCell button {
+  display: grid;
+  width: 25px;
+  height: 22px;
+  place-items: center;
+  border: 1px solid #cbd5e1;
+  border-radius: 5px;
+  background: #fff;
+  color: #1e3a5f;
+  line-height: 1;
+}
+
+.priorityCell button:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.selectedProduct {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #334155;
+  font-size: 0.82rem;
+}
+
+.selectedProduct img {
+  width: 46px;
+  height: 46px;
+  flex: 0 0 auto;
+  border-radius: 7px;
+  background: #f1f5f9;
+  object-fit: cover;
+}
+
+.bundleCollage {
+  display: grid;
+  width: 58px;
+  height: 58px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2px;
+  overflow: hidden;
+  border-radius: 7px;
+  background: #f1f5f9;
+}
+
+.bundleCollage img,
+.bundleCollage span {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.dealTypeChoices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.dealTypeChoices legend {
+  padding: 0 5px;
+  color: #1e3a5f;
+  font-weight: 700;
+}
+
+.dealTypeChoices label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.bundleHeading {
+  margin: 0;
+  color: #1a237e;
+  font-size: 0.95rem;
+}
+
+.productSelector {
+  position: relative;
+}
+
+.productSelector select {
+  width: 100%;
+}
+
+.selectorPrice {
+  color: #64748b;
+  font-size: 0.75rem;
+}
+
+.removeProduct {
+  justify-self: start;
+  padding: 3px 8px;
+  border: 1px solid #fecaca;
+  border-radius: 5px;
+  background: #fff;
+  color: #b91c1c;
+  font-size: 0.75rem;
+}
+
+.selectedProducts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+}
+
+.selectedProduct span {
+  min-width: 0;
+}
+
+.selectedProduct small {
+  display: block;
+  color: #64748b;
+}
+
+.pricePreview {
+  align-self: center;
+  margin: 0;
+  color: #64748b;
+  font-size: 0.82rem;
+}
+
+.pricePreview strong {
+  color: #15803d;
+}

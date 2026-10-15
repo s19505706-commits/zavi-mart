@@ -31,16 +31,9 @@ export default function LoginPage() {
   return (
     <main className="login-page">
       <section className="account-panel login-panel" aria-labelledby="login-title">
-        <div className="panel-heading">
-          <div>
-            <span className="section-eyebrow">Customer account</span>
-            <h1 id="login-title">Sign in to ZaviMart</h1>
-          </div>
-        </div>
-        <p className="account-intro">Access your orders and saved products.</p>
         <form className="sign-in-form" onSubmit={handleSubmit} noValidate>
           <label htmlFor="login-email">
-            Email address
+            Email
             <input
               id="login-email"
               name="email"

@@ -1,0 +1,110 @@
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.statCard {
+  display: grid;
+  gap: 7px;
+  padding: 17px 20px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgb(15 23 42 / 5%);
+}
+
+.statCard span {
+  color: #64748b;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.statCard strong {
+  color: #1a237e;
+  font-size: 1.45rem;
+}
+
+.productCell {
+  display: flex;
+  min-width: 210px;
+  align-items: center;
+  gap: 10px;
+}
+
+.productCell img,
+.selectedProduct img {
+  width: 46px;
+  height: 46px;
+  flex: 0 0 auto;
+  border-radius: 7px;
+  background: #f1f5f9;
+  object-fit: cover;
+}
+
+.productCell strong {
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.strike {
+  color: #94a3b8 !important;
+  text-decoration: line-through;
+}
+
+.progressLabel {
+  margin-bottom: 4px;
+  color: #334155;
+  font-size: 0.75rem;
+}
+
+.progress {
+  width: 100px;
+  height: 8px;
+  accent-color: #1a237e;
+}
+
+.rowActions {
+  flex-wrap: wrap;
+}
+
+.endButton {
+  border-color: #fed7aa;
+  color: #c2410c;
+}
+
+.selectedProduct {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #334155;
+  font-size: 0.82rem;
+}
+
+.discountText {
+  align-self: center;
+  margin: 0;
+  color: #64748b;
+  font-size: 0.8rem;
+}
+
+.discountText strong {
+  color: #15803d;
+}
+
+@media (max-width: 680px) {
+  .stats {
+    grid-template-columns: 1fr;
+  }
+
+  .statCard {
+    padding: 13px 16px;
+  }
+}

@@ -1,0 +1,145 @@
+.page {
+  width: min(1100px, calc(100% - 32px));
+  margin: 36px auto 56px;
+  color: var(--heading);
+}
+
+.header,
+.panelHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.header {
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+
+.header h1 {
+  margin: 5px 0;
+  color: #1e3a5f;
+  font-size: clamp(1.6rem, 4vw, 2.1rem);
+}
+
+.header p {
+  margin: 0;
+  color: var(--body);
+}
+
+.eyebrow {
+  color: #c2410c;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.backLink {
+  padding: 9px 12px;
+  border: 1px solid #1e3a5f;
+  border-radius: 8px;
+  color: #1e3a5f;
+  font-size: 0.84rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.panel {
+  padding: 22px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+}
+
+.panelHeading {
+  margin-bottom: 17px;
+}
+
+.panelHeading h2 {
+  margin: 0;
+  color: #1e3a5f;
+  font-size: 1.2rem;
+}
+
+.panelHeading > span,
+.productRow span {
+  color: var(--body);
+  font-size: 0.82rem;
+}
+
+.searchLabel {
+  display: grid;
+  max-width: 520px;
+  gap: 6px;
+  margin-bottom: 16px;
+  color: #1e3a5f;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.searchLabel input {
+  width: 100%;
+  min-height: 42px;
+  padding: 8px 11px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+  color: var(--heading);
+  font: inherit;
+}
+
+.list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.productRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 13px;
+  border: 1px solid #e2e8f0;
+  border-radius: 9px;
+}
+
+.productRow > div {
+  display: grid;
+  gap: 5px;
+}
+
+.productRow code {
+  color: #64748b;
+  font-size: 0.72rem;
+  overflow-wrap: anywhere;
+}
+
+.highlightedProduct {
+  border-color: #f59e0b;
+  background: #fef3c7;
+  box-shadow: inset 4px 0 #f59e0b;
+}
+
+.empty {
+  padding: 18px 0;
+  color: var(--body);
+  text-align: center;
+}
+
+.error {
+  color: #b91c1c;
+}
+
+@media (max-width: 600px) {
+  .header,
+  .productRow {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

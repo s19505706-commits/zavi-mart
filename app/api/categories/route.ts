@@ -1,41 +1,36 @@
-import { connectToDatabase } from "../../../lib/mongodb";
 import { handleApiError } from "../../../lib/api-utils";
-import { CATEGORY_DEFINITIONS } from "../../../lib/product-categories";
-import Product from "../../../models/Product";
-import { MOCK_PRODUCTS } from "../../../lib/mock-products";
-import { getLocalMarkazProducts } from "../../../lib/local-markaz-products";
+import { getCategories, getDepartments } from "../../../lib/department-category-store";
 
 export const runtime = "nodejs";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const connection = await connectToDatabase();
-    if (!connection) {
-      await getLocalMarkazProducts();
-      const countByCategory = new Map<string, number>();
-      for (const product of MOCK_PRODUCTS) {
-        countByCategory.set(product.category, (countByCategory.get(product.category) ?? 0) + 1);
-      }
-      const categories = CATEGORY_DEFINITIONS.map(({ id, name }) => ({
-        id,
-        name,
-        label: name,
-        count: countByCategory.get(name) ?? 0
-      }));
-      return Response.json({ categories });
+    const url = new URL(request.url);
+    const departmentId = url.searchParams.get("department_id")?.trim() ||
+      url.searchParams.get("departmentId")?.trim() || undefined;
+    if (departmentId && departmentId.length > 100) {
+      return Response.json({ error: "department_id must be 100 characters or fewer." }, { status: 400 });
     }
-
-    const counts = await Product.aggregate<{ _id: string; count: number }>([
-      { $group: { _id: "$category", count: { $sum: 1 } } }
+    const [categories, departments] = await Promise.all([
+      getCategories(false, departmentId),
+      getDepartments(false)
     ]);
-    const countByCategory = new Map(counts.map(({ _id, count }) => [_id, count]));
-    const categories = CATEGORY_DEFINITIONS.map(({ id, name }) => ({
-      id,
-      name,
-      label: name,
-      count: countByCategory.get(name) ?? 0
-    }));
-    return Response.json({ categories });
+    const departmentsById = new Map(departments.map((department) => [
+      department.id,
+      { name: department.name, slug: department.slug }
+    ]));
+    return Response.json(
+      {
+        categories: categories.map((category) => ({
+          ...category,
+          departmentName: departmentsById.get(category.departmentId)?.name,
+          departmentSlug: departmentsById.get(category.departmentId)?.slug,
+          label: category.name,
+          count: category.productsCount
+        }))
+      },
+      { headers: { "Cache-Control": "no-store, max-age=0" } }
+    );
   } catch (error) {
     return handleApiError(error, "GET /api/categories failed");
   }

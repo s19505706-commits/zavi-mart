@@ -1,0 +1,18 @@
+:root {
+  --admin-bg: #F4F7FB;
+  --admin-header: #102A4E;
+  --admin-card: #FFFFFF;
+  --admin-primary: #12315F;
+  --admin-primary-hover: #1A3E75;
+  --admin-accent: #2F6BFF;
+  --admin-text: #1E2D4A;
+  --admin-muted: #6B7A90;
+  --admin-danger: #E5484D;
+  --admin-border: #E8EEF6;
+}
+
+.admin-app {
+  min-height: 100vh;
+  background: var(--admin-bg);
+  color: var(--admin-text);
+}

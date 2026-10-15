@@ -169,6 +169,99 @@
   grid-column: 1 / -1;
 }
 
+.priceFields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: start;
+  gap: 16px;
+}
+
+.priceFields > label,
+.marginField {
+  display: grid;
+  align-content: start;
+  gap: 7px;
+  color: var(--brand-navy);
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.priceFields > label input,
+.marginInputWrap input {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+  color: var(--heading);
+  font: inherit;
+  font-size: 0.9rem;
+}
+
+.priceFields > label input:focus,
+.marginInputWrap input:focus {
+  border-color: #d90429;
+  outline: 3px solid rgb(217 4 41 / 12%);
+}
+
+.marginInputWrap {
+  position: relative;
+}
+
+.marginInputWrap input {
+  padding-right: 34px;
+  border: 2px solid rgb(217 4 41 / 30%);
+  font-weight: 750;
+}
+
+.marginInputWrap > span {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  color: #64748b;
+  font-weight: 750;
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+.marginHint {
+  color: #d90429;
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
+.marginPresets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.marginPresets button {
+  min-height: 27px;
+  padding: 3px 9px;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  background: #fff;
+  color: #475569;
+  font: inherit;
+  font-size: 0.7rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.marginPresets button:hover {
+  border-color: #d90429;
+  color: #d90429;
+}
+
+.marginPresets button.marginPresetActive {
+  border-color: #d90429;
+  background: #d90429;
+  color: #fff;
+}
+
 .supplierUrlField {
   display: grid;
   align-content: start;
@@ -201,6 +294,74 @@
   flex: 0 0 auto;
 }
 
+.markazMapping {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.markazMapping legend {
+  padding: 0 7px;
+  color: var(--brand-navy);
+  font-size: 0.88rem;
+  font-weight: 800;
+}
+
+.markazMapping label {
+  display: grid;
+  gap: 7px;
+  color: var(--brand-navy);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.markazMapping input {
+  width: 100%;
+  min-width: 0;
+  min-height: 42px;
+  padding: 9px 11px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: var(--heading);
+  font: inherit;
+  font-size: 0.84rem;
+}
+
+.markazMapping > .hint,
+.markazWarning,
+.markazError,
+.markazLinked {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+.markazWarning,
+.markazError,
+.markazLinked {
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.markazWarning {
+  color: #b45309;
+}
+
+.markazError {
+  color: #b91c1c;
+}
+
+.markazLinked {
+  color: #15803d;
+}
+
+.markazMapping > .secondaryButton {
+  justify-self: start;
+}
+
 .scrapedImages {
   display: flex;
   flex-wrap: wrap;
@@ -225,7 +386,8 @@
 
 .scrapedImageButton {
   overflow: hidden;
-  height: 124px;
+  height: 128px;
+  min-height: 128px;
   padding: 0;
   border: 2px solid #cbd5e1;
   border-radius: 8px;
@@ -251,8 +413,8 @@
 }
 
 .calculator {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px 24px;
   padding: 15px;
   border: 1px solid #bfdbfe;
@@ -262,17 +424,35 @@
   font-size: 0.86rem;
 }
 
-.calculator span {
+.calculator > div {
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+
+.calculator p {
+  margin: 0;
+  color: #4b5563;
+  font-size: 0.76rem;
 }
 
 .calculator strong {
   font-size: 1.05rem;
 }
 
+.calculator .profitValue {
+  color: #16a34a;
+}
+
+.calculationSummary {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: #6b7280;
+  font-size: 0.76rem;
+}
+
 .calculator .validation {
+  grid-column: 1 / -1;
   color: #b91c1c;
 }
 
@@ -406,8 +586,26 @@
     grid-column: auto;
   }
 
+  .priceFields {
+    grid-template-columns: 1fr;
+  }
+
+  .calculator {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .calculationSummary,
+  .calculator .validation {
+    grid-column: auto;
+  }
+
   .supplierUrlControls {
     flex-direction: column;
+  }
+
+  .markazMapping {
+    grid-template-columns: 1fr;
   }
 
   .panel {

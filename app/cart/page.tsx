@@ -10,12 +10,25 @@ import {
   STARTER_CART_ITEMS,
   type CartItem
 } from "../../lib/cart";
+import type { ShippingSettings } from "../../lib/shippingSettings";
 
-const FREE_DELIVERY_MINIMUM = 3000;
+const DEFAULT_SHIPPING: ShippingSettings = {
+  freeDeliveryEnabled: true,
+  minAmountForFree: 2999,
+  shippingFee: 149,
+  bannerText: "Free delivery above Rs 2,999",
+  updatedAt: ""
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
 
 export default function CartPage() {
   const [cartItems, setCartItems] = useState<CartItem[]>(STARTER_CART_ITEMS);
   const [cartReady, setCartReady] = useState(false);
+  const [shippingSettings, setShippingSettings] = useState(DEFAULT_SHIPPING);
+  const [shippingError, setShippingError] = useState("");
   const [couponCode, setCouponCode] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState("");
   const [couponMessage, setCouponMessage] = useState("");
@@ -48,15 +61,54 @@ export default function CartPage() {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+    fetch("/api/shipping", { cache: "no-store" })
+      .then(async (response) => {
+        const result: unknown = await response.json();
+        if (!response.ok || !isRecord(result)) {
+          throw new Error("Could not load delivery settings.");
+        }
+        const settings = result;
+        if (
+          typeof settings.freeDeliveryEnabled !== "boolean" ||
+          typeof settings.minAmountForFree !== "number" ||
+          typeof settings.shippingFee !== "number" ||
+          typeof settings.bannerText !== "string" ||
+          typeof settings.updatedAt !== "string"
+        ) {
+          throw new Error("Could not load delivery settings.");
+        }
+        if (!cancelled) {
+          setShippingSettings({
+            freeDeliveryEnabled: settings.freeDeliveryEnabled,
+            minAmountForFree: settings.minAmountForFree,
+            shippingFee: settings.shippingFee,
+            bannerText: settings.bannerText,
+            updatedAt: settings.updatedAt
+          });
+        }
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) setShippingError(error instanceof Error ? error.message : "Could not load delivery settings.");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
     if (cartReady) localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cartItems));
   }, [cartItems, cartReady]);
 
   const itemCount = cartItems.reduce((count, item) => count + item.quantity, 0);
   const subtotal = cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
-  const shipping = subtotal === 0 || subtotal >= FREE_DELIVERY_MINIMUM ? 0 : 299;
+  const hasFreeDelivery = shippingSettings.freeDeliveryEnabled && subtotal >= shippingSettings.minAmountForFree;
+  const shipping = subtotal === 0 || hasFreeDelivery ? 0 : shippingSettings.shippingFee;
   const discount = appliedCoupon === "ZAVI10" ? Math.round(subtotal * 0.1) : 0;
   const total = subtotal - discount + shipping;
-  const freeDeliveryProgress = Math.min((subtotal / FREE_DELIVERY_MINIMUM) * 100, 100);
+  const freeDeliveryProgress = shippingSettings.minAmountForFree > 0
+    ? Math.min((subtotal / shippingSettings.minAmountForFree) * 100, 100)
+    : 100;
 
   function changeQuantity(itemId: string, change: number) {
     setCartItems((current) => current.map((item) => (
@@ -92,8 +144,10 @@ export default function CartPage() {
   function continueToCheckout() {
     if (!cartReady || cartItems.length === 0) return;
     const items = cartItems.map((item) => ({
-      id: item.checkoutProductId ?? CHECKOUT_PRODUCTS_BY_CART_ID[item.id]?.id ?? null,
-      quantity: item.quantity
+      id: item.productId ?? item.checkoutProductId ?? CHECKOUT_PRODUCTS_BY_CART_ID[item.id]?.id ?? null,
+      quantity: item.quantity,
+      ...(item.selectedVariants ? { selectedVariants: item.selectedVariants } : {}),
+      ...(item.variantId ? { variantId: item.variantId } : {})
     }));
     if (items.some((item) => item.id === null)) {
       setCheckoutMessage("One or more cart items are not available for checkout yet. Remove them and try again.");
@@ -127,6 +181,8 @@ export default function CartPage() {
           </div>
         </header>
 
+        {shippingError && <p role="alert">{shippingError}</p>}
+
         {!cartItems.length ? (
           <section className="cart-empty-card">
             <h2>Your cart is empty</h2>
@@ -136,19 +192,21 @@ export default function CartPage() {
         ) : (
           <div className="cart-page-layout">
             <div className="cart-main-column">
-              <section className="delivery-progress-card" aria-label="Free delivery progress">
-                <div className="delivery-progress-heading">
-                  <span className="delivery-truck-icon"><Truck size={20} aria-hidden="true" /></span>
-                  <div>
-                    <h2>{subtotal >= FREE_DELIVERY_MINIMUM ? "You’ve unlocked free delivery" : `Add Rs ${(FREE_DELIVERY_MINIMUM - subtotal).toLocaleString("en-PK")} for free delivery`}</h2>
-                    <p>Free delivery on orders of Rs {FREE_DELIVERY_MINIMUM.toLocaleString("en-PK")} or more</p>
+              {shippingSettings.freeDeliveryEnabled && (
+                <section className="delivery-progress-card" aria-label="Free delivery progress">
+                  <div className="delivery-progress-heading">
+                    <span className="delivery-truck-icon"><Truck size={20} aria-hidden="true" /></span>
+                    <div>
+                      <h2>{hasFreeDelivery ? "You’ve unlocked free delivery" : `Add Rs ${Math.max(0, shippingSettings.minAmountForFree - subtotal).toLocaleString("en-PK")} for free delivery`}</h2>
+                      <p>{shippingSettings.bannerText}</p>
+                    </div>
+                    <strong>{Math.round(freeDeliveryProgress)}%</strong>
                   </div>
-                  <strong>{Math.round(freeDeliveryProgress)}%</strong>
-                </div>
-                <div className="delivery-progress-track" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(freeDeliveryProgress)} role="progressbar">
-                  <span style={{ width: `${freeDeliveryProgress}%` }} />
-                </div>
-              </section>
+                  <div className="delivery-progress-track" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(freeDeliveryProgress)} role="progressbar">
+                    <span style={{ width: `${freeDeliveryProgress}%` }} />
+                  </div>
+                </section>
+              )}
 
               <section className="cart-product-list" aria-label="Cart products">
                 {cartItems.map((item) => (
@@ -158,6 +216,11 @@ export default function CartPage() {
                     </div>
                     <div className="cart-product-details">
                       <h2>{item.name}</h2>
+                      {item.selectedVariants && Object.keys(item.selectedVariants).length > 0 && (
+                        <span className="cart-product-unit">
+                          {Object.entries(item.selectedVariants).map(([name, value]) => `${name}: ${value}`).join(" · ")}
+                        </span>
+                      )}
                       <span className="cart-product-unit">Rs {item.price.toLocaleString("en-PK")} each</span>
                       <div className="cart-product-controls">
                         <div className="quantity-control" aria-label={`Quantity for ${item.name}`}>

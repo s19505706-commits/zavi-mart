@@ -4,6 +4,7 @@ import { serializeProduct } from "../../../lib/product-response";
 import Product from "../../../models/Product";
 import { filterMockProducts } from "../../../lib/mock-products";
 import { getLocalMarkazProducts } from "../../../lib/local-markaz-products";
+import { cleanCustomerProduct } from "../../../lib/product-codes";
 
 export const runtime = "nodejs";
 
@@ -19,14 +20,14 @@ export async function GET(request: Request) {
       await getLocalMarkazProducts();
       const products = filterMockProducts({ search: query })
         .slice(0, parseLimit(url.searchParams.get("limit")));
-      return Response.json({ products });
+      return Response.json({ products: products.map(cleanCustomerProduct) });
     }
 
     const products = await Product.find({
       title: { $regex: escapeRegex(query), $options: "i" }
     }).sort({ createdAt: -1 }).limit(parseLimit(url.searchParams.get("limit")));
 
-    return Response.json({ products: products.map(serializeProduct) });
+    return Response.json({ products: products.map((product) => serializeProduct(product)) });
   } catch (error) {
     return handleApiError(error, "GET /api/search failed");
   }

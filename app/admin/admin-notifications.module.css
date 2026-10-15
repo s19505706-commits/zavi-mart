@@ -1,0 +1,312 @@
+.adminBar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  min-height: 64px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 20px;
+  padding: 10px max(24px, calc((100% - 1440px) / 2));
+  border-bottom: 1px solid #e2e8f0;
+  background: #fff;
+}
+
+.adminBrand {
+  flex: 0 0 auto;
+  color: #1e3a5f;
+  font-family: var(--font-poppins), sans-serif;
+  font-size: 1rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.adminNav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  margin-left: auto;
+}
+
+.adminNav a {
+  color: #475569;
+  font-size: 0.84rem;
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.adminNav a:hover {
+  color: #1e3a5f;
+}
+
+.adminNav a.adminNavActive {
+  color: #1e3a5f;
+  font-weight: 800;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 6px;
+}
+
+.storeLink {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #fff;
+  color: #1e3a5f;
+  font-size: 0.875rem;
+  font-weight: 650;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.storeLink:hover {
+  background: #f3f4f6;
+}
+
+.bellWrap {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.bellButton {
+  position: relative;
+  display: grid;
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border: 1px solid rgb(255 255 255 / 8%);
+  border-radius: 12px;
+  background: rgb(255 255 255 / 10%);
+  color: #fff;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.bellButton:hover,
+.bellButton[aria-expanded="true"],
+.bellButton.bellActive {
+  background: rgb(255 255 255 / 16%);
+  border-color: rgb(255 255 255 / 16%);
+  box-shadow: none;
+}
+
+.unreadBadge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  display: grid;
+  min-width: 19px;
+  height: 19px;
+  place-items: center;
+  padding: 0 4px;
+  border: 2px solid #fff;
+  border-radius: 999px;
+  background: #dc2626;
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 800;
+}
+
+.popover {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: min(390px, calc(100vw - 24px));
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  border-radius: 13px;
+  background: #fff;
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.2);
+}
+
+.popoverHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid #e2e8f0;
+  color: #1e3a5f;
+}
+
+.popoverHeader button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #1e3a5f;
+  font: inherit;
+  font-size: 0.73rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.popoverHeader button:disabled {
+  color: #94a3b8;
+  cursor: default;
+}
+
+.popoverActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.popoverActions button:first-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.keyControl {
+  display: grid;
+  gap: 5px;
+  padding: 10px 14px;
+  border-bottom: 1px solid #e2e8f0;
+  color: #475569;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.keyControl input {
+  width: 100%;
+  min-height: 34px;
+  padding: 6px 9px;
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  color: #1e293b;
+  font: inherit;
+}
+
+.notificationList {
+  max-height: min(440px, 60vh);
+  overflow-y: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.notificationList li + li {
+  border-top: 1px solid #f1f5f9;
+}
+
+.notificationItem {
+  display: flex;
+  width: 100%;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 13px 15px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.notificationItem:hover {
+  background: #f8fafc;
+}
+
+.notificationUnread {
+  background: #eff6ff;
+}
+
+.notificationIcon {
+  flex: 0 0 auto;
+  padding-top: 1px;
+  font-size: 1.05rem;
+}
+
+.notificationCopy {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: 4px;
+}
+
+.notificationCopy strong {
+  color: #1e3a5f;
+  font-size: 0.82rem;
+}
+
+.notificationCopy > span {
+  color: #475569;
+  font-size: 0.77rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.notificationCopy time {
+  color: #64748b;
+  font-size: 0.69rem;
+}
+
+.unreadDot {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  margin-top: 5px;
+  border-radius: 50%;
+  background: #2563eb;
+}
+
+.noNotifications,
+.popoverError {
+  margin: 0;
+  padding: 20px 16px;
+  color: #64748b;
+  font-size: 0.83rem;
+  text-align: center;
+}
+
+.popoverError {
+  color: #b91c1c;
+}
+
+.viewAll {
+  display: block;
+  padding: 12px 16px;
+  border-top: 1px solid #e2e8f0;
+  color: #1e3a5f;
+  font-size: 0.8rem;
+  font-weight: 750;
+  text-align: center;
+  text-decoration: none;
+}
+
+.viewAll:hover {
+  background: #f8fafc;
+}
+
+@media (max-width: 680px) {
+  .adminBar {
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 10px 14px;
+  }
+
+  .adminBrand {
+    margin-right: auto;
+  }
+
+  .adminNav {
+    order: 3;
+    width: 100%;
+    justify-content: space-between;
+    gap: 8px;
+    margin: 0;
+  }
+
+  .adminNav a {
+    font-size: 0.76rem;
+  }
+}

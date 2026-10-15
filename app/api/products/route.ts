@@ -3,10 +3,60 @@ import { connectToDatabase } from "../../../lib/mongodb";
 import { ApiError, escapeRegex, handleApiError, isRecord, parseLimit, requireAdmin, readJsonBody } from "../../../lib/api-utils";
 import { parseProductInput, slugify } from "../../../lib/product-input";
 import { normalizeCategory } from "../../../lib/product-categories";
-import { filterMockProducts } from "../../../lib/mock-products";
+import { MOCK_PRODUCTS } from "../../../lib/mock-products";
 import { serializeProduct } from "../../../lib/product-response";
 import Product from "../../../models/Product";
 import { getLocalMarkazProducts } from "../../../lib/local-markaz-products";
+import { deleteLocalProduct, getLocalProductStore, getStaticProduct } from "../../../lib/local-products";
+import { cleanCustomerProduct, extractProductCode } from "../../../lib/product-codes";
+import { validateProductClassification } from "../../../lib/department-category-store";
+import { getFlashDeals } from "../../../lib/flash-deals";
+import {
+  archiveDeletedProduct,
+  getProductImportSource,
+  isProductImportSource,
+  logProductDealAdditions,
+  logProductHistory
+} from "../../../lib/product-history";
+
+type ProductListItem = {
+  _id: string;
+  id?: string;
+  title: string;
+  name?: string;
+  slug: string;
+  category: string;
+  price: number;
+  stock: number;
+  isActive?: boolean;
+  isFlashDeal?: boolean;
+  createdAt?: Date | string;
+  [key: string]: unknown;
+};
+
+function mergeProducts(groups: ProductListItem[][]): ProductListItem[] {
+  const merged: ProductListItem[] = [];
+  for (const group of groups) {
+    for (const product of group) {
+      const name = product.title.trim().toLocaleLowerCase();
+      const existingIndex = merged.findIndex((entry) =>
+        entry._id === product._id ||
+        (!!product.id && (entry._id === product.id || entry.id === product.id)) ||
+        entry.title.trim().toLocaleLowerCase() === name
+      );
+      if (existingIndex >= 0) merged.splice(existingIndex, 1);
+      merged.push(product);
+    }
+  }
+  return merged;
+}
+
+function noStoreJson(value: unknown, status = 200): Response {
+  return Response.json(value, {
+    status,
+    headers: { "Cache-Control": "no-store, max-age=0" }
+  });
+}
 
 export const runtime = "nodejs";
 
@@ -14,104 +64,157 @@ export async function GET(request: Request) {
   try {
     const url = new URL(request.url);
     const requestedId = url.searchParams.get("id")?.trim();
+    const includeAdminFields = url.searchParams.get("includeAdminFields") === "true";
+    if (url.searchParams.has("includeAdminFields") &&
+        url.searchParams.get("includeAdminFields") !== "true" &&
+        url.searchParams.get("includeAdminFields") !== "false") {
+      throw new ApiError("includeAdminFields must be true or false.", 400);
+    }
+    if (includeAdminFields) {
+      const authError = requireAdmin(request);
+      if (authError) return authError;
+    }
     const filter: Record<string, unknown> = {};
     const categoryValue = url.searchParams.get("category")?.trim();
+    const departmentId = url.searchParams.get("departmentId")?.trim();
+    const categoryId = url.searchParams.get("categoryId")?.trim();
     const search = url.searchParams.get("search")?.trim();
+    if (departmentId && departmentId.length > 100) {
+      throw new ApiError("departmentId must be 100 characters or fewer.", 400);
+    }
+    if (categoryId && categoryId.length > 100) {
+      throw new ApiError("categoryId must be 100 characters or fewer.", 400);
+    }
+    const newArrivalsOnly = url.searchParams.get("newArrivals");
+    if (newArrivalsOnly && newArrivalsOnly !== "true" && newArrivalsOnly !== "false") {
+      throw new ApiError("newArrivals must be true or false.", 400);
+    }
+    const flashDealsOnly = url.searchParams.get("flashDeals");
+    if (flashDealsOnly && flashDealsOnly !== "true" && flashDealsOnly !== "false") {
+      throw new ApiError("flashDeals must be true or false.", 400);
+    }
 
     if (categoryValue) {
       const category = normalizeCategory(categoryValue);
-      if (!category) throw new ApiError("category must be one of the supported categories.", 400);
+      if (!category) throw new ApiError("category must be a non-empty string of 100 characters or fewer.", 400);
       filter.category = category;
     }
+    if (departmentId) filter.departmentId = departmentId;
+    if (categoryId) filter.categoryId = categoryId;
     if (search) {
       if (search.length > 100) throw new ApiError("search must be 100 characters or fewer.", 400);
       filter.title = { $regex: escapeRegex(search), $options: "i" };
     }
 
-    const flashDeals = url.searchParams.get("flashDeals");
-    if (flashDeals === "true") filter.isFlashDeal = true;
-    else if (flashDeals && flashDeals !== "false") {
-      throw new ApiError("flashDeals must be true or false.", 400);
-    }
+    if (newArrivalsOnly === "true") filter.isNewArrival = true;
 
     const limit = parseLimit(url.searchParams.get("limit"));
+    const rawOffset = url.searchParams.get("offset");
+    const offset = rawOffset === null ? 0 : Number(rawOffset);
+    if (!Number.isSafeInteger(offset) || offset < 0 || offset > 100_000) {
+      throw new ApiError("offset must be a non-negative integer no greater than 100000.", 400);
+    }
     filter.isActive = { $ne: false };
     const connection = await connectToDatabase();
-    if (!connection) {
-      const localProducts = await getLocalMarkazProducts();
-      if (requestedId) {
-        const product = [...localProducts, ...filterMockProducts({})].find((entry) =>
-          entry._id === requestedId || entry.id === requestedId || entry.slug === requestedId
-        );
-        return product
-          ? Response.json({ product })
-          : Response.json({ error: "Product not found." }, { status: 404 });
-      }
-      const products = filterMockProducts({
-        category: filter.category as string | undefined,
-        search,
-        flashDeals: filter.isFlashDeal === true
-      }).filter((product) => product.isActive !== false).slice(0, limit);
-      return Response.json({
-        products,
-        usingDefaultAdminKey: !process.env.ZAVIMART_ADMIN_API_KEY?.trim() && !process.env.ADMIN_API_KEY?.trim(),
-        usingDemoMode: !process.env.MONGODB_URI?.trim()
-      });
-    }
-
-    if (requestedId) {
-      const [product, localProducts] = await Promise.all([
-        mongoose.isValidObjectId(requestedId)
-          ? Product.findOne({ _id: requestedId, isActive: { $ne: false } })
-          : Product.findOne({ slug: requestedId, isActive: { $ne: false } }),
-        getLocalMarkazProducts()
-      ]);
-      if (product) return Response.json({ product: serializeProduct(product) });
-      const localProduct = [...localProducts, ...filterMockProducts({})].find((entry) =>
-        entry._id === requestedId || entry.id === requestedId || entry.slug === requestedId
+    if (connection && !requestedId) {
+      await Product.updateMany(
+        { $or: [{ ratings: 0 }, { ratings: { $exists: false } }] },
+        { $set: { ratings: 4.5, reviews: 100 } }
       );
-      return localProduct
-        ? Response.json({ product: localProduct })
-        : Response.json({ error: "Product not found." }, { status: 404 });
     }
 
-    await Product.updateMany(
-      {
-        $or: [{ ratings: 0 }, { ratings: { $exists: false } }]
-      },
-      { $set: { ratings: 4.5, reviews: 100 } }
-    );
-
-    const [products, localProducts] = await Promise.all([
-      Product.find(filter).sort({ createdAt: -1 }).limit(limit),
-      getLocalMarkazProducts()
+    const [store, localMarkazProducts, databaseProducts] = await Promise.all([
+      getLocalProductStore(),
+      getLocalMarkazProducts(),
+      connection
+        ? requestedId
+          ? mongoose.isValidObjectId(requestedId)
+            ? Product.findOne({ _id: requestedId, isActive: { $ne: false } })
+            : Product.findOne({ slug: requestedId, isActive: { $ne: false } })
+          : Product.find(filter).sort({ createdAt: -1 })
+        : Promise.resolve([])
     ]);
-    const filteredLocalProducts = localProducts.filter((product) =>
+    const databaseList = Array.isArray(databaseProducts)
+      ? databaseProducts.map((product): ProductListItem => serializeProduct(product, includeAdminFields))
+      : databaseProducts
+        ? [serializeProduct(databaseProducts, includeAdminFields) as ProductListItem]
+        : [];
+    const catalogProducts = mergeProducts([
+      MOCK_PRODUCTS as ProductListItem[],
+      localMarkazProducts,
+      store.products,
+      databaseList
+    ]);
+    const now = Date.now();
+    const activeFlashProductIds = flashDealsOnly === "true"
+      ? new Set((await getFlashDeals()).filter((deal) =>
+        deal.isActive && Date.parse(deal.startTime) <= now && Date.parse(deal.endTime) > now &&
+        deal.soldCount < deal.stockLimit
+      ).flatMap((deal) => [deal.productId, deal.productName.trim().toLocaleLowerCase()]))
+      : null;
+    const allProducts = catalogProducts.filter((product) =>
       product.isActive !== false &&
+      !store.deletedIds.includes(product._id) &&
+      (!departmentId || product.departmentId === departmentId) &&
+      (!categoryId || product.categoryId === categoryId) &&
       (!filter.category || product.category === filter.category) &&
       (!search || product.title.toLocaleLowerCase().includes(search.toLocaleLowerCase())) &&
-      (filter.isFlashDeal !== true || product.isFlashDeal)
+      (newArrivalsOnly !== "true" || product.isNewArrival === true) &&
+      (!activeFlashProductIds || activeFlashProductIds.has(product._id) ||
+        (!!product.id && activeFlashProductIds.has(product.id)) ||
+        activeFlashProductIds.has(product.title.trim().toLocaleLowerCase()))
     );
-    const mergedProducts = [
-      ...products.map(serializeProduct),
-      ...filteredLocalProducts
-    ].sort((left, right) =>
-      new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime()
-    ).slice(0, limit);
-    return Response.json({
-      products: mergedProducts,
-      usingDefaultAdminKey: !process.env.ZAVIMART_ADMIN_API_KEY?.trim() && !process.env.ADMIN_API_KEY?.trim(),
+
+    if (requestedId) {
+      const product = allProducts.find((entry) =>
+        entry._id === requestedId || entry.id === requestedId || entry.slug === requestedId
+      );
+      return product
+        ? noStoreJson({
+          product: includeAdminFields
+            ? {
+              ...product,
+              productCode: product.productCode || product.markazCode || product.supplierCode ||
+                extractProductCode(typeof product.originalDescription === "string"
+                  ? product.originalDescription
+                  : typeof product.description === "string" ? product.description : ""),
+              markazCode: product.markazCode || product.productCode || product.supplierCode || null,
+              supplierCode: product.supplierCode || product.productCode || product.markazCode || null
+            }
+            : cleanCustomerProduct(product)
+        })
+        : noStoreJson({ error: "Product not found." }, 404);
+    }
+
+    const mergedProducts = allProducts.sort((left, right) =>
+      new Date(String(right.createdAt ?? 0)).getTime() - new Date(String(left.createdAt ?? 0)).getTime()
+    ).slice(offset, offset + limit);
+    return noStoreJson({
+      products: includeAdminFields
+        ? mergedProducts.map((product) => ({
+          ...product,
+          productCode: product.productCode || product.markazCode || product.supplierCode ||
+            extractProductCode(typeof product.originalDescription === "string"
+              ? product.originalDescription
+              : typeof product.description === "string" ? product.description : ""),
+          markazCode: product.markazCode || product.productCode || product.supplierCode || null,
+          supplierCode: product.supplierCode || product.productCode || product.markazCode || null
+        }))
+        : mergedProducts.map((product) => cleanCustomerProduct(product)),
+      usingDefaultAdminKey: !process.env.ADMIN_KEY?.trim() && !process.env.ADMIN_ACCESS_KEY?.trim(),
       usingDemoMode: !process.env.MONGODB_URI?.trim()
     });
   } catch (error) {
-    return handleApiError(error, "GET /api/products failed");
+    const response = handleApiError(error, "GET /api/products failed");
+    response.headers.set("Cache-Control", "no-store, max-age=0");
+    return response;
   }
 }
 
 export async function POST(request: Request) {
   try {
     const body = await readJsonBody(request);
-    const authError = requireAdmin(request, "zavi123", isRecord(body) ? body.adminKey : undefined);
+    const authError = requireAdmin(request, undefined, isRecord(body) ? body.adminKey : undefined);
     if (authError) return authError;
 
     if (!isRecord(body)) throw new ApiError("Product data must be a JSON object.", 400);
@@ -128,7 +231,17 @@ export async function POST(request: Request) {
       ? body.category
       : "General";
     const category = normalizeCategory(categoryValue);
-    if (!category) throw new ApiError("category must be one of the supported categories.", 400);
+    if (!category) throw new ApiError("category must be a non-empty string of 100 characters or fewer.", 400);
+    const sourceValue = body.importSource ?? body.source;
+    if (sourceValue !== undefined && !isProductImportSource(sourceValue)) {
+      throw new ApiError("source must be manual, local, markaz, csv, json, aliexpress, or bulk-import.", 400);
+    }
+    const source = isProductImportSource(sourceValue) ? sourceValue : "manual";
+    if (body.sourceFileName !== undefined &&
+        (typeof body.sourceFileName !== "string" || !body.sourceFileName.trim() || body.sourceFileName.length > 255)) {
+      throw new ApiError("sourceFileName must be a non-empty string of 255 characters or fewer.", 400);
+    }
+    const sourceFileName = typeof body.sourceFileName === "string" ? body.sourceFileName.trim() : undefined;
     const originalPrice = body.originalPrice === undefined || body.originalPrice === null || body.originalPrice === ""
       ? price * 1.3
       : Number(body.originalPrice);
@@ -138,6 +251,12 @@ export async function POST(request: Request) {
     const supplierPrice = body.supplierPrice === undefined || body.supplierPrice === null || body.supplierPrice === ""
       ? undefined
       : Number(body.supplierPrice);
+    const costPrice = body.costPrice === undefined || body.costPrice === null || body.costPrice === ""
+      ? supplierPrice ?? price * 0.7
+      : Number(body.costPrice);
+    if (!Number.isFinite(costPrice) || costPrice < 0) {
+      throw new ApiError("costPrice must be a non-negative number.", 400);
+    }
     const normalizedInput: Record<string, unknown> = {
       title: name,
       price,
@@ -147,10 +266,26 @@ export async function POST(request: Request) {
       images,
       description: typeof body.description === "string" ? body.description : name
     };
-    for (const key of ["isFlashDeal", "isFeatured", "ratings"] as const) {
+    for (const key of ["departmentId", "categoryId"] as const) {
+      if (key in body) normalizedInput[key] = body[key];
+    }
+    for (const key of ["markazProductId", "markazProductUrl"] as const) {
+      if (key in body) normalizedInput[key] = body[key];
+    }
+    for (const key of [
+      "isFlashDeal",
+      "isHotDeal",
+      "flashDealDiscount",
+      "flashDealExpiry",
+      "hotDealLabel",
+      "isFeatured",
+      "isNewArrival",
+      "ratings"
+    ] as const) {
       if (key in body) normalizedInput[key] = body[key];
     }
     const input = parseProductInput(normalizedInput);
+    await validateProductClassification(input);
     const title = input.title!;
     const connection = await connectToDatabase();
     if (!connection) {
@@ -177,19 +312,31 @@ export async function POST(request: Request) {
     const supplierUrl = typeof body.supplierUrl === "string" && body.supplierUrl.trim()
       ? body.supplierUrl.trim()
       : undefined;
-    const isSupplierProduct = body.isMarkazProduct === true || !!supplierId || !!supplierUrl || supplierPrice !== undefined;
+    const isSupplierProduct = body.isMarkazProduct === true || !!supplierId || !!supplierUrl ||
+      supplierPrice !== undefined || Boolean(input.markazProductUrl);
+    if (body.isDropship !== undefined && typeof body.isDropship !== "boolean") {
+      throw new ApiError("isDropship must be a boolean.", 400);
+    }
     const product = await Product.create({
       ...input,
+      costPrice,
       slug,
       isActive: true,
+      importSource: source,
       isMarkazProduct: isSupplierProduct,
+      isDropship: body.isDropship === true || Boolean(input.markazProductUrl),
       ...(supplierPrice !== undefined
         ? { wholesalePrice: supplierPrice, sellingPrice: input.price, profit: input.price! - supplierPrice }
         : {}),
       ...(supplierId ? { markazProductId: supplierId } : {}),
-      ...(supplierUrl ? { supplier: { name: "Supplier", productUrl: supplierUrl, info: "" } } : {})
+      ...(supplierUrl || input.markazProductUrl
+        ? { supplier: { name: "Supplier", productUrl: supplierUrl ?? input.markazProductUrl, info: "" } }
+        : {})
     });
-    return Response.json({ product: serializeProduct(product) }, { status: 201 });
+    const serializedProduct = serializeProduct(product, true);
+    await logProductHistory(source === "manual" ? "created" : "imported", serializedProduct, source, sourceFileName);
+    await logProductDealAdditions(serializedProduct, undefined, source);
+    return Response.json({ product: serializedProduct }, { status: 201 });
   } catch (error) {
     return handleApiError(error, "POST /api/products failed");
   }
@@ -198,7 +345,7 @@ export async function POST(request: Request) {
 export async function PATCH(request: Request) {
   try {
     const body = await readJsonBody(request);
-    const authError = requireAdmin(request, "zavi123", isRecord(body) ? body.adminKey : undefined);
+    const authError = requireAdmin(request, undefined, isRecord(body) ? body.adminKey : undefined);
     if (authError) return authError;
     if (!isRecord(body) || typeof body._id !== "string" || !mongoose.isValidObjectId(body._id)) {
       throw new ApiError("A valid product ID is required.", 400);
@@ -208,17 +355,24 @@ export async function PATCH(request: Request) {
     delete updateData._id;
     delete updateData.adminKey;
     const updates = parseProductInput(updateData, true);
+    await validateProductClassification(updates);
     const connection = await connectToDatabase();
     if (!connection) {
       throw new ApiError("MONGODB_URI missing. Add it to .env.local file", 500);
     }
 
+    const previousProduct = updates.isFlashDeal === true || updates.isHotDeal === true
+      ? await Product.findById(body._id)
+      : null;
     const product = await Product.findByIdAndUpdate(body._id, updates, {
       new: true,
       runValidators: true
     });
     if (!product) return Response.json({ error: "Product not found." }, { status: 404 });
-    return Response.json({ product: serializeProduct(product) });
+    const serializedProduct = serializeProduct(product, true);
+    await logProductHistory("updated", serializedProduct, getProductImportSource(serializedProduct));
+    await logProductDealAdditions(serializedProduct, previousProduct, getProductImportSource(serializedProduct));
+    return Response.json({ product: serializedProduct });
   } catch (error) {
     return handleApiError(error, "PATCH /api/products failed");
   }
@@ -236,12 +390,23 @@ export async function DELETE(request: Request) {
 
   try {
     const connection = await connectToDatabase();
-    if (!connection) {
-      throw new ApiError("MONGODB_URI missing. Add it to .env.local file", 500);
+    const product = connection ? await Product.findById(id) : null;
+    const [store, localMarkazProducts] = await Promise.all([getLocalProductStore(), getLocalMarkazProducts()]);
+    const localProduct = store.deletedIds.includes(id)
+      ? undefined
+      : store.products.find((entry) => entry._id === id || entry.id === id) ??
+        localMarkazProducts.find((entry) => entry._id === id || entry.id === id) ??
+        getStaticProduct(id);
+    if ((!product || product.isActive === false) && !localProduct) {
+      return Response.json({ error: "Product not found." }, { status: 404 });
     }
-
-    const product = await Product.findByIdAndDelete(id);
-    if (!product) return Response.json({ error: "Product not found." }, { status: 404 });
+    const snapshot = product ? serializeProduct(product, true) : localProduct;
+    if (!snapshot) return Response.json({ error: "Product not found." }, { status: 404 });
+    const source = getProductImportSource(snapshot);
+    await archiveDeletedProduct(snapshot);
+    await logProductHistory("deleted", snapshot, source);
+    if (product) await Product.findByIdAndUpdate(id, { isActive: false });
+    await deleteLocalProduct(id);
     return Response.json({ success: true, id });
   } catch (error) {
     return handleApiError(error, "DELETE /api/products failed");
