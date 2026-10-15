@@ -4,12 +4,35 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { LEGACY_PRODUCT_NAMES } from "../legacy-product-names";
-import MarkazFulfillmentKit, { type FulfillmentOrder } from "./MarkazFulfillmentKit";
+import fulfillmentStyles from "./markaz-fulfillment.module.css";
 import styles from "./order.module.css";
 
-type OrderDetails = FulfillmentOrder & {
+type OrderDetails = {
+  orderId: string;
   status: string;
   date: string;
+  customerName: string;
+  customerPhone: string;
+  customerAlternatePhone: string;
+  customerEmail: string;
+  customerAddress: string;
+  customerCity: string;
+  customerAreaSector: string;
+  customerStreetAddress: string;
+  total: number;
+  profit: number;
+  sellingPrice: number;
+  purchasePrice: number;
+  products: Array<{
+    productId: string;
+    name: string;
+    qty: number;
+    price: number;
+    profit: number;
+    costPrice: number;
+    markazProductId: string;
+    markazProductUrl: string;
+  }>;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -21,6 +44,20 @@ function catalogIdForLegacyProduct(id: string): string {
   return Number(id).toString(16).padStart(24, "0");
 }
 
+function isMarkazUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    const hostname = url.hostname.toLocaleLowerCase();
+    const isMarkazHost = hostname === "markaz" ||
+      hostname.startsWith("markaz.") ||
+      hostname.endsWith(".markaz") ||
+      hostname.includes(".markaz.");
+    return ["https:", "http:"].includes(url.protocol) && isMarkazHost;
+  } catch {
+    return false;
+  }
+}
+
 export default function AdminOrderDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const [order, setOrder] = useState<OrderDetails | null>(null);
@@ -28,6 +65,10 @@ export default function AdminOrderDetailsPage() {
   const [error, setError] = useState("");
   const [deliveryError, setDeliveryError] = useState("");
   const [savingDelivered, setSavingDelivered] = useState(false);
+  const [linkDrafts, setLinkDrafts] = useState<Record<string, string>>({});
+  const [savingKey, setSavingKey] = useState("");
+  const [fulfillmentMessage, setFulfillmentMessage] = useState("");
+  const [fulfillmentError, setFulfillmentError] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -251,6 +292,96 @@ export default function AdminOrderDetailsPage() {
     }
   }
 
+  async function copyCustomerField(label: string, value: string) {
+    setFulfillmentError("");
+    setFulfillmentMessage("");
+    try {
+      await navigator.clipboard.writeText(value);
+    } catch {
+      setFulfillmentError(`Could not copy ${label.toLocaleLowerCase()}. Please copy it manually.`);
+      return;
+    }
+
+    if (label === "Street / Full Address" && order?.status === "pending") {
+      try {
+        const response = await fetch(`/api/orders/${encodeURIComponent(order.orderId)}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            "x-admin-key": ""
+          },
+          body: JSON.stringify({ status: "processing" })
+        });
+        const result: unknown = await response.json();
+        if (!response.ok) {
+          throw new Error(isRecord(result) && typeof result.error === "string"
+            ? result.error
+            : "Could not update the order status.");
+        }
+        setOrder((current) => current ? { ...current, status: "processing" } : current);
+        setFulfillmentMessage("Street / Full Address Copied. Order status updated to processing.");
+      } catch (statusError) {
+        setFulfillmentError(statusError instanceof Error
+          ? `Address copied, but status could not be updated: ${statusError.message}`
+          : "Address copied, but status could not be updated.");
+      }
+      return;
+    }
+
+    setFulfillmentMessage(`${label} Copied.`);
+  }
+
+  async function saveMarkazLink(index: number, product: OrderDetails["products"][number]) {
+    const key = `${product.productId}-${index}`;
+    const markazProductUrl = (linkDrafts[key] ?? product.markazProductUrl).trim();
+    if (!isMarkazUrl(markazProductUrl)) {
+      setFulfillmentError("Enter a valid URL from a Markaz domain.");
+      setFulfillmentMessage("");
+      return;
+    }
+    if (!product.productId) {
+      setFulfillmentError("This order item has no product ID, so its Markaz link cannot be saved to the catalog.");
+      setFulfillmentMessage("");
+      return;
+    }
+
+    setSavingKey(key);
+    setFulfillmentError("");
+    setFulfillmentMessage("");
+    try {
+      const response = await fetch(`/api/products/${encodeURIComponent(product.productId)}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-key": ""
+        },
+        body: JSON.stringify({
+          markazProductId: product.markazProductId || null,
+          markazProductUrl
+        })
+      });
+      const result: unknown = await response.json();
+      if (!response.ok) {
+        throw new Error(isRecord(result) && typeof result.error === "string"
+          ? result.error
+          : "Could not save the Markaz product link.");
+      }
+      setOrder((current) => current ? {
+        ...current,
+        products: current.products.map((entry, entryIndex) =>
+          entryIndex === index ? { ...entry, markazProductUrl } : entry
+        )
+      } : current);
+      setFulfillmentMessage(`Saved Markaz link for ${product.name}.`);
+    } catch (saveError) {
+      setFulfillmentError(saveError instanceof Error
+        ? saveError.message
+        : "Could not save the Markaz product link.");
+    } finally {
+      setSavingKey("");
+    }
+  }
+
   return (
     <main className={`${styles.page} admin-content`}>
       <Link href="/admin/orders" className={styles.backLink}>← Back to orders</Link>
@@ -305,13 +436,121 @@ export default function AdminOrderDetailsPage() {
               </ul>
             ) : <p>No product details are available for this order.</p>}
           </section>
-          <MarkazFulfillmentKit
-            key={order.orderId}
-            order={order}
-            onStatusChange={(status) => setOrder((current) =>
-              current ? { ...current, status } : current
-            )}
-          />
+          <aside className={fulfillmentStyles.panel} aria-labelledby="markaz-fulfillment-heading">
+            <header className={fulfillmentStyles.header}>
+              <span className={fulfillmentStyles.eyebrow}>Fulfill this order</span>
+              <h2 id="markaz-fulfillment-heading">🚀 Markaz Fulfillment Kit</h2>
+              <p>Open each mapped item and paste the customer details to place the order.</p>
+            </header>
+
+            <section className={fulfillmentStyles.autoPlaceSection} aria-label="Automatic Markaz order placement">
+              <button className={`${fulfillmentStyles.primaryButton} ${fulfillmentStyles.autoPlaceUnavailable}`} type="button" disabled>
+                🚀 Auto Place in Markaz (Not configured)
+              </button>
+              <p>Automatic placement requires a verified Markaz seller API and server credentials. Use the manual copy fields below.</p>
+            </section>
+
+            <section className={fulfillmentStyles.productSection} aria-labelledby="markaz-products-heading">
+              <h3 id="markaz-products-heading">Products</h3>
+              {order.products.length ? order.products.map((product, index) => {
+                const key = `${product.productId}-${index}`;
+                const productUrl = isMarkazUrl(product.markazProductUrl) ? product.markazProductUrl : "";
+                const searchUrl = `https://www.markaz.app/search?${new URLSearchParams({ q: product.name })}`;
+                return (
+                  <article className={fulfillmentStyles.product} key={key}>
+                    <div className={fulfillmentStyles.productHeading}>
+                      <strong>{product.name}</strong>
+                      <span>Qty {product.qty}</span>
+                    </div>
+                    {product.markazProductId && <small>Markaz ID: {product.markazProductId}</small>}
+                    {productUrl ? (
+                      <a className={fulfillmentStyles.openLink} href={productUrl} target="_blank" rel="noreferrer">
+                        Open in Markaz App
+                      </a>
+                    ) : (
+                      <>
+                        <p className={fulfillmentStyles.warning}>Markaz link not set - fulfillment will be slow.</p>
+                        <label className={fulfillmentStyles.linkInput}>
+                          <span>Markaz Product Link</span>
+                          <input
+                            type="url"
+                            value={linkDrafts[key] ?? ""}
+                            onChange={(event) => setLinkDrafts((current) => ({
+                              ...current,
+                              [key]: event.target.value
+                            }))}
+                            placeholder="https://markaz.app.link/product/..."
+                          />
+                        </label>
+                        <div className={fulfillmentStyles.productActions}>
+                          <button
+                            className={fulfillmentStyles.primaryButton}
+                            type="button"
+                            disabled={savingKey === key}
+                            onClick={() => void saveMarkazLink(index, product)}
+                          >
+                            {savingKey === key ? "Saving..." : "Save Markaz Link"}
+                          </button>
+                          <a className={fulfillmentStyles.searchLink} href={searchUrl} target="_blank" rel="noreferrer">
+                            Search on Markaz
+                          </a>
+                        </div>
+                      </>
+                    )}
+                  </article>
+                );
+              }) : <p className={fulfillmentStyles.muted}>No order items are available.</p>}
+            </section>
+
+            <section className={fulfillmentStyles.copySection} aria-labelledby="markaz-copy-heading">
+              <h3 id="markaz-copy-heading">Copy for Markaz - one field at a time</h3>
+              <div className={fulfillmentStyles.copyFields}>
+                {[
+                  { label: "Full Name", value: order.customerName },
+                  { label: "Phone Number", value: order.customerPhone },
+                  { label: "City", value: order.customerCity },
+                  { label: "Area / Sector", value: order.customerAreaSector },
+                  { label: "Street / Full Address", value: order.customerStreetAddress || order.customerAddress }
+                ].map(({ label, value }) => (
+                  <div className={fulfillmentStyles.copyField} key={label}>
+                    <div className={fulfillmentStyles.copyFieldValue}>
+                      <span>{label}</span>
+                      <strong>{value || "—"}</strong>
+                    </div>
+                    <button
+                      className={fulfillmentStyles.copyFieldButton}
+                      type="button"
+                      disabled={!value}
+                      onClick={() => void copyCustomerField(label, value)}
+                    >
+                      Copy
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <div className={fulfillmentStyles.profitSummary}>
+                <div className={fulfillmentStyles.profitCard}>
+                  <div className={fulfillmentStyles.profitDetails}>
+                    <span>💰 Aapka Profit (Is Order Par)</span>
+                    <strong>Rs {order.profit.toLocaleString("en-PK")}</strong>
+                    <small>
+                      Sale: Rs {order.sellingPrice.toLocaleString("en-PK")} - Cost: Rs {order.purchasePrice.toLocaleString("en-PK")}
+                    </small>
+                  </div>
+                  <span className={fulfillmentStyles.profitBadge}>Profit</span>
+                </div>
+              </div>
+              <ol className={fulfillmentStyles.guide}>
+                <li>Select the city: <strong>{order.customerCity || "—"}</strong>.</li>
+                <li>Search for and select the area: <strong>{order.customerAreaSector || "—"}</strong>.</li>
+                <li>Paste the name, phone number, and street address into their separate fields.</li>
+              </ol>
+              <p className={fulfillmentStyles.copyNote}>Copy and paste each customer field separately in Markaz.</p>
+            </section>
+
+            {fulfillmentError && <p className={fulfillmentStyles.error} role="alert">{fulfillmentError}</p>}
+            {fulfillmentMessage && <p className={fulfillmentStyles.success} role="status">{fulfillmentMessage}</p>}
+          </aside>
         </div>
       ) : null}
     </main>
