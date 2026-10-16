@@ -9,7 +9,7 @@ Checkout includes an optional delivery map. The customer explicitly requests an 
 - Node.js 20 or newer and npm
 - A Safepay merchant account with sandbox credentials
 - A Meta WhatsApp Business app with Cloud API access, a sender phone-number ID, and an approved order-update template
-- A publicly reachable HTTPS URL for Safepay's webhook callback when testing outside localhost
+- A publicly reachable HTTPS URL for Safepay's webhook callback when testing outside your local environment
 
 ## Run locally
 
@@ -17,7 +17,7 @@ Checkout includes an optional delivery map. The customer explicitly requests an 
 2. Add your Safepay sandbox API key, v1 secret, and webhook secret to `.env`. Set `EASYPAISA_ACCOUNT_NUMBER` to the Easypaisa receiving number customers should pay. Keep `.env` private and never commit it.
 3. For automatic WhatsApp order summaries, set `WHATSAPP_CLOUD_API_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, and `WHATSAPP_ADMIN_NUMBER` in `.env`. Create and approve a WhatsApp message template named by `WHATSAPP_ORDER_TEMPLATE`; it must have twelve body placeholders in this order: order ID, order/payment status, customer name, customer email, customer phone, delivery address, delivery map link, item names/quantities/unit prices/line totals, subtotal, shipping, grand total, and payment method/Easypaisa reference. Match `WHATSAPP_TEMPLATE_LANGUAGE` to its approved language.
 4. Install dependencies with `npm install`.
-5. Start the payment backend with `npm run dev:backend` and the Next.js app with `npm run dev` in separate terminals. The backend uses `NEXT_APP_URL` (default `http://localhost:3001`) to validate imported product prices, stock, and required variant selections. Open `http://localhost:3001`.
+5. Set `NEXT_APP_URL` to the storefront origin and `APP_BASE_URL` to the payment backend origin in your local environment. Start the payment backend with `npm run dev:backend` and the Next.js app with `npm run dev` in separate terminals. The backend uses `NEXT_APP_URL` to validate imported product prices, stock, and required variant selections; open the storefront URL printed by the Next.js development server.
 6. For local webhook testing, expose port 4242 using a trusted HTTPS tunnel and set `APP_BASE_URL` to that HTTPS URL.
 7. In the Safepay merchant dashboard, configure the webhook URL as `https://YOUR_PUBLIC_HOST/api/payments/safepay/webhook` and enable payment status events.
 

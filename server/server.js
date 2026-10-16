@@ -14,8 +14,8 @@ const orderCountersPath = join(dataDirectory, "order-counters.json");
 const shippingSettingsPath = join(dataDirectory, "shipping.json");
 const app = express();
 const port = Number(process.argv[2] || process.env.PORT || 4242);
-const appBaseUrl = process.env.APP_BASE_URL || `http://localhost:${port}`;
-const nextAppUrl = process.env.NEXT_APP_URL || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3001";
+const appBaseUrl = process.env.APP_BASE_URL || "";
+const nextAppUrl = process.env.NEXT_APP_URL || process.env.NEXT_PUBLIC_APP_URL || "";
 const defaultShippingSettings = {
   freeDeliveryEnabled: true,
   minAmountForFree: 2999,
@@ -322,6 +322,9 @@ app.post("/api/checkout", async (request, response) => {
     return response.status(503).json({
       error: "Online payments are not configured. Add Safepay credentials to the server environment."
     });
+  }
+  if (paymentMethod === "safepay" && !appBaseUrl) {
+    return response.status(503).json({ error: "Hosted checkout requires APP_BASE_URL to be configured." });
   }
   if (paymentMethod === "easypaisa" && !easypaisaAccountNumber) {
     return response.status(503).json({ error: "Easypaisa transfers are not configured." });
@@ -781,7 +784,6 @@ async function start() {
   }
 
   app.listen(port, () => {
-    console.log(`ZaviMart server running at ${appBaseUrl}`);
     if (!safepay) console.warn("Safepay keys are missing; payment initiation is disabled.");
   });
 }

@@ -172,10 +172,6 @@ export default function HomePage() {
       if (!cancelled) {
         setDepartments(loadedDepartments);
         setDepartmentCategories(loadedCategories);
-        console.log("Loaded storefront departments and linked categories.", {
-          departments: loadedDepartments.length,
-          categories: loadedCategories.length
-        });
       }
     })
       .catch((error: unknown) => {

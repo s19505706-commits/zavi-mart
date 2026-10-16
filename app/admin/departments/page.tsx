@@ -352,7 +352,7 @@ export default function DepartmentsPage() {
                 <thead><tr><th>Image</th><th>Name</th><th>Slug</th><th>Total Categories</th><th>Total Products</th><th>Status</th><th>Actions</th></tr></thead>
                 <tbody>{visibleDepartments.map((department) => (
                   <tr key={department.id}>
-                    <td>{department.image ? <img className={styles.categoryImage} src={department.image} alt="" /> : <span className={styles.imagePlaceholder}>—</span>}</td>
+                    <td>{department.image ? <img className={styles.categoryImage} src={department.image} alt="" loading="lazy" /> : <span className={styles.imagePlaceholder}>—</span>}</td>
                     <td><strong>{department.name}</strong>{department.description && <small>{department.description}</small>}</td>
                     <td><code>{department.slug}</code></td>
                     <td>{department.totalCategories}</td>
@@ -374,7 +374,7 @@ export default function DepartmentsPage() {
               <thead><tr><th>Image</th><th>Category Name</th><th>Slug</th><th>Parent Department</th><th>Products Count</th><th>Status</th><th>Actions</th></tr></thead>
               <tbody>{visibleCategories.map((category) => (
                 <tr key={category.id}>
-                  <td>{category.image ? <img className={styles.categoryImage} src={category.image} alt="" /> : <span className={styles.imagePlaceholder}>—</span>}</td>
+                  <td>{category.image ? <img className={styles.categoryImage} src={category.image} alt="" loading="lazy" /> : <span className={styles.imagePlaceholder}>—</span>}</td>
                   <td><strong>{category.name}</strong>{category.description && <small>{category.description}</small>}</td>
                   <td><code>{category.slug}</code></td>
                   <td><span className={styles.departmentBadge}>{departments.find((entry) => entry.id === category.departmentId)?.name ?? "Department"}</span></td>
@@ -423,7 +423,7 @@ export default function DepartmentsPage() {
                 Image URL or upload
                 <input type="url" value={form.image.startsWith("data:") ? "" : form.image} onChange={(event) => setForm((current) => ({ ...current, image: event.target.value }))} placeholder="https://example.com/image.jpg" />
                 <input type="file" accept="image/*" onChange={handleImageUpload} />
-                {form.image && <img className={styles.imagePreview} src={form.image} alt="Preview" />}
+                {form.image && <img className={styles.imagePreview} src={form.image} alt="Preview" loading="lazy" />}
               </label>
               <label className={styles.fullWidth}>
                 Description

@@ -1,26 +1,23 @@
 "use client";
 
-import Image from "next/image";
-import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import type { SearchSuggestionProduct } from "./SearchSuggestionList";
 
-type SearchProduct = {
-  _id: string;
-  title: string;
-  price: number;
-  image: string;
-  category: string;
-};
+const SearchSuggestionList = dynamic(() => import("./SearchSuggestionList"), {
+  ssr: false,
+  loading: () => <div className="search-suggestions"><p className="search-suggestions-status">Searching products…</p></div>
+});
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function parseProducts(value: unknown): SearchProduct[] {
+function parseProducts(value: unknown): SearchSuggestionProduct[] {
   if (!Array.isArray(value)) return [];
-  return value.flatMap((item): SearchProduct[] =>
+  return value.flatMap((item): SearchSuggestionProduct[] =>
     isRecord(item) && typeof item._id === "string" && typeof item.title === "string" &&
       typeof item.price === "number" && typeof item.category === "string"
       ? [{
@@ -43,7 +40,7 @@ export default function StoreSearch({
 }) {
   const router = useRouter();
   const container = useRef<HTMLFormElement>(null);
-  const [suggestions, setSuggestions] = useState<SearchProduct[]>([]);
+  const [suggestions, setSuggestions] = useState<SearchSuggestionProduct[]>([]);
   const [focused, setFocused] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -140,37 +137,14 @@ export default function StoreSearch({
         />
       </label>
       {showSuggestions && (
-        <div className="search-suggestions" id="store-search-suggestions" role="listbox" aria-label="Product suggestions">
-          {loading && <p className="search-suggestions-status" role="status">Searching products…</p>}
-          {!loading && error && <p className="search-suggestions-status" role="status">{error}</p>}
-          {!loading && !error && suggestions.map((product, index) => (
-            <Link
-              className={`search-suggestion ${activeIndex === index ? "is-active" : ""}`}
-              href={`/product/${encodeURIComponent(product._id)}`}
-              role="option"
-              aria-selected={activeIndex === index}
-              key={product._id}
-              onClick={() => setFocused(false)}
-            >
-              {product.image
-                ? <Image src={product.image} alt="" width={48} height={48} unoptimized />
-                : <span className="search-suggestion-placeholder" aria-hidden="true" />}
-              <span className="search-suggestion-copy">
-                <strong>{product.title}</strong>
-                <small>{product.category}</small>
-              </span>
-              <strong className="search-suggestion-price">Rs {product.price.toLocaleString("en-PK")}</strong>
-            </Link>
-          ))}
-          {!loading && !error && suggestions.length === 0 && (
-            <p className="search-suggestions-status" role="status">No matching products found.</p>
-          )}
-          {!loading && suggestions.length > 0 && (
-            <button className="search-all-results" type="submit">
-              View all results for “{query}”
-            </button>
-          )}
-        </div>
+        <SearchSuggestionList
+          loading={loading}
+          error={error}
+          suggestions={suggestions}
+          activeIndex={activeIndex}
+          query={query}
+          onSelect={() => setFocused(false)}
+        />
       )}
     </form>
   );

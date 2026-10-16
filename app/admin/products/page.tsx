@@ -910,6 +910,7 @@ export default function AdminPage() {
                     alt="New product preview"
                     width={160}
                     height={160}
+                    loading="lazy"
                     style={{ objectFit: "contain", borderRadius: 8, background: "#f8fafc" }}
                   />
                 </div>
@@ -1129,6 +1130,7 @@ export default function AdminPage() {
                     alt="New product image preview"
                     width={160}
                     height={160}
+                    loading="lazy"
                     style={{ objectFit: "contain", borderRadius: 8, background: "#f8fafc" }}
                   />
                 )}

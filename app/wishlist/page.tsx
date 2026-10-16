@@ -43,10 +43,11 @@ export default function WishlistPage() {
       </header>
       {!ready ? <p role="status">Loading your wishlist…</p> : products.length ? (
         <div className="department-product-grid">
-          {products.map((product) => (
+          {products.map((product, index) => (
             <ProductCard
               key={product.id}
               product={product}
+              priority={index < 4}
               onAddToCart={() => router.push(product.href ?? `/product/${encodeURIComponent(product.id)}`)}
               actionLabel="View product"
             />

@@ -393,7 +393,7 @@ export default function FlashDealsPage() {
                       <td>
                         <div className={dealStyles.productCell}>
                           {deal.productImage
-                            ? <img src={deal.productImage} alt="" />
+                            ? <img src={deal.productImage} alt="" loading="lazy" />
                             : <span className={styles.imagePlaceholder}>—</span>}
                           <div><strong>{deal.productName}</strong><small>{deal.badgeText} · {deal.discountPercent}% OFF</small></div>
                         </div>
@@ -457,7 +457,7 @@ export default function FlashDealsPage() {
               </label>
               {selectedProduct && (
                 <div className={`${dealStyles.selectedProduct} ${styles.fullWidth}`}>
-                  {selectedProduct.image && <img src={selectedProduct.image} alt="" />}
+                  {selectedProduct.image && <img src={selectedProduct.image} alt="" loading="lazy" />}
                   <span>{form.productName || selectedProduct.title}</span>
                 </div>
               )}

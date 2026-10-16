@@ -327,7 +327,7 @@ export default function CustomerProfileModal({
                 <article className={styles.reviewCard} key={review.id}>
                   <div className={styles.reviewProduct}>
                     {review.productImage
-                      ? <Image src={review.productImage} alt="" width={52} height={52} unoptimized />
+                      ? <Image src={review.productImage} alt="" width={52} height={52} unoptimized loading="lazy" />
                       : <span className={styles.imageFallback} aria-hidden="true">★</span>}
                     <div>
                       <strong>{review.productName}</strong>

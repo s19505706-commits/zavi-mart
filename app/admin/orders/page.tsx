@@ -586,7 +586,7 @@ export default function OrdersHistoryPage() {
                       <td>
                         <Link className={styles.productLink} href={href}>
                           {product.image
-                              ? <Image src={product.image} alt="" width={42} height={42} unoptimized />
+                              ? <Image src={product.image} alt="" width={42} height={42} unoptimized loading="lazy" />
                             : <span className={styles.imagePlaceholder} aria-hidden="true">—</span>}
                           <span>{product.name}</span>
                         </Link>

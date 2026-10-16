@@ -258,7 +258,6 @@ export default function MarkazImportForm() {
         throw new Error(errorMessage);
       }
       if (!isRecord(result)) throw new Error("The scraper returned an invalid response.");
-      console.log("Markaz Data:", result);
       const productData = isRecord(result.data)
         ? result.data
         : isRecord(result.product) ? result.product : result;
@@ -296,12 +295,6 @@ export default function MarkazImportForm() {
         readStock(productData.quantity) ??
         readStock(productData.availableStock) ??
         (productData.inStock === true ? 100 : productData.inStock === false ? 0 : undefined);
-      console.log(
-        "Parsed Wholesale:",
-        markazWholesale ?? 0,
-        "Stock:",
-        markazStock ?? 100
-      );
       if (markazWholesale !== undefined) {
         updates.wholesalePrice = markazWholesale;
         updates.sellingPrice = Math.round(markazWholesale * 1.3);
@@ -472,7 +465,6 @@ export default function MarkazImportForm() {
 
     setSaving(true);
     try {
-      console.log("Supplier import prices:", { wholesale, selling });
       const response = await fetch("/api/products/import", {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-admin-key": adminKey.trim() },

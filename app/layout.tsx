@@ -16,9 +16,13 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "ZaviMart - Smart Shopping",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://zavimart.com"),
+  title: {
+    default: "Zavi Collection | Smart Shopping",
+    template: "%s | Zavi Collection"
+  },
   description:
-    "Discover flash deals and hot offers across mobiles, electronics, fashion, home, beauty, and more.",
+    "Shop the Zavi Collection for carefully selected products, great offers, and convenient delivery across Pakistan.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,

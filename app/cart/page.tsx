@@ -188,7 +188,7 @@ export default function CartPage() {
                 {cartItems.map((item) => (
                   <article className="cart-product-card" key={item.id}>
                     <div className="cart-product-image">
-                      <Image src={item.image} alt={item.name} fill sizes="80px" unoptimized />
+                      <Image src={item.image} alt={item.name} fill sizes="80px" unoptimized loading="lazy" />
                     </div>
                     <div className="cart-product-details">
                       <h2>{item.name}</h2>

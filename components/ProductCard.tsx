@@ -122,7 +122,17 @@ export default function ProductCard({
           {product.isBundle && !product.bundleImage ? (
             <div className="grid h-full w-full grid-cols-2 gap-1 p-2">
               {(bundleImages.length ? bundleImages : images).slice(0, 4).map((image, index) => (
-                <Image key={`${image}-${index}`} src={image} alt="" className="h-full w-full rounded object-cover" width={160} height={160} unoptimized priority={priority && index < 4} />
+                <Image
+                  key={`${image}-${index}`}
+                  src={image}
+                  alt=""
+                  className="h-full w-full rounded object-cover"
+                  width={160}
+                  height={160}
+                  unoptimized
+                  priority={priority && index < 4}
+                  loading={priority && index < 4 ? undefined : "lazy"}
+                />
               ))}
             </div>
           ) : images[currentIndex] ? (
@@ -134,6 +144,7 @@ export default function ProductCard({
               unoptimized
               sizes="(max-width: 640px) 50vw, 25vw"
               priority={priority}
+              loading={priority ? undefined : "lazy"}
             />
           ) : (
             <span className={styles.noImage}>No image available</span>
