@@ -6,7 +6,7 @@ const dataDirectory = path.join(process.cwd(), ".data");
 const notificationsFile = path.join(dataDirectory, "notifications.json");
 const commentsFile = path.join(dataDirectory, "comments.json");
 let writeQueue = Promise.resolve();
-
+const dataDirectory = path.join(process.env.VERCEL ? "/tmp" : process.cwd(), ".data");
 export type NotificationType = "new_order" | "new_comment" | "low_stock";
 
 export type LocalNotification = {
