@@ -1,13 +1,30 @@
 import { handleApiError, requireAdmin } from "../../../../lib/api-utils";
 import { connectToDatabase } from "../../../../lib/mongodb";
-import { getLocalMarkazProducts } from "../../../../lib/local-markaz-products";
+import {
+  getStoredLocalMarkazProducts,
+  getTrackedMarkazProducts
+} from "../../../../lib/local-markaz-products";
 import { getLocalOrders } from "../../../../lib/local-orders";
 import { getLocalProductStore } from "../../../../lib/local-products";
 import { MOCK_PRODUCTS } from "../../../../lib/mock-products";
 import Order from "../../../../models/Order";
 import Product from "../../../../models/Product";
+import { mergeCatalogProducts } from "../../../../lib/product-catalog";
 
 type RecordValue = Record<string, unknown>;
+type ProductForMerge = {
+  _id: string;
+  id?: string;
+  title: string;
+  name?: string;
+  category?: string;
+  departmentId?: string | null;
+  categoryId?: string | null;
+  price?: number;
+  costPrice?: number | null;
+  wholesalePrice?: number | null;
+  stock?: number;
+};
 
 function isRecord(value: unknown): value is RecordValue {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -57,7 +74,7 @@ function isReturned(order: RecordValue, status: string): boolean {
     /return|refund/.test(status);
 }
 
-function makeProductKey(product: RecordValue): string {
+function makeProductKey(product: Partial<ProductForMerge>): string {
   return recordId(product._id ?? product.id) || text(product.title ?? product.name).toLocaleLowerCase();
 }
 
@@ -80,7 +97,7 @@ export async function GET(request: Request) {
       getLocalOrders(),
       connection ? Order.find().sort({ createdAt: -1 }).lean() : Promise.resolve([]),
       getLocalProductStore(),
-      getLocalMarkazProducts(),
+      getStoredLocalMarkazProducts(),
       connection ? Product.find().lean() : Promise.resolve([])
     ]);
 
@@ -98,14 +115,14 @@ export async function GET(request: Request) {
       return (!from || (created && created >= from)) && (!to || (created && created <= to));
     });
 
-    const allProducts: RecordValue[] = [
-      ...MOCK_PRODUCTS,
-      ...localProductStore.products,
-      ...localMarkazProducts,
-      ...databaseProducts.map((product) => ({ ...product, _id: product._id.toString() }))
-    ];
-    const productsById = new Map<string, RecordValue>();
-    const productsByName = new Map<string, RecordValue>();
+    const allProducts = mergeCatalogProducts<ProductForMerge>([
+      databaseProducts.map((product) => ({ ...product, _id: product._id.toString() })),
+      localProductStore.products,
+      localMarkazProducts,
+      getTrackedMarkazProducts()
+    ], MOCK_PRODUCTS);
+    const productsById = new Map<string, ProductForMerge>();
+    const productsByName = new Map<string, ProductForMerge>();
     for (const product of allProducts) {
       const key = makeProductKey(product);
       if (key) productsById.set(key, product);
@@ -217,7 +234,7 @@ export async function GET(request: Request) {
       }
     }
 
-    const uniqueProducts = new Map<string, RecordValue>();
+    const uniqueProducts = new Map<string, ProductForMerge>();
     for (const product of allProducts) {
       const key = makeProductKey(product);
       if (key) uniqueProducts.set(key, product);

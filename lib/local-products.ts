@@ -1,13 +1,16 @@
-import { randomUUID } from "node:crypto";
-import { mkdir, readFile, rename, unlink, writeFile } from "node:fs/promises";
-import path from "node:path";
 import { MOCK_PRODUCTS, type MockProduct } from "./mock-products";
 import { getCategoryId } from "./product-categories";
 import { getProductImportSource, logProductHistory, type ProductImportSource } from "./product-history";
 import { cleanMarkazTitle, cleanProductDescription, extractProductCode } from "./product-codes";
+import {
+  assertLocalStoreWritesAllowed,
+  getStoreFilePath,
+  isProductionLocalWritesBlocked,
+  readStoreJson,
+  writeStoreJson
+} from "./vercel-store";
 
-const dataDirectory = path.join(process.env.VERCEL ? "/tmp" : process.cwd(), ".data");
-const productsFile = path.join(dataDirectory, "products.json");
+const productsFile = getStoreFilePath("products.json");
 const staticProducts = MOCK_PRODUCTS.slice();
 let writeQueue = Promise.resolve();
 let productMetadataMigration: Promise<ProductStore> | null = null;
@@ -16,6 +19,8 @@ export type StoredProduct = Omit<MockProduct, "createdAt" | "updatedAt" | "categ
   createdAt: string;
   updatedAt: string;
   importSource: ProductImportSource;
+  costPrice?: number;
+  isDropship?: boolean;
   isHotDeal: boolean;
   flashDealDiscount?: number;
   flashDealExpiry?: string | null;
@@ -33,6 +38,10 @@ export type StoredProduct = Omit<MockProduct, "createdAt" | "updatedAt" | "categ
   originalMarkazTitle?: string | null;
   departmentId?: string | null;
   categoryId?: string | null;
+  hasVariants?: boolean;
+  variantOptions?: unknown[];
+  variants?: import("./markaz-variants").ProductVariantDefinition[];
+  variantCombinations?: import("./markaz-variants").ProductVariantCombination[];
 };
 
 type ProductStore = {
@@ -119,8 +128,9 @@ function isStoredProduct(value: unknown): value is StoredProduct {
 
 async function readStore(): Promise<ProductStore> {
   try {
-    const contents = await readFile(productsFile, "utf8");
-    const value: unknown = JSON.parse(contents);
+    const stored = await readStoreJson(productsFile);
+    if (!stored.exists) return { products: [], deletedIds: [] };
+    const value = stored.value;
     if (
       typeof value !== "object" || value === null ||
       !("products" in value) || !Array.isArray(value.products) ||
@@ -148,23 +158,18 @@ async function readStore(): Promise<ProductStore> {
 }
 
 async function updateStore(update: (store: ProductStore) => ProductStore): Promise<ProductStore> {
+  return updateStoreWithWritePolicy(update, false);
+}
+
+async function updateStoreWithWritePolicy(
+  update: (store: ProductStore) => ProductStore,
+  userMutation: boolean
+): Promise<ProductStore> {
   const save = async () => {
+    if (userMutation) assertLocalStoreWritesAllowed("Product");
     const store = update(await readStore());
-    await mkdir(dataDirectory, { recursive: true });
-    const temporaryFile = path.join(dataDirectory, `products.${randomUUID()}.tmp`);
-    try {
-      await writeFile(temporaryFile, `${JSON.stringify(store, null, 2)}\n`, "utf8");
-      await rename(temporaryFile, productsFile);
-    } catch (error) {
-      try {
-        await unlink(temporaryFile);
-      } catch (cleanupError) {
-        if (!(cleanupError instanceof Error && "code" in cleanupError && cleanupError.code === "ENOENT")) {
-          console.error("Could not remove temporary product data file.", cleanupError);
-        }
-      }
-      throw error;
-    }
+    if (!userMutation && isProductionLocalWritesBlocked()) return store;
+    await writeStoreJson(productsFile, store);
     return store;
   };
 
@@ -208,7 +213,7 @@ export async function getLocalProductStore(): Promise<ProductStore> {
 export async function importStaticProducts(): Promise<number> {
   let importedCount = 0;
   const importedProducts: StoredProduct[] = [];
-  await updateStore((store) => {
+  await updateStoreWithWritePolicy((store) => {
     const names = new Set(store.products.map((product) => product.title.trim().toLocaleLowerCase()));
     for (const product of staticProducts) {
       const name = product.title.trim().toLocaleLowerCase();
@@ -221,7 +226,7 @@ export async function importStaticProducts(): Promise<number> {
       }
     }
     return store;
-  });
+  }, true);
   for (const product of importedProducts) {
     await logProductHistory("imported", product, "bulk-import");
   }
@@ -230,7 +235,7 @@ export async function importStaticProducts(): Promise<number> {
 
 export async function upsertLocalProduct(product: StoredProduct): Promise<StoredProduct> {
   let savedProduct = product;
-  await updateStore((store) => {
+  await updateStoreWithWritePolicy((store) => {
     const matchingIndex = store.products.findIndex((entry) =>
       entry._id === product._id || entry.title.trim().toLocaleLowerCase() === product.title.trim().toLocaleLowerCase()
     );
@@ -244,19 +249,19 @@ export async function upsertLocalProduct(product: StoredProduct): Promise<Stored
       products: store.products,
       deletedIds: store.deletedIds.filter((id) => id !== product._id)
     };
-  });
+  }, true);
   return savedProduct;
 }
 
 export async function clearLocalProductDeletion(id: string): Promise<void> {
-  await updateStore((store) => ({
+  await updateStoreWithWritePolicy((store) => ({
     products: store.products,
     deletedIds: store.deletedIds.filter((deletedId) => deletedId !== id)
-  }));
+  }), true);
 }
 
 export async function restoreLocalProduct(product: StoredProduct): Promise<StoredProduct> {
-  await updateStore((store) => {
+  await updateStoreWithWritePolicy((store) => {
     const index = store.products.findIndex((entry) => entry._id === product._id || entry.id === product.id);
     if (index >= 0) store.products[index] = product;
     else store.products.push(product);
@@ -264,7 +269,7 @@ export async function restoreLocalProduct(product: StoredProduct): Promise<Store
       products: store.products,
       deletedIds: store.deletedIds.filter((deletedId) => deletedId !== product._id)
     };
-  });
+  }, true);
   return product;
 }
 
@@ -354,10 +359,10 @@ export function toRestoredLocalProduct(snapshot: Record<string, unknown>): Store
 }
 
 export async function deleteLocalProduct(id: string): Promise<void> {
-  await updateStore((store) => ({
+  await updateStoreWithWritePolicy((store) => ({
     products: store.products.filter((product) => product._id !== id && product.id !== id),
     deletedIds: store.deletedIds.includes(id) ? store.deletedIds : [...store.deletedIds, id]
-  }));
+  }), true);
 }
 
 export function getStaticProduct(id: string): StoredProduct | undefined {

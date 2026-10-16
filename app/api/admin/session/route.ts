@@ -66,7 +66,7 @@ export async function POST(request: Request) {
 
   const expectedKey = getAdminCredential();
   if (!expectedKey || !getAdminSessionSecret()) {
-    return Response.json({ error: "Admin sign-in is not configured on the server." }, { status: 503 });
+    return Response.json({ error: "Admin sign-in is not configured on the server." }, { status: 500 });
   }
 
   if (!matchesAdminCredential(body.key, expectedKey)) {
@@ -76,7 +76,7 @@ export async function POST(request: Request) {
   const expiresAt = Math.floor(Date.now() / 1000) + ADMIN_SESSION_MAX_AGE_SECONDS;
   const token = createAdminSessionToken(expiresAt);
   if (!token) {
-    return Response.json({ error: "Admin sign-in is not configured on the server." }, { status: 503 });
+    return Response.json({ error: "Admin sign-in is not configured on the server." }, { status: 500 });
   }
 
   const response = NextResponse.json({ success: true });

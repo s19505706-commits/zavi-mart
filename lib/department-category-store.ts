@@ -1,5 +1,4 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, readFile, rename, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { ApiError, isRecord } from "./api-utils";
 import { connectToDatabase } from "./mongodb";
@@ -7,10 +6,21 @@ import Department from "../models/Department";
 import Category from "../models/Category";
 import Product from "../models/Product";
 import { MOCK_PRODUCTS } from "./mock-products";
-import { getLocalMarkazProducts } from "./local-markaz-products";
+import {
+  getStoredLocalMarkazProducts,
+  getTrackedMarkazProducts
+} from "./local-markaz-products";
 import { getLocalProductStore } from "./local-products";
 import { PRODUCT_CATEGORIES } from "./product-categories";
 import mongoose from "mongoose";
+import {
+  assertLocalStoreWritesAllowed,
+  getStoreFilePath,
+  isProductionLocalWritesBlocked,
+  readStoreJson,
+  writeStoreJson
+} from "./vercel-store";
+import { mergeCatalogProducts } from "./product-catalog";
 
 type BaseEntity = {
   id: string;
@@ -31,11 +41,14 @@ export type CategoryItem = BaseEntity & { departmentId: string; productsCount: n
 
 type StoredDepartment = BaseEntity;
 type StoredCategory = BaseEntity & { departmentId: string };
-type ProductForCounts = { title: string; category: string; departmentId?: string; categoryId?: string };
+type ProductForCounts = { title: string; category: string; departmentId?: string | null; categoryId?: string | null };
+type ProductForMerge = ProductForCounts & {
+  _id: string;
+  id?: string;
+};
 
-const dataDirectory = path.join(process.env.VERCEL ? "/tmp" : process.cwd(), ".data");
-const departmentsFile = path.join(dataDirectory, "departments.json");
-const categoriesFile = path.join(dataDirectory, "categories.json");
+const departmentsFile = getStoreFilePath("departments.json");
+const categoriesFile = getStoreFilePath("categories.json");
 let localInitialization: Promise<void> | null = null;
 let databaseInitialization: Promise<void> | null = null;
 let writeQueue: Promise<void> = Promise.resolve();
@@ -111,24 +124,11 @@ function defaultDepartments(): StoredDepartment[] {
 }
 
 async function readOptionalJson(file: string): Promise<{ exists: boolean; value?: unknown }> {
-  try {
-    return { exists: true, value: JSON.parse(await readFile(file, "utf8")) as unknown };
-  } catch (error) {
-    if (error instanceof Error && "code" in error && error.code === "ENOENT") return { exists: false };
-    throw error;
-  }
+  return readStoreJson(file);
 }
 
 async function writeJson(file: string, value: unknown): Promise<void> {
-  await mkdir(dataDirectory, { recursive: true });
-  const temporaryFile = path.join(dataDirectory, `${path.basename(file, ".json")}.${randomUUID()}.tmp`);
-  try {
-    await writeFile(temporaryFile, `${JSON.stringify(value, null, 2)}\n`, "utf8");
-    await rename(temporaryFile, file);
-  } catch (error) {
-    await unlink(temporaryFile).catch(() => undefined);
-    throw error;
-  }
+  await writeStoreJson(file, value);
 }
 
 function isLegacyCategory(entry: unknown): entry is Record<string, unknown> & {
@@ -226,8 +226,10 @@ async function initializeLocalStores(): Promise<void> {
   );
   if (!categoryStore.exists) categories = [];
   if (needsWrite || !categoryStore.exists) {
-    await writeJson(departmentsFile, departments);
-    await writeJson(categoriesFile, categories);
+    if (!isProductionLocalWritesBlocked()) {
+      await writeJson(departmentsFile, departments);
+      await writeJson(categoriesFile, categories);
+    }
   }
 }
 
@@ -402,14 +404,18 @@ function toCategory(record: {
 
 async function readLocalDepartments(): Promise<StoredDepartment[]> {
   await ensureStores();
-  const value: unknown = JSON.parse(await readFile(departmentsFile, "utf8"));
+  const stored = await readStoreJson(departmentsFile);
+  if (!stored.exists) return defaultDepartments();
+  const value = stored.value;
   if (!Array.isArray(value) || !value.every(validBase)) throw new Error(".data/departments.json contains invalid data.");
   return value;
 }
 
 async function readLocalCategories(): Promise<StoredCategory[]> {
   await ensureStores();
-  const value: unknown = JSON.parse(await readFile(categoriesFile, "utf8"));
+  const stored = await readStoreJson(categoriesFile);
+  if (!stored.exists) return [];
+  const value = stored.value;
   if (!Array.isArray(value) || !value.every((entry) =>
     validBase(entry) && "departmentId" in entry && typeof entry.departmentId === "string"
   )) throw new Error(".data/categories.json contains invalid category data.");
@@ -418,7 +424,9 @@ async function readLocalCategories(): Promise<StoredCategory[]> {
 
 async function updateLocalFile<T>(file: string, updater: (items: T[]) => T[]): Promise<T[]> {
   const operation = writeQueue.then(async () => {
-    const current: unknown = JSON.parse(await readFile(file, "utf8"));
+    assertLocalStoreWritesAllowed(path.basename(file, ".json"));
+    const stored = await readStoreJson(file);
+    const current = stored.value;
     if (!Array.isArray(current)) throw new Error(`${path.basename(file)} must contain an array.`);
     const updated = updater(current as T[]);
     await writeJson(file, updated);
@@ -431,17 +439,55 @@ async function updateLocalFile<T>(file: string, updater: (items: T[]) => T[]): P
 async function getProductRecords(connection: Awaited<ReturnType<typeof connectToDatabase>>): Promise<ProductForCounts[]> {
   const [local, markaz, database] = await Promise.all([
     getLocalProductStore(),
-    getLocalMarkazProducts(),
+    getStoredLocalMarkazProducts(),
     connection ? Product.find({}, {
       title: 1, category: 1, departmentId: 1, categoryId: 1
     }).lean() : Promise.resolve([])
   ]);
-  const records: ProductForCounts[] = [
-    ...MOCK_PRODUCTS,
-    ...markaz,
-    ...local.products,
-    ...database
-  ].map((product) => ({
+  const toMergeProduct = (product: {
+    _id: string;
+    id?: string;
+    title: string;
+    category: string;
+    departmentId?: string | null;
+    categoryId?: string | null;
+  }): ProductForMerge => product;
+  const products = mergeCatalogProducts<ProductForMerge>([
+    database.map((product) => ({
+      _id: product._id.toString(),
+      title: product.title,
+      category: product.category,
+      departmentId: product.departmentId,
+      categoryId: product.categoryId
+    })).map(toMergeProduct),
+    local.products.map((product) => ({
+      _id: product._id,
+      id: product.id,
+      title: product.title,
+      category: product.category,
+      departmentId: product.departmentId,
+      categoryId: product.categoryId
+    })).map(toMergeProduct),
+    markaz.map((product) => ({
+      _id: product._id,
+      id: product.id,
+      title: product.title,
+      category: product.category,
+      departmentId: "departmentId" in product && typeof product.departmentId === "string"
+        ? product.departmentId
+        : null,
+      categoryId: product.categoryId
+    })).map(toMergeProduct),
+    getTrackedMarkazProducts().map(toMergeProduct)
+  ], MOCK_PRODUCTS.map((product) => ({
+    _id: product._id,
+    id: product.id,
+    title: product.title,
+    category: product.category,
+    departmentId: null,
+    categoryId: product.categoryId
+  })).map(toMergeProduct));
+  const records: ProductForCounts[] = products.map((product) => ({
     title: product.title,
     category: product.category,
     departmentId: "departmentId" in product && typeof product.departmentId === "string" ? product.departmentId : undefined,

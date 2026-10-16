@@ -38,6 +38,9 @@ export function requireAdmin(
   if (readAdminSessionToken(sessionToken)?.role === "admin") return null;
 
   const adminKey = getAdminCredential();
+  if (!adminKey) {
+    return Response.json({ error: "Admin access is not configured on this Vercel deployment." }, { status: 500 });
+  }
   const authorization = request.headers.get("authorization") ?? "";
   const suppliedKey = request.headers.get("x-admin-key")?.trim() ||
     (authorization.startsWith("Bearer ") ? authorization.slice("Bearer ".length) : authorization).trim() ||

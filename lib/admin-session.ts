@@ -2,14 +2,9 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 
 export const ADMIN_SESSION_COOKIE = "zavimart-admin-session";
 export const ADMIN_SESSION_MAX_AGE_SECONDS = 60 * 60 * 8;
-const ADMIN_KEY = process.env.ADMIN_KEY || process.env.ADMIN_ACCESS_KEY || "zavi123";
-
-console.log(
-  "[ADMIN] ENV KEY exists:",
-  !!process.env.ADMIN_KEY,
-  "length:",
-  process.env.ADMIN_KEY?.length
-);
+let developmentFallbackWarningShown = false;
+let missingAdminCredentialErrorShown = false;
+let missingAdminSessionSecretErrorShown = false;
 
 export type AdminSession = {
   role: string;
@@ -18,11 +13,29 @@ export type AdminSession = {
 
 export function getAdminSessionSecret(): string | null {
   const secret = process.env.ADMIN_SESSION_SECRET?.trim();
-  return secret && Buffer.byteLength(secret) >= 32 ? secret : null;
+  if (secret && Buffer.byteLength(secret) >= 32) return secret;
+  if (process.env.VERCEL === "1" && !missingAdminSessionSecretErrorShown) {
+    console.error("ADMIN_SESSION_SECRET is missing or must be at least 32 bytes on Vercel.");
+    missingAdminSessionSecretErrorShown = true;
+  }
+  return null;
 }
 
-export function getAdminCredential(): string {
-  return ADMIN_KEY;
+export function getAdminCredential(): string | null {
+  const configuredKey = process.env.ADMIN_KEY?.trim() || process.env.ADMIN_ACCESS_KEY?.trim();
+  if (configuredKey) return configuredKey;
+  if (process.env.VERCEL === "1") {
+    if (!missingAdminCredentialErrorShown) {
+      console.error("ADMIN_KEY or ADMIN_ACCESS_KEY is not configured on Vercel.");
+      missingAdminCredentialErrorShown = true;
+    }
+    return null;
+  }
+  if (!developmentFallbackWarningShown) {
+    console.warn("ADMIN_KEY is not configured; using the development-only admin credential.");
+    developmentFallbackWarningShown = true;
+  }
+  return "zavi123";
 }
 
 export function matchesAdminCredential(supplied: string, expected: string): boolean {

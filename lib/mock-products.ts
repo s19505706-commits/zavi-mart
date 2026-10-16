@@ -65,6 +65,7 @@ export type MockProduct = {
   isFeatured: boolean;
   isMarkazProduct: boolean;
   isActive?: boolean;
+  isMock?: true;
   importSource?: string;
   markazProductId: string | null;
   wholesalePrice: number | null;
@@ -97,6 +98,7 @@ export const MOCK_PRODUCTS: MockProduct[] = productData.map((product, index) => 
     categoryId: getCategoryId(product.category),
     isFeatured: product.isFlashDeal,
     isMarkazProduct: false,
+    isMock: true,
     importSource: "manual",
     markazProductId: null,
     wholesalePrice: null,

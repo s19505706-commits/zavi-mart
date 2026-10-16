@@ -1,10 +1,12 @@
-import { randomUUID } from "node:crypto";
-import { mkdir, readFile, rename, unlink, writeFile } from "node:fs/promises";
-import path from "node:path";
 import { MOCK_PRODUCTS } from "./mock-products";
+import {
+  assertLocalStoreWritesAllowed,
+  getStoreFilePath,
+  readStoreJson,
+  writeStoreJson
+} from "./vercel-store";
 
-const dataDirectory = path.join(process.env.VERCEL ? "/tmp" : process.cwd(), ".data");
-const ordersFile = path.join(dataDirectory, "orders.json");
+const ordersFile = getStoreFilePath("orders.json");
 let writeQueue = Promise.resolve();
 
 export type LocalOrder = Record<string, unknown>;
@@ -65,45 +67,27 @@ function parseOrderStore(value: unknown): LocalOrderStore {
 }
 
 async function readOrdersFile(): Promise<{ orders: LocalOrderStore; created: boolean }> {
-  try {
-    return {
-      orders: parseOrderStore(JSON.parse(await readFile(ordersFile, "utf8"))),
-      created: false
-    };
-  } catch (error) {
-    if (!(error instanceof Error && "code" in error && error.code === "ENOENT")) throw error;
-    return { orders: createMockOrders(), created: true };
-  }
+  const stored = await readStoreJson(ordersFile);
+  if (stored.exists) return { orders: parseOrderStore(stored.value), created: false };
+  const orders = process.env.NODE_ENV === "production" ? {} : createMockOrders();
+  return { orders, created: true };
 }
 
 async function writeOrdersFile(orders: LocalOrderStore): Promise<void> {
-  await mkdir(dataDirectory, { recursive: true });
-  const temporaryFile = path.join(dataDirectory, `orders.${randomUUID()}.tmp`);
-  try {
-    await writeFile(temporaryFile, `${JSON.stringify(orders, null, 2)}\n`, "utf8");
-    await rename(temporaryFile, ordersFile);
-  } catch (error) {
-    try {
-      await unlink(temporaryFile);
-    } catch (cleanupError) {
-      if (!(cleanupError instanceof Error && "code" in cleanupError && cleanupError.code === "ENOENT")) {
-        console.error("Could not remove temporary orders file.", cleanupError);
-      }
-    }
-    throw error;
-  }
+  await writeStoreJson(ordersFile, orders);
 }
 
 export async function getLocalOrders(): Promise<LocalOrder[]> {
   const { orders, created } = await readOrdersFile();
-  if (created) await writeOrdersFile(orders);
+  if (created && process.env.NODE_ENV !== "production") await writeOrdersFile(orders);
   return Object.values(orders);
 }
 
 export async function updateLocalOrderStatus(orderId: string, status: string): Promise<LocalOrder | null> {
   const update = async () => {
+    assertLocalStoreWritesAllowed("Order");
     const { orders, created } = await readOrdersFile();
-    if (created) await writeOrdersFile(orders);
+    if (created && process.env.NODE_ENV !== "production") await writeOrdersFile(orders);
     const entry = Object.entries(orders).find(([key, order]) =>
       key === orderId || order.id === orderId || order.orderId === orderId || order._id === orderId
     );
@@ -128,8 +112,9 @@ export async function updateLocalOrderStatus(orderId: string, status: string): P
 
 export async function markLocalOrderOrderedOnMarkaz(orderId: string): Promise<LocalOrder | null> {
   const update = async () => {
+    assertLocalStoreWritesAllowed("Order");
     const { orders, created } = await readOrdersFile();
-    if (created) await writeOrdersFile(orders);
+    if (created && process.env.NODE_ENV !== "production") await writeOrdersFile(orders);
     const entry = Object.entries(orders).find(([key, order]) =>
       key === orderId || order.id === orderId || order.orderId === orderId || order._id === orderId
     );
@@ -162,8 +147,9 @@ export async function saveLocalOrder(order: LocalOrder): Promise<void> {
   if (!key) throw new Error("An order ID is required to save an order.");
 
   const save = async () => {
+    assertLocalStoreWritesAllowed("Order");
     const { orders, created } = await readOrdersFile();
-    if (created) await writeOrdersFile(orders);
+    if (created && process.env.NODE_ENV !== "production") await writeOrdersFile(orders);
     await writeOrdersFile({ ...orders, [key]: order });
   };
   const pendingSave = writeQueue.then(save);
