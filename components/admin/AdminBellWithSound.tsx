@@ -1,47 +1,51 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import NotificationBell from "../../app/admin/NotificationBell";
 
 export default function AdminBellWithSound() {
-  const audioRef = useRef<HTMLAudioElement>(null);
   const mutedRef = useRef(false);
   const [isMuted, setIsMuted] = useState(false);
 
-  useEffect(() => {
-    if (audioRef.current) audioRef.current.volume = 0.6;
-  }, []);
-
-  const playFallback = useCallback(async () => {
-    const context = new AudioContext();
+  const playNotificationBeep = useCallback(async () => {
+    let context: AudioContext | null = null;
     try {
+      context = new AudioContext();
       await context.resume();
-      const oscillator = context.createOscillator();
-      const gain = context.createGain();
-      oscillator.frequency.value = 880;
-      gain.gain.setValueAtTime(0.16, context.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, context.currentTime + 0.2);
-      oscillator.connect(gain);
-      gain.connect(context.destination);
-      oscillator.start();
-      oscillator.stop(context.currentTime + 0.2);
-      window.setTimeout(() => void context.close(), 250);
-    } catch {
-      await context.close();
+      const startTime = context.currentTime;
+      for (const [index, frequency] of [800, 1000].entries()) {
+        const beepStart = startTime + index * 0.2;
+        const oscillator = context.createOscillator();
+        const gain = context.createGain();
+        oscillator.frequency.value = frequency;
+        gain.gain.setValueAtTime(0.001, beepStart);
+        gain.gain.linearRampToValueAtTime(0.16, beepStart + 0.01);
+        gain.gain.setValueAtTime(0.16, beepStart + 0.18);
+        gain.gain.exponentialRampToValueAtTime(0.001, beepStart + 0.2);
+        oscillator.connect(gain);
+        gain.connect(context.destination);
+        oscillator.start(beepStart);
+        oscillator.stop(beepStart + 0.2);
+      }
+    } catch (error) {
+      if (context && context.state !== "closed") await context.close();
+      throw error;
     }
+    window.setTimeout(() => {
+      if (context?.state !== "closed") {
+        void context?.close().catch((error: unknown) => {
+          console.warn("Could not close the admin notification audio context.", error);
+        });
+      }
+    }, 500);
   }, []);
 
   const playSound = useCallback(() => {
     if (mutedRef.current) return;
-    const audio = audioRef.current;
-    if (!audio) {
-      void playFallback();
-      return;
-    }
-
-    audio.currentTime = 0;
-    void audio.play().catch(() => playFallback());
-  }, [playFallback]);
+    void playNotificationBeep().catch((error: unknown) => {
+      console.warn("Could not initialize the admin notification beep.", error);
+    });
+  }, [playNotificationBeep]);
 
   const toggleMuted = useCallback(() => {
     setIsMuted((muted) => {
@@ -51,14 +55,11 @@ export default function AdminBellWithSound() {
   }, []);
 
   return (
-    <>
-      <audio ref={audioRef} src="/sounds/notify.mp3" preload="auto" />
-      <NotificationBell
-        onBellActivate={playSound}
-        onNewOrder={playSound}
-        soundMuted={isMuted}
-        onToggleSound={toggleMuted}
-      />
-    </>
+    <NotificationBell
+      onBellActivate={playSound}
+      onNewOrder={playSound}
+      soundMuted={isMuted}
+      onToggleSound={toggleMuted}
+    />
   );
 }

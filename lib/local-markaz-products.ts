@@ -1,12 +1,15 @@
-import { randomUUID } from "node:crypto";
-import { mkdir, readFile, rename, unlink, writeFile } from "node:fs/promises";
-import path from "node:path";
+import trackedMarkazProducts from "../data/markaz-products.json";
 import { addMockProduct, type MockProduct } from "./mock-products";
 import type { ProductImportSource } from "./product-history";
 import { cleanMarkazTitle, cleanProductDescription, extractProductCode } from "./product-codes";
+import {
+  assertLocalStoreWritesAllowed,
+  getStoreFilePath,
+  readStoreJson,
+  writeStoreJson
+} from "./vercel-store";
 
-const dataDirectory = path.join(process.env.VERCEL ? "/tmp" : process.cwd(), ".data");
-const markazProductsFile = path.join(dataDirectory, "markaz-products.json");
+const markazProductsFile = getStoreFilePath("markaz-products.json");
 let writeQueue = Promise.resolve();
 
 export type LocalMarkazProduct = Omit<MockProduct, "createdAt" | "updatedAt"> & {
@@ -91,20 +94,36 @@ function isLocalMarkazProduct(value: unknown): value is LocalMarkazProduct {
     (!("originalMarkazTitle" in value) || typeof value.originalMarkazTitle === "string" || value.originalMarkazTitle === null);
 }
 
-async function readmarkazProductsFile(): Promise<LocalMarkazProduct[]> {
-  try {
-    const contents = await readFile(markazProductsFile, "utf8");
-    const products: unknown = JSON.parse(contents);
-    if (!Array.isArray(products) || !products.every(isLocalMarkazProduct)) {
-      throw new Error("data/markaz-products.json must contain valid Markaz product records.");
+async function readStoredMarkazProductsFile(): Promise<LocalMarkazProduct[]> {
+  const stored = await readStoreJson(markazProductsFile);
+  const products = stored.value;
+  if (stored.exists && Array.isArray(products) && products.length > 0) {
+    if (!products.every(isLocalMarkazProduct)) {
+      throw new Error(".data/markaz-products.json must contain valid Markaz product records.");
     }
     return products;
-  } catch (error) {
-    if (error instanceof Error && "code" in error && error.code === "ENOENT") {
-      return [];
-    }
-    throw error;
   }
+  return [];
+}
+
+export function getTrackedMarkazProducts(): LocalMarkazProduct[] {
+  const trackedProducts: unknown = trackedMarkazProducts;
+  if (!Array.isArray(trackedProducts) || !trackedProducts.every(isLocalMarkazProduct)) {
+    throw new Error("data/markaz-products.json must contain valid Markaz product records.");
+  }
+  return trackedProducts.map((product) => normalizeLocalMarkazProduct({
+    ...product,
+    importSource: product.importSource ?? "bulk-import"
+  }));
+}
+
+async function readmarkazProductsFile(): Promise<LocalMarkazProduct[]> {
+  const storedProducts = await readStoredMarkazProductsFile();
+  return storedProducts.length > 0 ? storedProducts : getTrackedMarkazProducts();
+}
+
+export async function getStoredLocalMarkazProducts(): Promise<LocalMarkazProduct[]> {
+  return (await readStoredMarkazProductsFile()).map(normalizeLocalMarkazProduct);
 }
 
 export async function getLocalMarkazProducts(): Promise<LocalMarkazProduct[]> {
@@ -124,23 +143,10 @@ export async function getLocalMarkazProducts(): Promise<LocalMarkazProduct[]> {
 
 export async function saveLocalMarkazProduct(product: LocalMarkazProduct): Promise<void> {
   const save = async () => {
-    await mkdir(dataDirectory, { recursive: true });
+    assertLocalStoreWritesAllowed("Markaz product");
     const products = await readmarkazProductsFile();
     products.push(product);
-    const temporaryFile = path.join(dataDirectory, `markaz-products.${randomUUID()}.tmp`);
-    try {
-      await writeFile(temporaryFile, `${JSON.stringify(products, null, 2)}\n`, "utf8");
-      await rename(temporaryFile, markazProductsFile);
-    } catch (error) {
-      try {
-        await unlink(temporaryFile);
-      } catch (cleanupError) {
-        if (!(cleanupError instanceof Error && "code" in cleanupError && cleanupError.code === "ENOENT")) {
-          console.error("Could not remove temporary Markaz product data file.", cleanupError);
-        }
-      }
-      throw error;
-    }
+    await writeStoreJson(markazProductsFile, products);
     addMockProduct({
       ...product,
       createdAt: new Date(product.createdAt),

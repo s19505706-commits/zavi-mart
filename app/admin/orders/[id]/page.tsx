@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { LEGACY_PRODUCT_NAMES } from "../legacy-product-names";
 import fulfillmentStyles from "./markaz-fulfillment.module.css";
 import styles from "./order.module.css";
@@ -265,7 +266,7 @@ export default function AdminOrderDetailsPage() {
     };
   }, [id]);
 
-  async function markAsDelivered() {
+  async function updateOrderStatus(status: string) {
     if (!order || savingDelivered) return;
     setSavingDelivered(true);
     setDeliveryError("");
@@ -276,17 +277,20 @@ export default function AdminOrderDetailsPage() {
           "Content-Type": "application/json",
           "x-admin-key": ""
         },
-        body: JSON.stringify({ status: "delivered" })
+        body: JSON.stringify({ status })
       });
       const result: unknown = await response.json();
       if (!response.ok) {
         throw new Error(isRecord(result) && typeof result.error === "string"
           ? result.error
-          : "Could not mark the order as delivered.");
+          : "Could not update the order status.");
       }
-      setOrder((current) => current ? { ...current, status: "delivered" } : current);
+      setOrder((current) => current ? { ...current, status } : current);
+      toast.success(`Order ${order.orderId} marked ${status}.`);
     } catch (updateError) {
-      setDeliveryError(updateError instanceof Error ? updateError.message : "Could not mark the order as delivered.");
+      const errorMessage = updateError instanceof Error ? updateError.message : "Could not update the order status.";
+      setDeliveryError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setSavingDelivered(false);
     }
@@ -397,7 +401,23 @@ export default function AdminOrderDetailsPage() {
               <div><dt>Phone</dt><dd>{order.customerPhone || "—"}</dd></div>
               <div><dt>Alternate phone</dt><dd>{order.customerAlternatePhone || "—"}</dd></div>
               <div><dt>Email</dt><dd>{order.customerEmail || "—"}</dd></div>
-              <div><dt>Status</dt><dd>{order.status}</dd></div>
+              <div>
+                <dt>Status</dt>
+                <dd>
+                  <select
+                    className={styles.statusSelect}
+                    aria-label="Update order status"
+                    value={order.status}
+                    disabled={savingDelivered}
+                    onChange={(event) => void updateOrderStatus(event.target.value)}
+                  >
+                    {["pending", "processing", "confirmed", "shipped", "delivered",
+                      "awaiting_payment", "awaiting_easypaisa_transfer", "pay_on_delivery"].map((status) => (
+                      <option key={status} value={status}>{status.replaceAll("_", " ")}</option>
+                    ))}
+                  </select>
+                </dd>
+              </div>
               <div><dt>Date</dt><dd>{order.date ? new Date(order.date).toLocaleString() : "—"}</dd></div>
               <div><dt>Total</dt><dd>Rs {order.total.toLocaleString("en-PK")}</dd></div>
               <div><dt>Address</dt><dd>{order.customerAddress || "—"}</dd></div>
@@ -416,7 +436,7 @@ export default function AdminOrderDetailsPage() {
                   disabled={savingDelivered}
                   onClick={() => {
                     if (window.confirm(`Mark order ${order.orderId} as Delivered?`)) {
-                      void markAsDelivered();
+                      void updateOrderStatus("delivered");
                     }
                   }}
                 >

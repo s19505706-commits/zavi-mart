@@ -1,3 +1,16 @@
+# Zavi Collection
+
+Professional e-commerce storefront and admin dashboard.
+
+## Quick start
+
+1. Install dependencies: `npm install`
+2. Copy `.env.example` to `.env` and configure `MONGODB_URI` for persistent product and order storage. MongoDB is required for production persistence.
+3. Start the development server: `npm run dev`
+4. Open the admin dashboard at `/admin`.
+
+For Vercel production, configure `MONGODB_URI`, `ADMIN_KEY`, and `ADMIN_SESSION_SECRET` in the project's environment variables. `ADMIN_SESSION_SECRET` must contain at least 32 bytes. The current admin login uses `ADMIN_KEY` and `ADMIN_SESSION_SECRET`.
+
 # ZaviMart local payment setup
 
 ZaviMart supports Safepay hosted checkout, manual Easypaisa wallet transfers, and Cash on Delivery (COD). The browser never receives payment credentials or decides the payable amount. The server calculates prices from its catalog and creates orders. Safepay orders are marked paid only after a verified webhook; Easypaisa transfers remain pending until checked manually; COD orders are confirmed but remain payable on delivery. When configured, the backend automatically sends an order summary to the shop WhatsApp number through Meta's WhatsApp Cloud API.
@@ -9,7 +22,7 @@ Checkout includes an optional delivery map. The customer explicitly requests an 
 - Node.js 20 or newer and npm
 - A Safepay merchant account with sandbox credentials
 - A Meta WhatsApp Business app with Cloud API access, a sender phone-number ID, and an approved order-update template
-- A publicly reachable HTTPS URL for Safepay's webhook callback when testing outside localhost
+- A publicly reachable HTTPS URL for Safepay's webhook callback when testing outside your local environment
 
 ## Run locally
 
@@ -17,7 +30,7 @@ Checkout includes an optional delivery map. The customer explicitly requests an 
 2. Add your Safepay sandbox API key, v1 secret, and webhook secret to `.env`. Set `EASYPAISA_ACCOUNT_NUMBER` to the Easypaisa receiving number customers should pay. Keep `.env` private and never commit it.
 3. For automatic WhatsApp order summaries, set `WHATSAPP_CLOUD_API_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, and `WHATSAPP_ADMIN_NUMBER` in `.env`. Create and approve a WhatsApp message template named by `WHATSAPP_ORDER_TEMPLATE`; it must have twelve body placeholders in this order: order ID, order/payment status, customer name, customer email, customer phone, delivery address, delivery map link, item names/quantities/unit prices/line totals, subtotal, shipping, grand total, and payment method/Easypaisa reference. Match `WHATSAPP_TEMPLATE_LANGUAGE` to its approved language.
 4. Install dependencies with `npm install`.
-5. Start the payment backend with `npm run dev:backend` and the Next.js app with `npm run dev` in separate terminals. The backend uses `NEXT_APP_URL` (default `http://localhost:3001`) to validate imported product prices, stock, and required variant selections. Open `http://localhost:3001`.
+5. Set `NEXT_APP_URL` to the storefront origin and `APP_BASE_URL` to the payment backend origin in your local environment. Start the payment backend with `npm run dev:backend` and the Next.js app with `npm run dev` in separate terminals. The backend uses `NEXT_APP_URL` to validate imported product prices, stock, and required variant selections; open the storefront URL printed by the Next.js development server.
 6. For local webhook testing, expose port 4242 using a trusted HTTPS tunnel and set `APP_BASE_URL` to that HTTPS URL.
 7. In the Safepay merchant dashboard, configure the webhook URL as `https://YOUR_PUBLIC_HOST/api/payments/safepay/webhook` and enable payment status events.
 

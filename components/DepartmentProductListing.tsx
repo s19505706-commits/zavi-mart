@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import ProductCard from "./ProductCard";
-import { CART_STORAGE_KEY, type CartItem } from "../lib/cart";
+import { addCartItem as addItem, readCart, saveCart } from "../lib/cart";
 
 type Department = { id: string; name: string; slug: string; image?: string };
 type Category = { id: string; name: string; slug: string; departmentId: string };
@@ -15,6 +16,7 @@ type StoreProduct = {
   categoryId?: string | null;
   image: string;
   price: number;
+  stock: number;
   originalPrice?: number | null;
   isNewArrival: boolean;
   createdAt: string;
@@ -22,17 +24,6 @@ type StoreProduct = {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function isCartItem(value: unknown): value is CartItem {
-  return isRecord(value) &&
-    typeof value.id === "string" &&
-    typeof value.name === "string" &&
-    typeof value.image === "string" &&
-    typeof value.price === "number" && Number.isFinite(value.price) &&
-    typeof value.quantity === "number" && Number.isInteger(value.quantity) && value.quantity > 0 &&
-    (value.checkoutProductId === undefined ||
-      (typeof value.checkoutProductId === "number" && Number.isInteger(value.checkoutProductId)));
 }
 
 function parseStoreProducts(value: unknown): StoreProduct[] {
@@ -48,6 +39,7 @@ function parseStoreProducts(value: unknown): StoreProduct[] {
         categoryId: typeof item.categoryId === "string" ? item.categoryId : null,
         image: typeof item.image === "string" ? item.image : "",
         price: item.price,
+        stock: typeof item.stock === "number" ? item.stock : 0,
         originalPrice: typeof item.originalPrice === "number" ? item.originalPrice : null,
         isNewArrival: item.isNewArrival === true,
         createdAt: typeof item.createdAt === "string" ? item.createdAt : ""
@@ -58,9 +50,11 @@ function parseStoreProducts(value: unknown): StoreProduct[] {
 
 export default function DepartmentProductListing({
   departmentSlug,
+  departmentId,
   categorySlug
 }: {
   departmentSlug: string;
+  departmentId?: string;
   categorySlug?: string;
 }) {
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -71,36 +65,28 @@ export default function DepartmentProductListing({
   const [error, setError] = useState("");
   const [addedProductIds, setAddedProductIds] = useState<string[]>([]);
   const [cartError, setCartError] = useState("");
+  const [sortOrder, setSortOrder] = useState<"default" | "price-asc" | "price-desc">("default");
+  const [inStockOnly, setInStockOnly] = useState(false);
 
   function addToCart(product: StoreProduct) {
     try {
-      const savedCart = localStorage.getItem(CART_STORAGE_KEY);
-      const parsedCart: unknown = savedCart ? JSON.parse(savedCart) : [];
-      if (!Array.isArray(parsedCart) || !parsedCart.every(isCartItem)) {
-        throw new Error("The saved cart has an invalid format.");
-      }
-
-      const cart = parsedCart;
-      const existingItem = cart.find((item) => item.id === product._id);
-      const updatedCart = existingItem
-        ? cart.map((item) => item.id === product._id
-          ? { ...item, quantity: item.quantity + 1 }
-          : item)
-        : [...cart, {
-            id: product._id,
-            name: product.title,
-            image: product.image,
-            price: product.price,
-            quantity: 1
-          }];
-      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(updatedCart));
+      const updatedCart = addItem(readCart(), {
+        id: product._id,
+        productId: product._id,
+        name: product.title,
+        image: product.image,
+        price: product.price
+      });
+      saveCart(updatedCart);
       setAddedProductIds((current) => current.includes(product._id)
         ? current
         : [...current, product._id]);
       setCartError("");
+      toast.success(`${product.title} added to your cart.`);
     } catch (cartSaveError) {
       console.error("Could not add this product to the cart:", cartSaveError);
       setCartError("This product could not be added to your cart. Please try again.");
+      toast.error("This product could not be added to your cart.");
     }
   }
 
@@ -131,13 +117,16 @@ export default function DepartmentProductListing({
           ? [{ id: item.id, name: item.name, slug: item.slug, departmentId: item.departmentId }]
           : []
       );
-      const targetDepartment = loadedDepartments.find((item) => item.slug === departmentSlug);
+      const targetDepartment = loadedDepartments.find((item) =>
+        item.id === departmentId || item.slug === departmentSlug
+      );
       const targetCategory = categorySlug
         ? loadedCategories.find((item) => item.departmentId === targetDepartment?.id && item.slug === categorySlug)
         : undefined;
       const productParams = new URLSearchParams({ limit: "100" });
       const arrivalParams = new URLSearchParams({ limit: "100", newArrivals: "true" });
       if (targetDepartment) {
+        productParams.set("departmentId", targetDepartment.id);
         arrivalParams.set("departmentId", targetDepartment.id);
       }
       if (targetCategory) {
@@ -170,9 +159,9 @@ export default function DepartmentProductListing({
       if (!cancelled) setLoading(false);
     });
     return () => { cancelled = true; };
-  }, []);
+  }, [departmentId, departmentSlug, categorySlug]);
 
-  const department = departments.find((item) => item.slug === departmentSlug);
+  const department = departments.find((item) => item.id === departmentId || item.slug === departmentSlug);
   const departmentCategories = categories.filter((item) => item.departmentId === department?.id);
   const category = categorySlug ? departmentCategories.find((item) => item.slug === categorySlug) : undefined;
   const visibleProducts = products.filter((product) => {
@@ -180,8 +169,11 @@ export default function DepartmentProductListing({
       (!product.departmentId && product.category.toLocaleLowerCase() === department?.name.toLocaleLowerCase());
     return matchesDepartment && (!categorySlug ||
       product.categoryId === category?.id ||
-      product.category.toLocaleLowerCase() === category?.name.toLocaleLowerCase());
-  });
+      product.category.toLocaleLowerCase() === category?.name.toLocaleLowerCase()) &&
+      (!inStockOnly || product.stock > 0);
+  }).sort((left, right) => sortOrder === "price-asc"
+    ? left.price - right.price
+    : sortOrder === "price-desc" ? right.price - left.price : 0);
   const newArrivals = newArrivalProducts.filter((product) => {
     const matchesDepartment = product.departmentId === department?.id;
     return matchesDepartment && (!categorySlug || product.categoryId === category?.id);
@@ -224,7 +216,7 @@ export default function DepartmentProductListing({
                   </h2>
                 </header>
                 <div className="department-product-grid">
-                  {newArrivals.map((product) => (
+                  {newArrivals.map((product, index) => (
                     <ProductCard
                       key={product._id}
                       product={{
@@ -233,8 +225,10 @@ export default function DepartmentProductListing({
                         category: `${department.name} · ${product.category}`,
                         image: product.image,
                         price: product.price,
+                        originalPrice: product.originalPrice,
                         badge: "New"
                       }}
+                      priority={index < 4}
                       isAdded={addedProductIds.includes(product._id)}
                       onAddToCart={() => addToCart(product)}
                     />
@@ -246,9 +240,27 @@ export default function DepartmentProductListing({
               <header className="department-listing-heading">
                 <h2 id="all-products-heading">All Products</h2>
               </header>
+              <div className="department-product-filters">
+                <label>
+                  Sort by price
+                  <select value={sortOrder} onChange={(event) => setSortOrder(event.target.value as typeof sortOrder)}>
+                    <option value="default">Recommended</option>
+                    <option value="price-asc">Price: low to high</option>
+                    <option value="price-desc">Price: high to low</option>
+                  </select>
+                </label>
+                <label className="department-stock-filter">
+                  <input
+                    type="checkbox"
+                    checked={inStockOnly}
+                    onChange={(event) => setInStockOnly(event.target.checked)}
+                  />
+                  In stock only
+                </label>
+              </div>
               {visibleProducts.length ? (
             <div className="department-product-grid">
-              {visibleProducts.map((product) => (
+              {visibleProducts.map((product, index) => (
                 <ProductCard
                   key={product._id}
                   product={{
@@ -256,8 +268,10 @@ export default function DepartmentProductListing({
                     title: product.title,
                     category: `${department.name} · ${product.category}`,
                     image: product.image,
-                    price: product.price
+                    price: product.price,
+                    originalPrice: product.originalPrice
                   }}
+                  priority={index < 4}
                   isAdded={addedProductIds.includes(product._id)}
                   onAddToCart={() => addToCart(product)}
                 />

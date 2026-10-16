@@ -61,6 +61,18 @@
   font-weight: 700;
 }
 
+.discountBadge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  border-radius: 999px;
+  background: #15803d;
+  padding: 4px 9px;
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
 .dots {
   position: absolute;
   right: 0;
@@ -113,6 +125,39 @@
   text-transform: uppercase;
 }
 
+.productMeta {
+  display: flex;
+  min-height: 24px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.productMeta .category {
+  overflow: hidden;
+  margin: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wishlistButton {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  place-items: center;
+  border: 1px solid #e5e7eb;
+  border-radius: 50%;
+  background: #fff;
+  color: #64748b;
+}
+
+.wishlistButton:hover,
+.wishlistActive {
+  border-color: #fecdd3;
+  color: #e11d48;
+}
+
 .titleLink {
   color: #1a237e;
   text-decoration: none;
@@ -135,10 +180,20 @@
 }
 
 .price {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
   margin: 10px 0 0;
   color: #111827;
   font-size: 1rem;
   font-weight: 800;
+}
+
+.price del {
+  color: #6b7280;
+  font-size: 0.75rem;
+  font-weight: 500;
 }
 
 .availability {

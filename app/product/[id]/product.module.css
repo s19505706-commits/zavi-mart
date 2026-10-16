@@ -1341,3 +1341,25 @@
     grid-column: 1 / -1;
   }
 }
+.relatedSection {
+  margin: 36px auto 0;
+  max-width: 1280px;
+  padding: 0 20px 40px;
+}
+
+.relatedSection h2 {
+  margin: 6px 0 18px;
+}
+
+.relatedProductGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+@media (max-width: 760px) {
+  .relatedProductGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+}

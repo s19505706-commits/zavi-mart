@@ -5,7 +5,8 @@ import { fileURLToPath } from "node:url";
 const repositoryRoot = resolve(fileURLToPath(new URL("..", import.meta.url)));
 config({ path: resolve(repositoryRoot, "app", ".env.local") });
 
-const baseUrl = process.env.NEXT_APP_URL || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3001";
+const baseUrl = process.env.NEXT_APP_URL || process.env.NEXT_PUBLIC_APP_URL;
+if (!baseUrl) throw new Error("Set NEXT_APP_URL or NEXT_PUBLIC_APP_URL before running this script.");
 const adminKey = process.env.ADMIN_KEY || process.env.ADMIN_ACCESS_KEY || "zavi123";
 
 async function requestJson(url, options) {

@@ -465,10 +465,10 @@ export default function HotDealsPage() {
                 {visibleDeals.map((deal) => (
                   <tr key={deal.id}>
                     <td>
-                      {deal.bundleImage ? <img className={styles.categoryImage} src={deal.bundleImage} alt="" /> : (
+                      {deal.bundleImage ? <img className={styles.categoryImage} src={deal.bundleImage} alt="" loading="lazy" /> : (
                         <div className={dealStyles.bundleCollage}>
                           {deal.products.slice(0, 4).map((product) => product.image
-                            ? <img key={product.productId} src={product.image} alt="" />
+                            ? <img key={product.productId} src={product.image} alt="" loading="lazy" />
                             : <span key={product.productId}>—</span>)}
                         </div>
                       )}
@@ -555,7 +555,7 @@ export default function HotDealsPage() {
                 <div className={`${dealStyles.selectedProducts} ${styles.fullWidth}`}>
                   {selectedProducts.map((product, index) => product && (
                     <div className={dealStyles.selectedProduct} key={`${product.id}-${index}`}>
-                      {product.image && <img src={product.image} alt="" />}
+                      {product.image && <img src={product.image} alt="" loading="lazy" />}
                       <span>{product.title}<small>{formatMoney(product.price)}</small></span>
                       <button
                         className={dealStyles.removeProduct}

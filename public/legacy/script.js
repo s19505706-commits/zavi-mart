@@ -511,8 +511,8 @@ function openWhatsAppOrderSummary(order, openedWindow, fallbackLink, statusNote)
 function getPaymentErrorMessage(error) {
   if (error instanceof TypeError) {
     return window.location.protocol === "file:"
-      ? "Payment needs the running store server. Open http://localhost:4242 and try again."
-      : "The payment server could not be reached. Make sure it is running at http://localhost:4242.";
+      ? "Payment needs the running store server. Start the server and try again."
+      : "The payment server could not be reached. Make sure the store server is running.";
   }
   return error.message || "Could not connect to the payment service. Please try again.";
 }
@@ -640,9 +640,9 @@ function setMapStatus(message, status = "") {
 function showServerRequiredMapMessage() {
   if (locateAddressButton) {
     locateAddressButton.disabled = true;
-    locateAddressButton.title = "Open the site via http://localhost:4242 to enable address lookup";
+    locateAddressButton.title = "Open the store through its running server to enable address lookup";
   }
-  setMapStatus("Open the site through http://localhost:4242 to use the delivery map and address lookup.", "error");
+  setMapStatus("Open the store through its running server to use the delivery map and address lookup.", "error");
 }
 
 function setDeliveryCoordinates(latitude, longitude, message) {
@@ -751,7 +751,7 @@ if (locateAddressButton && checkoutForm && deliveryLatitude && deliveryLongitude
       setDeliveryCoordinates(result.latitude, result.longitude, `Address located: ${result.displayName}. Drag the pin to adjust it.`);
     } catch (error) {
       const message = error instanceof TypeError
-        ? "Open the site through http://localhost:4242 so the map can reach the address lookup server."
+        ? "Open the store through its running server so the map can reach the address lookup service."
         : error.message || "Could not locate this address. Try again or select a pin manually.";
       setMapStatus(message, "error");
     } finally {

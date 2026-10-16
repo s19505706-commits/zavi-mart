@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useEffect, useState, type FormEvent } from "react";
+import { toast } from "sonner";
 import DepartmentCategoryFields from "../../../components/admin/DepartmentCategoryFields";
 import MarkazImportForm from "../../../components/admin/MarkazImportForm";
 import AdminCard from "../../../components/admin/AdminCard";
@@ -169,6 +170,7 @@ export default function AdminPage() {
   const [deletingProductId, setDeletingProductId] = useState<string | null>(null);
   const [updatingProduct, setUpdatingProduct] = useState(false);
   const [newImageUrl, setNewImageUrl] = useState("");
+  const [newProductImage, setNewProductImage] = useState("");
   const [imageToast, setImageToast] = useState("");
   const [newMarkazUrl, setNewMarkazUrl] = useState("");
   const [productSectionTab, setProductSectionTab] = useState<ProductSectionTab>("active");
@@ -305,9 +307,24 @@ export default function AdminPage() {
     const image = String(form.get("image") ?? "").trim();
     const originalPriceValue = String(form.get("originalPrice") ?? "").trim();
     const description = String(form.get("description") ?? "").trim();
+    const price = Number(form.get("price"));
+    const stock = Number(form.get("stock"));
+    if (!title) {
+      toast.error("Product name is required.");
+      return;
+    }
+    if (!Number.isFinite(price) || price <= 0) {
+      toast.error("Price must be greater than zero.");
+      return;
+    }
+    if (!Number.isFinite(stock) || stock < 0) {
+      toast.error("Stock must be zero or greater.");
+      return;
+    }
     if (!newClassification.departmentId || !newClassification.categoryId || !newClassification.categoryName) {
       setMessageIsError(true);
       setMessage("Select a department and category before saving.");
+      toast.error("Select a department and category before saving.");
       return;
     }
 
@@ -316,10 +333,10 @@ export default function AdminPage() {
       category: newClassification.categoryName,
       departmentId: newClassification.departmentId,
       categoryId: newClassification.categoryId,
-      price: Number(form.get("price")),
+      price,
       ...(originalPriceValue ? { originalPrice: Number(originalPriceValue) } : {}),
       images: deduplicateImages([image || "https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=500"]),
-      stock: Number.parseInt(String(form.get("stock")).replace(/^0+/, ""), 10) || 100,
+      stock,
       description,
       source: "local",
       isNewArrival: form.get("isNewArrival") === "on",
@@ -369,7 +386,9 @@ export default function AdminPage() {
       setCreatedProduct(product);
       setMessageIsError(false);
       setMessage("Product saved.");
+      toast.success(`Added "${product.title}".`);
       formElement.reset();
+      setNewProductImage("");
       setNewMarkazUrl("");
       setNewClassification({ departmentId: "", categoryId: "", categoryName: "" });
       const productsResponse = await fetch("/api/products?limit=100&includeAdminFields=true", {
@@ -387,14 +406,16 @@ export default function AdminPage() {
       }));
     } catch (error) {
       setMessageIsError(true);
-      setMessage(error instanceof Error ? error.message : "Could not save the product.");
+      const errorMessage = error instanceof Error ? error.message : "Could not save the product.";
+      setMessage(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setSaving(false);
     }
   }
 
   async function handleDeleteProduct(product: AdminProduct) {
-    if (!window.confirm(`Delete "${product.title}"? This cannot be undone.`)) return;
+    if (!window.confirm(`Are you sure you want to delete "${product.title}"? This cannot be undone.`)) return;
     setDeletingProductId(product._id);
     setMessage("");
     try {
@@ -412,9 +433,12 @@ export default function AdminPage() {
       setProducts((current) => current.filter((entry) => entry._id !== product._id));
       setMessageIsError(false);
       setMessage(`Deleted "${product.title}".`);
+      toast.success(`Deleted "${product.title}".`);
     } catch (error) {
       setMessageIsError(true);
-      setMessage(error instanceof Error ? error.message : "Could not delete the product.");
+      const errorMessage = error instanceof Error ? error.message : "Could not delete the product.";
+      setMessage(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setDeletingProductId(null);
     }
@@ -523,6 +547,14 @@ export default function AdminPage() {
     try {
       const productId = editingProduct._id || editingProduct.id;
       if (!productId) throw new Error("A product ID is required to save changes.");
+      const title = editingProduct.title.trim();
+      if (!title) throw new Error("Product name is required.");
+      if (!Number.isFinite(editingProduct.price) || editingProduct.price <= 0) {
+        throw new Error("Price must be greater than zero.");
+      }
+      if (!Number.isFinite(editingProduct.stock) || editingProduct.stock < 0) {
+        throw new Error("Stock must be zero or greater.");
+      }
       const response = await fetch(`/api/products/${encodeURIComponent(productId)}`, {
         method: "PUT",
         headers: {
@@ -530,7 +562,7 @@ export default function AdminPage() {
           "x-admin-key": adminKey.trim() || ""
         },
         body: JSON.stringify({
-          title: editingProduct.title,
+          title,
           description: editingProduct.description,
           category: editingProduct.category,
           departmentId: editingProduct.departmentId ?? null,
@@ -563,11 +595,14 @@ export default function AdminPage() {
       ));
       setMessageIsError(false);
       setMessage(`Updated "${editingProduct.title}".`);
+      toast.success(`Updated "${editingProduct.title}".`);
       setEditingProduct(null);
       setNewImageUrl("");
     } catch (error) {
       setMessageIsError(true);
-      setMessage(error instanceof Error ? error.message : "Could not update the product.");
+      const errorMessage = error instanceof Error ? error.message : "Could not update the product.";
+      setMessage(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setUpdatingProduct(false);
     }
@@ -862,11 +897,24 @@ export default function AdminPage() {
               </label>
               <label>Product name<input name="title" type="text" maxLength={200} required /></label>
               <DepartmentCategoryFields departmentId={newClassification.departmentId} categoryId={newClassification.categoryId} onChange={setNewClassification} />
-              <label>Price (Rs)<input name="price" type="number" min="0" step="0.01" required /></label>
+              <label>Price (Rs)<input name="price" type="number" min="0.01" step="0.01" required /></label>
               <label>Original price (Rs)<input name="originalPrice" type="number" min="0" step="0.01" /></label>
               <label>Stock<input name="stock" type="number" min="0" step="1" defaultValue="100" required /></label>
               <label>Rating (0-5)<input name="ratings" type="number" min="0" max="5" step="0.1" defaultValue="0" required /></label>
-              <label className={styles.fullWidth}>Image URL<input name="image" type="url" placeholder="Paste image URL" /></label>
+              <label className={styles.fullWidth}>Image URL<input name="image" type="url" value={newProductImage} onChange={(event) => setNewProductImage(event.target.value)} placeholder="Paste image URL" /></label>
+              {newProductImage.trim() && (
+                <div className={styles.fullWidth}>
+                  <span className={styles.hint}>Image preview</span>
+                  <img
+                    src={newProductImage}
+                    alt="New product preview"
+                    width={160}
+                    height={160}
+                    loading="lazy"
+                    style={{ objectFit: "contain", borderRadius: 8, background: "#f8fafc" }}
+                  />
+                </div>
+              )}
               <label className={styles.fullWidth}>Description<textarea name="description" rows={4} maxLength={5000} /></label>
               <fieldset className={`${styles.fullWidth} ${styles.markazMapping}`}>
                 <legend>Dropshipping / Markaz Mapping (optional)</legend>
@@ -976,7 +1024,7 @@ export default function AdminPage() {
                 Price (Rs)
                 <input
                   type="number"
-                  min="0"
+                  min="0.01"
                   step="0.01"
                   value={editingProduct.price}
                   onChange={(event) => setEditingProduct({ ...editingProduct, price: Number(event.target.value) })}
@@ -1075,6 +1123,17 @@ export default function AdminPage() {
                   </button>
                 </div>
                 {imageToast && <p className={styles.imageToast} role="status">{imageToast}</p>}
+                {newImageUrl.trim() && (
+                  <img
+                    className={styles.modalFullWidth}
+                    src={newImageUrl}
+                    alt="New product image preview"
+                    width={160}
+                    height={160}
+                    loading="lazy"
+                    style={{ objectFit: "contain", borderRadius: 8, background: "#f8fafc" }}
+                  />
+                )}
               </div>
               <label>
                 Brand

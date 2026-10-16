@@ -1,5 +1,8 @@
 import { connectToDatabase } from "./mongodb";
-import { getLocalMarkazProducts } from "./local-markaz-products";
+import {
+  getStoredLocalMarkazProducts,
+  getTrackedMarkazProducts
+} from "./local-markaz-products";
 import { getLocalProductStore } from "./local-products";
 import { MOCK_PRODUCTS } from "./mock-products";
 import { serializeProduct } from "./product-response";
@@ -20,8 +23,37 @@ type CatalogProduct = {
   createdAt?: Date | string;
 };
 
-function mergeProducts(groups: CatalogProduct[][]): CatalogProduct[] {
-  const merged: CatalogProduct[] = [];
+type MergeableProduct = {
+  _id: string;
+  id?: string;
+  title: string;
+  isMock?: boolean;
+};
+
+type CatalogSnapshot = {
+  products: CatalogProduct[];
+  deletedIds: string[];
+};
+
+const CATALOG_CACHE_DURATION_MS = 60_000;
+let catalogCache: { snapshot: CatalogSnapshot; expiresAt: number } | null = null;
+let catalogLoad: Promise<CatalogSnapshot> | null = null;
+
+export function mergeCatalogProducts<T extends MergeableProduct>(
+  realGroups: readonly (readonly T[])[],
+  mockProducts: readonly T[]
+): T[] {
+  const realProducts = mergeProducts(realGroups);
+  const groups = process.env.NODE_ENV !== "production" && realProducts.length < 5
+    ? [...realGroups, mockProducts]
+    : realGroups;
+  return mergeProducts(groups);
+}
+
+function mergeProducts<T extends MergeableProduct>(
+  groups: readonly (readonly T[])[]
+): T[] {
+  const merged: T[] = [];
   for (const group of groups) {
     for (const product of group) {
       const name = product.title.trim().toLocaleLowerCase();
@@ -30,29 +62,57 @@ function mergeProducts(groups: CatalogProduct[][]): CatalogProduct[] {
         (!!product.id && (entry._id === product.id || entry.id === product.id)) ||
         entry.title.trim().toLocaleLowerCase() === name
       );
-      if (existingIndex >= 0) merged.splice(existingIndex, 1);
-      merged.push(product);
+      if (existingIndex < 0) merged.push(product);
     }
   }
   return merged;
 }
 
-export async function getDealProducts(): Promise<CatalogProduct[]> {
+async function loadCatalogSnapshot(): Promise<CatalogSnapshot> {
   const connection = await connectToDatabase();
   const [store, localMarkazProducts, databaseProducts] = await Promise.all([
     getLocalProductStore(),
-    getLocalMarkazProducts(),
+    getStoredLocalMarkazProducts(),
     connection
       ? Product.find({ isActive: { $ne: false } }).sort({ createdAt: -1 })
       : Promise.resolve([])
   ]);
-  const databaseList = databaseProducts.map((product) => serializeProduct(product));
-  const catalogProducts = mergeProducts([
-    MOCK_PRODUCTS,
-    localMarkazProducts,
-    store.products,
-    databaseList
-  ]);
+  const databaseList = databaseProducts.map((product) => serializeProduct(product) as CatalogProduct);
+  return {
+    products: mergeCatalogProducts([
+      databaseList,
+      store.products.map((product) => ({ ...product }) as CatalogProduct),
+      localMarkazProducts.map((product) => ({ ...product }) as CatalogProduct),
+      getTrackedMarkazProducts().map((product) => ({ ...product }) as CatalogProduct)
+    ], MOCK_PRODUCTS.map((product) => ({ ...product }) as CatalogProduct)),
+    deletedIds: [...store.deletedIds]
+  };
+}
+
+export async function getCatalogProducts(): Promise<CatalogSnapshot> {
+  if (catalogCache && catalogCache.expiresAt > Date.now()) {
+    return {
+      products: catalogCache.snapshot.products.map((product) => ({ ...product })),
+      deletedIds: [...catalogCache.snapshot.deletedIds]
+    };
+  }
+  if (!catalogLoad) {
+    catalogLoad = loadCatalogSnapshot().then((snapshot) => {
+      catalogCache = { snapshot, expiresAt: Date.now() + CATALOG_CACHE_DURATION_MS };
+      return snapshot;
+    }).finally(() => {
+      catalogLoad = null;
+    });
+  }
+  const snapshot = await catalogLoad;
+  return {
+    products: snapshot.products.map((product) => ({ ...product })),
+    deletedIds: [...snapshot.deletedIds]
+  };
+}
+
+export async function getDealProducts(): Promise<CatalogProduct[]> {
+  const { products: catalogProducts, deletedIds } = await getCatalogProducts();
   const now = Date.now();
   const activeDeals = (await getFlashDeals()).filter((deal) =>
     deal.isActive &&
@@ -62,7 +122,7 @@ export async function getDealProducts(): Promise<CatalogProduct[]> {
   );
   const matchedProducts = catalogProducts.filter((product) =>
     product.isActive !== false &&
-    !store.deletedIds.includes(product._id) &&
+    !deletedIds.includes(product._id) &&
     activeDeals.some((deal) =>
       deal.productId === product._id ||
       deal.productId === product.id ||

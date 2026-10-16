@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import CustomerProfileModal from "../CustomerProfileModal";
 import { LEGACY_PRODUCT_NAMES } from "./legacy-product-names";
 import SupplierOrdersPanel from "./SupplierOrdersPanel";
@@ -155,6 +156,13 @@ function dateKey(value: string): string {
   if (!Number.isFinite(date.getTime())) return "";
   const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
   return local.toISOString().slice(0, 10);
+}
+
+function whatsappOrderUrl(order: AdminOrder): string {
+  let phone = order.customerPhone.replace(/\D/g, "");
+  if (phone.startsWith("0")) phone = `92${phone.slice(1)}`;
+  const text = `Order ${order.orderId} update: status ${order.status}. Total ${formatRs(order.total)}.`;
+  return `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
 }
 
 export default function OrdersHistoryPage() {
@@ -335,8 +343,11 @@ export default function OrdersHistoryPage() {
         entry.id === order.id ? { ...entry, status } : entry
       ));
       setMessage(`Order ${order.orderId} marked ${status}.`);
+      toast.success(`Order ${order.orderId} marked ${status}.`);
     } catch (updateError) {
-      setError(updateError instanceof Error ? updateError.message : "Could not update order status.");
+      const errorMessage = updateError instanceof Error ? updateError.message : "Could not update order status.";
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setUpdatingOrderId("");
     }
@@ -478,6 +489,30 @@ export default function OrdersHistoryPage() {
                     : "No product details available"}
                 </p>
                 <div className={styles.orderActions}>
+                  <label className={styles.statusControl}>
+                    Order status
+                    <select
+                      className={styles.statusSelect}
+                      value={order.status}
+                      disabled={updatingOrderId === order.id}
+                      onChange={(event) => void updateStatus(order, event.target.value)}
+                    >
+                      {["pending", "processing", "confirmed", "shipped", "delivered",
+                        "awaiting_payment", "awaiting_easypaisa_transfer", "pay_on_delivery"].map((status) => (
+                        <option key={status} value={status}>{status.replaceAll("_", " ")}</option>
+                      ))}
+                    </select>
+                  </label>
+                  {order.customerPhone && (
+                    <a
+                      className={styles.secondaryButton}
+                      href={whatsappOrderUrl(order)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      WhatsApp
+                    </a>
+                  )}
                   <button
                     className={styles.secondaryButton}
                     type="button"
@@ -551,7 +586,7 @@ export default function OrdersHistoryPage() {
                       <td>
                         <Link className={styles.productLink} href={href}>
                           {product.image
-                              ? <Image src={product.image} alt="" width={42} height={42} unoptimized />
+                              ? <Image src={product.image} alt="" width={42} height={42} unoptimized loading="lazy" />
                             : <span className={styles.imagePlaceholder} aria-hidden="true">—</span>}
                           <span>{product.name}</span>
                         </Link>

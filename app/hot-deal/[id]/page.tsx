@@ -142,11 +142,11 @@ export default function HotDealBundlePage() {
           <Link href="/" className="text-sm font-semibold text-[#1a237e]">← Back to ZaviMart</Link>
           <div className="mt-5 overflow-hidden rounded-xl bg-slate-50">
             {deal.image ? (
-              <img src={deal.image} alt={deal.title} className="h-64 w-full object-contain md:h-80" />
+              <img src={deal.image} alt={deal.title} className="h-64 w-full object-contain md:h-80" fetchPriority="high" />
             ) : (
               <div className="grid h-64 grid-cols-2 gap-2 p-3 md:h-80">
                 {deal.products.map((product) => product.image
-                  ? <img key={product.productId} src={product.image} alt="" className="h-full w-full rounded-lg object-cover" />
+                  ? <img key={product.productId} src={product.image} alt="" className="h-full w-full rounded-lg object-cover" loading="lazy" />
                   : <div key={product.productId} className="rounded-lg bg-slate-200" />)}
               </div>
             )}
@@ -159,7 +159,7 @@ export default function HotDealBundlePage() {
           <ul className="mt-5 divide-y divide-slate-100">
             {deal.products.map((product) => (
               <li className="flex items-center gap-3 py-3" key={product.productId}>
-                {product.image && <img src={product.image} alt="" className="h-14 w-14 rounded-lg bg-slate-100 object-cover" />}
+                {product.image && <img src={product.image} alt="" className="h-14 w-14 rounded-lg bg-slate-100 object-cover" loading="lazy" />}
                 <span className="flex-1 text-sm font-medium text-slate-800">{product.title}</span>
                 <span className="text-sm text-slate-500">{formatMoney(product.originalPrice)}</span>
               </li>

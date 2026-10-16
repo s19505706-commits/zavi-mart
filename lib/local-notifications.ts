@@ -1,10 +1,15 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, readFile, rename, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
+import {
+  assertLocalStoreWritesAllowed,
+  getStoreFilePath,
+  isProductionLocalWritesBlocked,
+  readStoreJson,
+  writeStoreJson
+} from "./vercel-store";
 
-const dataDirectory = path.join(process.env.VERCEL ? "/tmp" : process.cwd(), ".data");
-const notificationsFile = path.join(dataDirectory, "notifications.json");
-const commentsFile = path.join(dataDirectory, "comments.json");
+const notificationsFile = getStoreFilePath("notifications.json");
+const commentsFile = getStoreFilePath("comments.json");
 let writeQueue = Promise.resolve();
 
 export type NotificationType = "new_order" | "new_comment" | "low_stock";
@@ -80,49 +85,31 @@ function orderContainsProduct(order: unknown, productId: string): boolean {
 }
 
 async function readArray<T>(file: string, label: string): Promise<T[]> {
-  let content: string;
+  let stored: Awaited<ReturnType<typeof readStoreJson>>;
   try {
-    content = await readFile(file, "utf8");
-  } catch (error) {
-    if (!(error instanceof Error && "code" in error && error.code === "ENOENT")) throw error;
-    await writeArray(file, []);
-    return [];
-  }
-
-  let value: unknown;
-  try {
-    value = JSON.parse(content);
+    stored = await readStoreJson(file);
   } catch (error) {
     if (!(error instanceof SyntaxError)) throw error;
     console.warn(`${label} contains invalid JSON; resetting it to an empty array.`, error);
-    await writeArray(file, []);
+    if (!isProductionLocalWritesBlocked()) await writeArray(file, []);
+    return [];
+  }
+  if (!stored.exists) {
+    if (!isProductionLocalWritesBlocked()) await writeArray(file, []);
     return [];
   }
 
+  const value = stored.value;
   if (!Array.isArray(value)) {
     console.warn(`${label} does not contain a JSON array; resetting it to an empty array.`);
-    await writeArray(file, []);
+    if (!isProductionLocalWritesBlocked()) await writeArray(file, []);
     return [];
   }
   return value as T[];
 }
 
 async function writeArray<T>(file: string, value: T[]): Promise<void> {
-  await mkdir(dataDirectory, { recursive: true });
-  const temporaryFile = path.join(dataDirectory, `${path.basename(file, ".json")}.${randomUUID()}.tmp`);
-  try {
-    await writeFile(temporaryFile, `${JSON.stringify(value, null, 2)}\n`, "utf8");
-    await rename(temporaryFile, file);
-  } catch (error) {
-    try {
-      await unlink(temporaryFile);
-    } catch (cleanupError) {
-      if (!(cleanupError instanceof Error && "code" in cleanupError && cleanupError.code === "ENOENT")) {
-        console.error(`Could not remove temporary ${path.basename(file)} file.`, cleanupError);
-      }
-    }
-    throw error;
-  }
+  await writeStoreJson(file, value);
 }
 
 function serialize<T>(operation: () => Promise<T>): Promise<T> {
@@ -142,6 +129,7 @@ export async function createLocalNotification(
   input: Omit<LocalNotification, "id" | "isRead" | "createdAt"> & Partial<Pick<LocalNotification, "id" | "isRead" | "createdAt">>
 ): Promise<LocalNotification> {
   return serialize(async () => {
+    assertLocalStoreWritesAllowed("Notification");
     const notifications = await readArray<LocalNotification>(notificationsFile, ".data/notifications.json");
     const notification: LocalNotification = {
       id: input.id || randomUUID(),
@@ -165,6 +153,7 @@ export async function createLocalNotification(
 
 export async function markLocalNotificationsRead(id?: string): Promise<number> {
   return serialize(async () => {
+    assertLocalStoreWritesAllowed("Notification");
     const notifications = await readArray<LocalNotification>(notificationsFile, ".data/notifications.json");
     let updated = 0;
     const next = notifications.map((notification) => {
@@ -181,6 +170,7 @@ export async function markLocalNotificationsRead(id?: string): Promise<number> {
 
 export async function deleteLocalNotification(id: string): Promise<boolean> {
   return serialize(async () => {
+    assertLocalStoreWritesAllowed("Notification");
     const notifications = await readArray<LocalNotification>(notificationsFile, ".data/notifications.json");
     const next = notifications.filter((notification) => notification.id !== id);
     if (next.length === notifications.length) return false;
@@ -200,6 +190,7 @@ export async function createLocalComment(
   input: Omit<LocalComment, "id" | "createdAt"> & Partial<Pick<LocalComment, "id" | "createdAt">>
 ): Promise<LocalComment> {
   return serialize(async () => {
+    assertLocalStoreWritesAllowed("Review");
     const comments = await readArray<LocalComment>(commentsFile, ".data/comments.json");
     const comment: LocalComment = {
       ...input,
@@ -283,7 +274,10 @@ export async function migrateLocalCommentIdentities(orders: unknown[]): Promise<
           updated.isVerifiedPurchase !== comment.isVerifiedPurchase) changed = true;
       return updated;
     });
-    if (changed) await writeArray(commentsFile, migrated);
+    if (changed) {
+      assertLocalStoreWritesAllowed("Review");
+      await writeArray(commentsFile, migrated);
+    }
     return migrated;
   });
 }
@@ -294,6 +288,7 @@ export async function updateLocalCommentReply(
   adminReplyDate: string
 ): Promise<LocalComment | null> {
   return serialize(async () => {
+    assertLocalStoreWritesAllowed("Review");
     const comments = await readArray<LocalComment>(commentsFile, ".data/comments.json");
     const index = comments.findIndex((comment) => comment.id === commentId);
     if (index < 0) return null;

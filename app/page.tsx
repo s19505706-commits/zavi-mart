@@ -1,16 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { useAuth } from "./auth-context";
 import {
   Cable,
   ChevronDown,
+  Heart,
   HeartPulse,
   House,
   Laptop,
-  Search,
   Shirt,
   ShoppingBasket,
   ShoppingCart,
@@ -21,12 +21,16 @@ import {
   X
 } from "lucide-react";
 import HotDealsSlider, { type Deal, type StoreCategory } from "../components/HotDealsSlider";
+import StoreSearch from "../components/StoreSearch";
 import {
   CART_STORAGE_KEY,
   CHECKOUT_PRODUCTS_BY_CART_ID,
-  STARTER_CART_ITEMS,
+  addCartItem,
+  readCart,
+  saveCart,
   type CartItem
 } from "../lib/cart";
+import { readWishlist } from "../lib/wishlist";
 
 const DEFAULT_SHIPPING_AMOUNT = 2999;
 type StoreDepartment = { id: string; name: string; slug: string; image?: string; categories: StoreCategory[] };
@@ -81,10 +85,10 @@ const categoryIcons: Record<string, typeof Smartphone> = {
 };
 
 export default function HomePage() {
-  const router = useRouter();
   const [activeCategory, setActiveCategory] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [products, setProducts] = useState<Deal[]>([]);
+  const [productsLoading, setProductsLoading] = useState(true);
   const [flashDeals, setFlashDeals] = useState<Deal[]>([]);
   const [newArrivals, setNewArrivals] = useState<Deal[]>([]);
   const [curatedHotDeals, setCuratedHotDeals] = useState<Deal[]>([]);
@@ -92,8 +96,9 @@ export default function HomePage() {
   const [departments, setDepartments] = useState<StoreDepartment[]>([]);
   const [shippingAmount, setShippingAmount] = useState(DEFAULT_SHIPPING_AMOUNT);
   const [shippingText, setShippingText] = useState("Free delivery above Rs 2,999 | COD Available");
-  const [cartItems, setCartItems] = useState<CartItem[]>(STARTER_CART_ITEMS);
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [cartReady, setCartReady] = useState(false);
+  const [wishlistCount, setWishlistCount] = useState(0);
   const [accountOpen, setAccountOpen] = useState(false);
   const [signInMessage, setSignInMessage] = useState("");
   const [email, setEmail] = useState("");
@@ -106,6 +111,23 @@ export default function HomePage() {
     if (new URLSearchParams(window.location.search).get("message") === "Access Denied") {
       setAccessDenied(true);
     }
+  }, []);
+
+  useEffect(() => {
+    const updateWishlistCount = () => {
+      try {
+        setWishlistCount(readWishlist().length);
+      } catch (error) {
+        console.error("Could not read the wishlist count.", error);
+      }
+    };
+    updateWishlistCount();
+    window.addEventListener("storage", updateWishlistCount);
+    window.addEventListener("zavimart_wishlist_updated", updateWishlistCount);
+    return () => {
+      window.removeEventListener("storage", updateWishlistCount);
+      window.removeEventListener("zavimart_wishlist_updated", updateWishlistCount);
+    };
   }, []);
 
   useEffect(() => {
@@ -150,10 +172,6 @@ export default function HomePage() {
       if (!cancelled) {
         setDepartments(loadedDepartments);
         setDepartmentCategories(loadedCategories);
-        console.log("Loaded storefront departments and linked categories.", {
-          departments: loadedDepartments.length,
-          categories: loadedCategories.length
-        });
       }
     })
       .catch((error: unknown) => {
@@ -257,12 +275,9 @@ export default function HomePage() {
 
   useEffect(() => {
     try {
-      const savedItems = localStorage.getItem(CART_STORAGE_KEY);
-      if (savedItems) {
-        const parsedItems: unknown = JSON.parse(savedItems);
-        if (Array.isArray(parsedItems)) setCartItems(parsedItems as CartItem[]);
-      }
-    } catch {
+      setCartItems(readCart());
+    } catch (error) {
+      console.error("Could not restore the storefront cart.", error);
       localStorage.removeItem(CART_STORAGE_KEY);
     }
     setCartReady(true);
@@ -270,7 +285,12 @@ export default function HomePage() {
 
   useEffect(() => {
     if (cartReady) {
-      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cartItems));
+      try {
+        saveCart(cartItems);
+      } catch (error) {
+        console.error("Could not persist the storefront cart.", error);
+        toast.error("Your cart could not be saved. Please try again.");
+      }
     }
   }, [cartItems, cartReady]);
 
@@ -284,7 +304,7 @@ export default function HomePage() {
           throw new Error("The product API returned an invalid response.");
         }
 
-        const deals: Deal[] = result.products.flatMap((entry): Deal[] => {
+        const deals: Deal[] = result.products.flatMap((entry, index): Deal[] => {
           if (
             typeof entry !== "object" ||
             entry === null ||
@@ -332,6 +352,7 @@ export default function HomePage() {
             oldPrice: originalPrice ?? entry.price,
             price: entry.price,
             originalPrice,
+            imagePriority: index < 4,
             badge: isNewArrival ? "New" : ""
           }];
         });
@@ -339,6 +360,9 @@ export default function HomePage() {
       })
       .catch((error: unknown) => {
         console.error("Could not load products for the homepage.", error);
+      })
+      .finally(() => {
+        if (!cancelled) setProductsLoading(false);
       });
     return () => {
       cancelled = true;
@@ -415,17 +439,16 @@ export default function HomePage() {
           </span>
           <span className="store-brand-name">ZaviMart</span>
         </a>
-        <label className="header-search">
-          <Search size={19} strokeWidth={2} aria-hidden="true" />
-          <input
-            type="search"
-            placeholder="Search for products..."
-            aria-label="Search for products"
-            value={searchQuery}
-            onChange={(event) => setSearchQuery(event.target.value)}
-          />
-        </label>
+        <StoreSearch value={searchQuery} onChange={setSearchQuery} />
         <div className="header-actions">
+          <Link
+            className="header-icon-button"
+            href="/wishlist"
+            aria-label={`Wishlist, ${wishlistCount} items`}
+          >
+            <Heart size={20} strokeWidth={1.9} aria-hidden="true" />
+            {wishlistCount > 0 && <span className="cart-item-count">{wishlistCount}</span>}
+          </Link>
           <Link
             className="header-icon-button header-cart-button"
             href="/cart"
@@ -551,7 +574,7 @@ export default function HomePage() {
         <Link href="#flash-deals-section">Flash Deals</Link>
         <Link href="#flash-deals-section">Hot Deals</Link>
         <Link href="#flash-deals-section">New Arrivals</Link>
-        <a href="mailto:support@zavimart.com">Contact</a>
+        <Link href="/contact">Contact</Link>
       </nav>
 
       <section className="category-section" aria-labelledby="category-heading">
@@ -581,6 +604,7 @@ export default function HomePage() {
           categoryFilter={activeCategory}
           searchQuery={searchQuery}
           products={products}
+          productsLoading={productsLoading}
           flashDeals={flashDeals}
           curatedHotDeals={curatedHotDeals}
           newArrivals={newArrivals}
@@ -593,24 +617,36 @@ export default function HomePage() {
             });
           }}
           onAddToCart={(deal: Deal) => {
-            setCartItems((current) => {
-              const existing = current.find((item) => item.id === deal.id);
-              if (existing) {
-                return current.map((item) => item.id === deal.id ? { ...item, quantity: item.quantity + 1 } : item);
-              }
+            try {
               const checkoutProduct = CHECKOUT_PRODUCTS_BY_CART_ID[deal.id];
-              return [...current, {
+              const current = readCart();
+              const next = addCartItem(current, {
                 id: deal.id,
-                checkoutProductId: checkoutProduct?.id,
+                ...(checkoutProduct ? { checkoutProductId: checkoutProduct.id } : {}),
+                ...(!checkoutProduct ? { productId: deal.id } : {}),
                 name: checkoutProduct?.name ?? deal.name,
                 image: deal.image,
-                price: checkoutProduct?.price ?? deal.price ?? 3499,
-                quantity: 1
-              }];
-            });
+                price: checkoutProduct?.price ?? deal.price ?? 0
+              });
+              saveCart(next);
+              setCartItems(next);
+              toast.success(`${deal.name} added to your cart.`);
+            } catch (error) {
+              console.error("Could not add the product to the cart.", error);
+              toast.error("This product could not be added to your cart.");
+            }
           }}
         />
       </div>
+      <footer className="store-footer">
+        <Link className="store-footer-brand" href="/">ZaviMart</Link>
+        <p>Smart shopping, delivered to your door.</p>
+        <nav aria-label="Store information">
+          <Link href="/about">About</Link>
+          <Link href="/contact">Contact</Link>
+          <Link href="/terms">Terms</Link>
+        </nav>
+      </footer>
     </main>
   );
 }

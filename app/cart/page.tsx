@@ -4,10 +4,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { LockKeyhole, Minus, Plus, ShoppingCart, Trash2, Truck } from "lucide-react";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import {
-  CART_STORAGE_KEY,
+  readCart,
+  removeCartItem,
+  saveCart,
   CHECKOUT_PRODUCTS_BY_CART_ID,
-  STARTER_CART_ITEMS,
+  updateCartItemQuantity,
   type CartItem
 } from "../../lib/cart";
 import type { ShippingSettings } from "../../lib/shippingSettings";
@@ -25,37 +28,23 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 export default function CartPage() {
-  const [cartItems, setCartItems] = useState<CartItem[]>(STARTER_CART_ITEMS);
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [cartReady, setCartReady] = useState(false);
   const [shippingSettings, setShippingSettings] = useState(DEFAULT_SHIPPING);
   const [shippingError, setShippingError] = useState("");
-  const [couponCode, setCouponCode] = useState("");
-  const [appliedCoupon, setAppliedCoupon] = useState("");
-  const [couponMessage, setCouponMessage] = useState("");
-  const [couponMessageState, setCouponMessageState] = useState<"success" | "error" | "">("");
   const [checkoutMessage, setCheckoutMessage] = useState("");
 
   useEffect(() => {
     try {
-      const savedItems = localStorage.getItem(CART_STORAGE_KEY);
-      if (savedItems) {
-        const parsedItems: unknown = JSON.parse(savedItems);
-        if (Array.isArray(parsedItems)) {
-          setCartItems((parsedItems as CartItem[]).map((item) => {
-            const checkoutProduct = CHECKOUT_PRODUCTS_BY_CART_ID[item.id];
-            return checkoutProduct
-              ? {
-                  ...item,
-                  checkoutProductId: checkoutProduct.id,
-                  name: checkoutProduct.name,
-                  price: checkoutProduct.price
-                }
-              : item;
-          }));
-        }
-      }
-    } catch {
-      localStorage.removeItem(CART_STORAGE_KEY);
+      setCartItems(readCart().map((item) => {
+        const checkoutProduct = CHECKOUT_PRODUCTS_BY_CART_ID[item.id];
+        return checkoutProduct
+          ? { ...item, checkoutProductId: checkoutProduct.id, name: checkoutProduct.name, price: checkoutProduct.price }
+          : item;
+      }));
+    } catch (error) {
+      console.error("Could not restore the cart.", error);
+      toast.error("Your saved cart could not be loaded.");
     }
     setCartReady(true);
   }, []);
@@ -97,48 +86,36 @@ export default function CartPage() {
   }, []);
 
   useEffect(() => {
-    if (cartReady) localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cartItems));
+    if (cartReady) {
+      try {
+        saveCart(cartItems);
+      } catch (error) {
+        console.error("Could not save cart changes.", error);
+        toast.error("Your cart changes could not be saved.");
+      }
+    }
   }, [cartItems, cartReady]);
 
   const itemCount = cartItems.reduce((count, item) => count + item.quantity, 0);
   const subtotal = cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
   const hasFreeDelivery = shippingSettings.freeDeliveryEnabled && subtotal >= shippingSettings.minAmountForFree;
   const shipping = subtotal === 0 || hasFreeDelivery ? 0 : shippingSettings.shippingFee;
-  const discount = appliedCoupon === "ZAVI10" ? Math.round(subtotal * 0.1) : 0;
-  const total = subtotal - discount + shipping;
+  const total = subtotal + shipping;
   const freeDeliveryProgress = shippingSettings.minAmountForFree > 0
     ? Math.min((subtotal / shippingSettings.minAmountForFree) * 100, 100)
     : 100;
 
   function changeQuantity(itemId: string, change: number) {
-    setCartItems((current) => current.map((item) => (
-      item.id === itemId ? { ...item, quantity: Math.max(1, item.quantity + change) } : item
-    )));
+    setCartItems((current) => updateCartItemQuantity(
+      current,
+      itemId,
+      (current.find((item) => item.id === itemId)?.quantity ?? 1) + change
+    ));
   }
 
   function removeItem(itemId: string) {
-    setCartItems((current) => current.filter((item) => item.id !== itemId));
-  }
-
-  function applyCoupon(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const normalizedCode = couponCode.trim().toUpperCase();
-    if (!normalizedCode) {
-      setAppliedCoupon("");
-      setCouponMessage("Enter a coupon code first.");
-      setCouponMessageState("error");
-      return;
-    }
-    if (normalizedCode !== "ZAVI10") {
-      setAppliedCoupon("");
-      setCouponMessage("That coupon code isn’t valid. Try ZAVI10 for 10% off.");
-      setCouponMessageState("error");
-      return;
-    }
-    setAppliedCoupon(normalizedCode);
-    setCouponCode(normalizedCode);
-    setCouponMessage("ZAVI10 applied — you saved 10% on your items.");
-    setCouponMessageState("success");
+    setCartItems((current) => removeCartItem(current, itemId));
+    toast.success("Item removed from your cart.");
   }
 
   function continueToCheckout() {
@@ -156,7 +133,6 @@ export default function CartPage() {
 
     const checkoutUrl = new URL("/checkout", window.location.origin);
     checkoutUrl.searchParams.set("cart", JSON.stringify(items));
-    if (appliedCoupon) checkoutUrl.searchParams.set("coupon", appliedCoupon);
     window.location.assign(checkoutUrl.toString());
   }
 
@@ -212,7 +188,7 @@ export default function CartPage() {
                 {cartItems.map((item) => (
                   <article className="cart-product-card" key={item.id}>
                     <div className="cart-product-image">
-                      <Image src={item.image} alt={item.name} fill sizes="80px" unoptimized />
+                      <Image src={item.image} alt={item.name} fill sizes="80px" unoptimized loading="lazy" />
                     </div>
                     <div className="cart-product-details">
                       <h2>{item.name}</h2>
@@ -249,12 +225,6 @@ export default function CartPage() {
                 <span>Subtotal</span>
                 <strong>Rs {subtotal.toLocaleString("en-PK")}</strong>
               </div>
-              {discount > 0 && (
-                <div className="summary-line coupon-discount">
-                  <span>Discount (ZAVI10)</span>
-                  <strong>- Rs {discount.toLocaleString("en-PK")}</strong>
-                </div>
-              )}
               <div className="summary-line">
                 <span>Shipping</span>
                 <strong className={shipping === 0 ? "shipping-free" : ""}>{shipping === 0 ? "FREE" : `Rs ${shipping.toLocaleString("en-PK")}`}</strong>
@@ -263,35 +233,6 @@ export default function CartPage() {
                 <span>Total</span>
                 <strong>Rs {total.toLocaleString("en-PK")}</strong>
               </div>
-
-              <form className="coupon-form" onSubmit={applyCoupon}>
-                <label htmlFor="couponCode">Coupon code</label>
-                <div className="coupon-input-row">
-                  <input
-                    id="couponCode"
-                    type="text"
-                    value={couponCode}
-                    onChange={(event) => {
-                      setCouponCode(event.target.value);
-                      setAppliedCoupon("");
-                      setCouponMessage("");
-                      setCouponMessageState("");
-                    }}
-                    placeholder="Try ZAVI10"
-                    aria-describedby="couponMessage"
-                  />
-                  <button type="submit">APPLY</button>
-                </div>
-                <p
-                  className="coupon-message"
-                  id="couponMessage"
-                  data-state={couponMessageState}
-                  role="status"
-                  aria-live="polite"
-                >
-                  {couponMessage}
-                </p>
-              </form>
 
               <button className="checkout-button" type="button" onClick={continueToCheckout}>
                 <LockKeyhole size={17} aria-hidden="true" />

@@ -2,15 +2,27 @@ import mongoose from "mongoose";
 import { connectToDatabase } from "../../../lib/mongodb";
 import { ApiError, escapeRegex, handleApiError, isRecord, parseLimit, requireAdmin, readJsonBody } from "../../../lib/api-utils";
 import { parseProductInput, slugify } from "../../../lib/product-input";
-import { normalizeCategory } from "../../../lib/product-categories";
+import { getCategoryId, normalizeCategory } from "../../../lib/product-categories";
 import { MOCK_PRODUCTS } from "../../../lib/mock-products";
+import { assertLocalStoreWritesAllowed } from "../../../lib/vercel-store";
 import { serializeProduct } from "../../../lib/product-response";
 import Product from "../../../models/Product";
-import { getLocalMarkazProducts } from "../../../lib/local-markaz-products";
-import { deleteLocalProduct, getLocalProductStore, getStaticProduct } from "../../../lib/local-products";
+import {
+  getLocalMarkazProducts,
+  getStoredLocalMarkazProducts,
+  getTrackedMarkazProducts
+} from "../../../lib/local-markaz-products";
+import {
+  deleteLocalProduct,
+  getLocalProductStore,
+  getStaticProduct,
+  upsertLocalProduct,
+  type StoredProduct
+} from "../../../lib/local-products";
 import { cleanCustomerProduct, extractProductCode } from "../../../lib/product-codes";
 import { validateProductClassification } from "../../../lib/department-category-store";
 import { getFlashDeals } from "../../../lib/flash-deals";
+import { mergeCatalogProducts } from "../../../lib/product-catalog";
 import {
   archiveDeletedProduct,
   getProductImportSource,
@@ -33,23 +45,6 @@ type ProductListItem = {
   createdAt?: Date | string;
   [key: string]: unknown;
 };
-
-function mergeProducts(groups: ProductListItem[][]): ProductListItem[] {
-  const merged: ProductListItem[] = [];
-  for (const group of groups) {
-    for (const product of group) {
-      const name = product.title.trim().toLocaleLowerCase();
-      const existingIndex = merged.findIndex((entry) =>
-        entry._id === product._id ||
-        (!!product.id && (entry._id === product.id || entry.id === product.id)) ||
-        entry.title.trim().toLocaleLowerCase() === name
-      );
-      if (existingIndex >= 0) merged.splice(existingIndex, 1);
-      merged.push(product);
-    }
-  }
-  return merged;
-}
 
 function noStoreJson(value: unknown, status = 200): Response {
   return Response.json(value, {
@@ -125,7 +120,7 @@ export async function GET(request: Request) {
 
     const [store, localMarkazProducts, databaseProducts] = await Promise.all([
       getLocalProductStore(),
-      getLocalMarkazProducts(),
+      getStoredLocalMarkazProducts(),
       connection
         ? requestedId
           ? mongoose.isValidObjectId(requestedId)
@@ -139,12 +134,12 @@ export async function GET(request: Request) {
       : databaseProducts
         ? [serializeProduct(databaseProducts, includeAdminFields) as ProductListItem]
         : [];
-    const catalogProducts = mergeProducts([
-      MOCK_PRODUCTS as ProductListItem[],
-      localMarkazProducts,
-      store.products,
-      databaseList
-    ]);
+    const catalogProducts = mergeCatalogProducts<ProductListItem>([
+      databaseList,
+      store.products.map((product) => ({ ...product }) as ProductListItem),
+      localMarkazProducts.map((product) => ({ ...product }) as ProductListItem),
+      getTrackedMarkazProducts().map((product) => ({ ...product }) as ProductListItem)
+    ], MOCK_PRODUCTS.map((product) => ({ ...product }) as ProductListItem));
     const now = Date.now();
     const activeFlashProductIds = flashDealsOnly === "true"
       ? new Set((await getFlashDeals()).filter((deal) =>
@@ -201,7 +196,8 @@ export async function GET(request: Request) {
           supplierCode: product.supplierCode || product.productCode || product.markazCode || null
         }))
         : mergedProducts.map((product) => cleanCustomerProduct(product)),
-      usingDefaultAdminKey: !process.env.ADMIN_KEY?.trim() && !process.env.ADMIN_ACCESS_KEY?.trim(),
+      usingDefaultAdminKey: !process.env.VERCEL &&
+        !process.env.ADMIN_KEY?.trim() && !process.env.ADMIN_ACCESS_KEY?.trim(),
       usingDemoMode: !process.env.MONGODB_URI?.trim()
     });
   } catch (error) {
@@ -287,9 +283,12 @@ export async function POST(request: Request) {
     const input = parseProductInput(normalizedInput);
     await validateProductClassification(input);
     const title = input.title!;
+    const markazProductUrl = typeof input.markazProductUrl === "string"
+      ? input.markazProductUrl
+      : undefined;
     const connection = await connectToDatabase();
     if (!connection) {
-      throw new ApiError("MONGODB_URI missing. Add it to .env.local file", 500);
+      assertLocalStoreWritesAllowed("Product");
     }
     if (supplierPrice !== undefined && (!Number.isFinite(supplierPrice) || supplierPrice < 0)) {
       throw new ApiError("supplierPrice must be a non-negative number.", 400);
@@ -298,7 +297,7 @@ export async function POST(request: Request) {
     const baseSlug = input.slug ?? slugify(title);
     if (!baseSlug) throw new ApiError("title must contain letters or numbers to generate a slug.", 400);
     let slug = baseSlug;
-    if (!input.slug) {
+    if (connection && !input.slug) {
       let suffix = 2;
       while (await Product.exists({ slug })) {
         slug = `${baseSlug}-${suffix}`;
@@ -313,10 +312,86 @@ export async function POST(request: Request) {
       ? body.supplierUrl.trim()
       : undefined;
     const isSupplierProduct = body.isMarkazProduct === true || !!supplierId || !!supplierUrl ||
-      supplierPrice !== undefined || Boolean(input.markazProductUrl);
+      supplierPrice !== undefined || Boolean(markazProductUrl);
     if (body.isDropship !== undefined && typeof body.isDropship !== "boolean") {
       throw new ApiError("isDropship must be a boolean.", 400);
     }
+    if (!connection) {
+      const id = new mongoose.Types.ObjectId().toHexString();
+      const now = new Date().toISOString();
+      const productPrice = input.price ?? price;
+      const productImages = input.images ?? images;
+      const localProduct: StoredProduct = {
+        _id: id,
+        id,
+        title,
+        name: title,
+        slug,
+        price: productPrice,
+        originalPrice: input.originalPrice ?? null,
+        oldPrice: input.originalPrice ?? productPrice,
+        images: productImages,
+        image: productImages[0] ?? "",
+        category: input.category ?? category,
+        categoryId: typeof input.categoryId === "string" ? input.categoryId : getCategoryId(category),
+        departmentId: typeof input.departmentId === "string" ? input.departmentId : null,
+        stock: input.stock ?? stock,
+        description: typeof input.description === "string" ? input.description : title,
+        isFlashDeal: input.isFlashDeal ?? false,
+        isFeatured: input.isFeatured ?? false,
+        isMarkazProduct: isSupplierProduct,
+        isDropship: body.isDropship === true || Boolean(markazProductUrl),
+        isActive: true,
+        importSource: source,
+        markazProductId: supplierId ?? null,
+        markazProductUrl: supplierUrl ?? markazProductUrl ?? null,
+        wholesalePrice: supplierPrice ?? null,
+        sellingPrice: productPrice,
+        profit: supplierPrice === undefined ? null : productPrice - supplierPrice,
+        supplier: supplierUrl || markazProductUrl
+          ? { name: "Supplier", productUrl: supplierUrl ?? markazProductUrl ?? "", info: "" }
+          : null,
+        costPrice,
+        productCode: input.productCode ?? null,
+        markazCode: input.markazCode ?? null,
+        supplierCode: input.supplierCode ?? null,
+        originalDescription: input.originalDescription ?? null,
+        originalMarkazTitle: input.originalMarkazTitle ?? null,
+        ratings: input.ratings ?? 0,
+        rating: input.ratings ?? 0,
+        reviews: 100,
+        badge: input.isFlashDeal ? "Flash deal" : input.isFeatured ? "Featured" : "",
+        createdAt: now,
+        updatedAt: now,
+        isHotDeal: input.isHotDeal ?? false,
+        flashDealDiscount: input.flashDealDiscount ?? 0,
+        flashDealExpiry: input.flashDealExpiry?.toISOString() ?? null,
+        hotDealLabel: input.hotDealLabel ?? "",
+        isNewArrival: input.isNewArrival ?? false,
+        dealEndDate: input.dealEndDate?.toISOString() ?? null,
+        discountPercent: input.discountPercent ?? 0,
+        brand: input.brand ?? "",
+        sku: input.sku ?? "",
+        hasVariants: input.hasVariants ?? false,
+        variantOptions: input.variantOptions ?? [],
+        variants: input.variants ?? [],
+        variantCombinations: input.variantCombinations ?? []
+      };
+      const savedProduct = await upsertLocalProduct(localProduct);
+      await logProductHistory(
+        source === "manual" ? "created" : "imported",
+        savedProduct,
+        source,
+        sourceFileName
+      );
+      await logProductDealAdditions(savedProduct, undefined, source);
+      return Response.json({
+        product: savedProduct,
+        storage: "local",
+        message: "Saved using preview storage; configure MONGODB_URI for durable storage."
+      }, { status: 201 });
+    }
+
     const product = await Product.create({
       ...input,
       costPrice,
