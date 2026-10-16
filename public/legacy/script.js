@@ -447,6 +447,15 @@ const state = {
   wishlistOnly: false,
   activeCategory: ""
 };
+let shippingSettings = {
+  freeDeliveryEnabled: true,
+  minAmountForFree: 1999,
+  shippingFee: 149,
+  bannerText: "Free Delivery on orders above Rs 1999",
+  updatedAt: ""
+};
+let shippingSettingsLoading = false;
+let shippingSettingsError = "";
 
 function formatPrice(value) {
   return new Intl.NumberFormat("en-PK", {
@@ -789,7 +798,8 @@ function updatePaymentButtonLabel() {
     : paymentMethod?.value === "cod"
       ? "Place COD order"
       : "Continue to Safepay";
-  button.disabled = !paymentMethod?.value || Boolean(paymentMethod.selectedOptions[0]?.disabled);
+  button.disabled = shippingSettingsLoading || Boolean(shippingSettingsError) ||
+    !paymentMethod?.value || Boolean(paymentMethod.selectedOptions[0]?.disabled);
 }
 
 function getCartCount() {
@@ -801,6 +811,36 @@ function getSubtotal() {
     const product = products.find((entry) => entry.id === item.id);
     return sum + (product ? product.price * item.quantity : 0);
   }, 0);
+}
+
+async function loadShippingSettings() {
+  shippingSettingsLoading = true;
+  updatePaymentButtonLabel();
+  try {
+    const response = await fetch("/api/shipping", { cache: "no-store" });
+    const result = await response.json();
+    if (!response.ok ||
+        typeof result?.freeDeliveryEnabled !== "boolean" ||
+        typeof result?.minAmountForFree !== "number" ||
+        typeof result?.shippingFee !== "number" ||
+        typeof result?.bannerText !== "string" ||
+        typeof result?.updatedAt !== "string") {
+      throw new Error(result?.error || "Could not load delivery settings.");
+    }
+    shippingSettings = result;
+    shippingSettingsError = "";
+  } catch (error) {
+    shippingSettingsError = error instanceof Error ? error.message : "Could not load delivery settings.";
+    console.error("Could not load delivery settings for the legacy checkout:", error);
+    if (checkoutError) {
+      checkoutError.textContent = "Delivery settings are unavailable. Please try again shortly.";
+      checkoutError.hidden = false;
+    }
+  } finally {
+    shippingSettingsLoading = false;
+    renderCheckoutPage();
+    updatePaymentButtonLabel();
+  }
 }
 
 function updateCategoryButtons() {
@@ -962,7 +1002,9 @@ function renderCheckoutPage() {
   }
 
   const subtotal = getSubtotal();
-  const shipping = subtotal > 2999 ? 0 : 299;
+  const hasFreeDelivery = shippingSettings.freeDeliveryEnabled &&
+    subtotal >= shippingSettings.minAmountForFree;
+  const shipping = subtotal === 0 || hasFreeDelivery ? 0 : shippingSettings.shippingFee;
   const discount = checkoutCouponCode === "ZAVI10" ? Math.round(subtotal * 0.1) : 0;
   const total = subtotal - discount + shipping;
 
@@ -1334,6 +1376,7 @@ if (returnRequestForm) {
 if (checkoutForm) {
   checkoutForm.addEventListener("submit", async (event) => {
     event.preventDefault();
+    if (shippingSettingsLoading || shippingSettingsError) return;
     if (!state.cart.length) return;
 
     const submitButton = checkoutForm.querySelector("button[type='submit']");
@@ -1578,3 +1621,4 @@ if (paymentStatus) {
 renderProducts();
 renderCart();
 renderCheckoutPage();
+if (checkoutShipping) void loadShippingSettings();

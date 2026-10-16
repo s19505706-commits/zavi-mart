@@ -9,7 +9,12 @@ const productData: Array<{
   originalPrice?: number;
   image: string;
   description: string;
+  originalMarkazTitle?: string | null;
   stock: number;
+  hasVariants?: boolean;
+  variantOptions?: unknown[];
+  variants?: import("./markaz-variants").ProductVariantDefinition[];
+  variantCombinations?: import("./markaz-variants").ProductVariantCombination[];
   rating: number;
   isFlashDeal: boolean;
 }> = [
@@ -48,10 +53,19 @@ export type MockProduct = {
   categoryId: string;
   stock: number;
   description: string;
+  productCode?: string | null;
+  markazCode?: string | null;
+  supplierCode?: string | null;
+  originalDescription?: string | null;
   isFlashDeal: boolean;
+  flashDealDiscount?: number;
+  flashDealExpiry?: string | null;
+  isHotDeal?: boolean;
+  hotDealLabel?: string;
   isFeatured: boolean;
   isMarkazProduct: boolean;
   isActive?: boolean;
+  importSource?: string;
   markazProductId: string | null;
   wholesalePrice: number | null;
   sellingPrice: number | null;
@@ -83,6 +97,7 @@ export const MOCK_PRODUCTS: MockProduct[] = productData.map((product, index) => 
     categoryId: getCategoryId(product.category),
     isFeatured: product.isFlashDeal,
     isMarkazProduct: false,
+    importSource: "manual",
     markazProductId: null,
     wholesalePrice: null,
     sellingPrice: null,

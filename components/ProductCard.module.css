@@ -1,0 +1,215 @@
+.card {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid #f1f2f5;
+  border-radius: 12px;
+  background: #fff;
+  transition: border-color 220ms ease, box-shadow 220ms ease, transform 220ms ease;
+}
+
+.card:hover {
+  border-color: #f4c9d0;
+  box-shadow: 0 14px 30px rgba(217, 4, 41, 0.1);
+  transform: translateY(-3px);
+}
+
+.imageLink {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
+.imagePanel {
+  position: relative;
+  aspect-ratio: 1;
+  overflow: hidden;
+  background: #f8f8fa;
+}
+
+.image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 500ms ease;
+}
+
+.card:hover .image {
+  transform: scale(1.02);
+}
+
+.noImage {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+  color: #6b7280;
+  font-size: 0.8rem;
+}
+
+.badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  border-radius: 999px;
+  background: #d90429;
+  padding: 4px 9px;
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.dots {
+  position: absolute;
+  right: 0;
+  bottom: 10px;
+  left: 0;
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.85);
+  transition: width 300ms ease, background-color 300ms ease;
+}
+
+.activeDot {
+  width: 20px;
+  background: #d90429;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+.imageCounter {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  border-radius: 999px;
+  background: rgba(26, 35, 126, 0.82);
+  padding: 2px 8px;
+  color: #fff;
+  font-size: 0.68rem;
+  backdrop-filter: blur(6px);
+}
+
+.content {
+  display: flex;
+  min-height: 184px;
+  flex: 1;
+  flex-direction: column;
+  padding: 12px;
+}
+
+.category {
+  margin: 0 0 4px;
+  color: #6b7280;
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.titleLink {
+  color: #1a237e;
+  text-decoration: none;
+}
+
+.title {
+  display: -webkit-box;
+  height: 36px;
+  overflow: hidden;
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 18px;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.titleLink:hover {
+  color: #d90429;
+}
+
+.price {
+  margin: 10px 0 0;
+  color: #111827;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.availability {
+  margin: 4px 0 0;
+  color: #6b7280;
+  font-size: 0.68rem;
+}
+
+.addButton {
+  width: 100%;
+  min-height: 40px;
+  margin-top: auto;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: #d90429;
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 160ms ease;
+}
+
+.addButton:hover:not(:disabled) {
+  background: #b91c1c;
+}
+
+.addButton:disabled {
+  cursor: default;
+  opacity: 0.85;
+}
+
+.compact .imagePanel {
+  height: 128px;
+  aspect-ratio: auto;
+}
+
+.compact .content {
+  min-height: 132px;
+  padding: 8px;
+}
+
+.compact .category {
+  margin-bottom: 3px;
+  font-size: 0.58rem;
+}
+
+.compact .title {
+  height: 32px;
+  font-size: 0.72rem;
+  line-height: 16px;
+}
+
+.compact .price {
+  margin-top: 6px;
+  font-size: 0.86rem;
+}
+
+.compact .availability {
+  display: none;
+}
+
+.compact .addButton {
+  min-height: 30px;
+  margin-top: 8px;
+  padding: 5px 8px;
+  font-size: 0.7rem;
+}
+
+@media (min-width: 768px) {
+  .compact .imagePanel {
+    height: 150px;
+  }
+}

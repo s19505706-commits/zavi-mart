@@ -1,10 +1,13 @@
 export type CartItem = {
   id: string;
+  productId?: string;
   checkoutProductId?: number;
   name: string;
   image: string;
   price: number;
   quantity: number;
+  selectedVariants?: Record<string, string>;
+  variantId?: string;
 };
 
 export const CART_STORAGE_KEY = "zavimart-next-cart";

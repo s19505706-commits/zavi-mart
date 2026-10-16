@@ -1,5 +1,10 @@
 import { timingSafeEqual } from "node:crypto";
 import mongoose from "mongoose";
+import {
+  ADMIN_SESSION_COOKIE,
+  getAdminCredential,
+  readAdminSessionToken
+} from "./admin-session";
 
 export class ApiError extends Error {
   constructor(message: string, public readonly status: number) {
@@ -22,12 +27,17 @@ export async function readJsonBody(request: Request): Promise<unknown> {
 
 export function requireAdmin(
   request: Request,
-  fallbackAdminKey = "zavi123",
+  _fallbackAdminKey?: string,
   bodyAdminKey?: unknown
 ): Response | null {
-  const adminKey = process.env.ZAVIMART_ADMIN_API_KEY?.trim() ||
-    process.env.ADMIN_API_KEY?.trim() ||
-    fallbackAdminKey;
+  const cookies = request.headers.get("cookie")?.split(";") ?? [];
+  const sessionCookie = cookies
+    .map((cookie) => cookie.trim())
+    .find((cookie) => cookie.startsWith(`${ADMIN_SESSION_COOKIE}=`));
+  const sessionToken = sessionCookie?.slice(ADMIN_SESSION_COOKIE.length + 1);
+  if (readAdminSessionToken(sessionToken)?.role === "admin") return null;
+
+  const adminKey = getAdminCredential();
   const authorization = request.headers.get("authorization") ?? "";
   const suppliedKey = request.headers.get("x-admin-key")?.trim() ||
     (authorization.startsWith("Bearer ") ? authorization.slice("Bearer ".length) : authorization).trim() ||

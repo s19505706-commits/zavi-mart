@@ -6,15 +6,23 @@ import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const root = dirname(fileURLToPath(import.meta.url));
+const root = dirname(dirname(fileURLToPath(import.meta.url)));
+const legacyDirectory = join(root, "public", "legacy");
 const dataDirectory = join(root, ".data");
 const ordersPath = join(dataDirectory, "orders.json");
 const orderCountersPath = join(dataDirectory, "order-counters.json");
+const shippingSettingsPath = join(dataDirectory, "shipping.json");
 const app = express();
 const port = Number(process.argv[2] || process.env.PORT || 4242);
 const appBaseUrl = process.env.APP_BASE_URL || `http://localhost:${port}`;
-const shippingFee = 299;
-const freeShippingMinimum = 3000;
+const nextAppUrl = process.env.NEXT_APP_URL || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3001";
+const defaultShippingSettings = {
+  freeDeliveryEnabled: true,
+  minAmountForFree: 2999,
+  shippingFee: 149,
+  bannerText: "Free delivery above Rs 2,999",
+  updatedAt: new Date().toISOString()
+};
 const easypaisaAccountNumber = String(process.env.EASYPAISA_ACCOUNT_NUMBER || "").trim();
 const whatsappAccessToken = process.env.WHATSAPP_CLOUD_API_TOKEN || "";
 const whatsappPhoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID || "";
@@ -57,6 +65,74 @@ const catalog = new Map([
   [29, 5999],
   [30, 2499]
 ]);
+
+function variantSlug(value) {
+  return String(value)
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function getVariantAttribute(attributes, name) {
+  if (!attributes || typeof attributes !== "object") return undefined;
+  const target = variantSlug(name);
+  const entry = Object.entries(attributes).find(([key]) => variantSlug(key) === target);
+  return entry?.[1];
+}
+
+function isVariantInStock(combination) {
+  return combination.in_stock !== false &&
+    combination.inStock !== false &&
+    combination.stock !== 0;
+}
+
+async function getStorefrontProduct(id) {
+  if (!/^[a-f\d]{24}$/i.test(id)) return null;
+  let url;
+  try {
+    url = new URL(`/api/products/${encodeURIComponent(id)}`, nextAppUrl);
+  } catch {
+    throw new Error("NEXT_APP_URL must be a valid URL to resolve imported products.");
+  }
+  if (!["http:", "https:"].includes(url.protocol) || url.username || url.password) {
+    throw new Error("NEXT_APP_URL must use HTTP or HTTPS without embedded credentials.");
+  }
+  const result = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(8000) });
+  if (result.status === 404) return null;
+  if (!result.ok) throw new Error(`Storefront product lookup returned HTTP ${result.status}.`);
+  const payload = await result.json();
+  const product = payload?.product;
+  if (!product || product._id !== id || typeof product.title !== "string" ||
+      !Number.isFinite(product.price) || product.price < 0 ||
+      !Number.isInteger(product.stock) || product.stock < 0 || product.isActive === false) {
+    throw new Error("Storefront product lookup returned invalid product data.");
+  }
+  return product;
+}
+
+async function getShippingSettings() {
+  let settings;
+  try {
+    settings = JSON.parse(await readFile(shippingSettingsPath, "utf8"));
+  } catch (error) {
+    if (error?.code === "ENOENT") return defaultShippingSettings;
+    throw error;
+  }
+  if (
+    !settings || typeof settings !== "object" ||
+    typeof settings.freeDeliveryEnabled !== "boolean" ||
+    typeof settings.minAmountForFree !== "number" || !Number.isFinite(settings.minAmountForFree) ||
+    settings.minAmountForFree < 0 ||
+    typeof settings.shippingFee !== "number" || !Number.isFinite(settings.shippingFee) ||
+    settings.shippingFee < 0
+  ) {
+    throw new Error(".data/shipping.json contains invalid shipping settings.");
+  }
+  return settings;
+}
 const productNames = new Map([
   [1, "Samsung Galaxy A35 5G"],
   [2, "Khaadi Lawn Printed Set"],
@@ -121,18 +197,17 @@ app.use(
   })
 );
 
-function sendFile(file, response) {
-  response.sendFile(join(root, file));
+function sendLegacyFile(file, response) {
+  response.sendFile(join(legacyDirectory, file));
 }
 
-app.get("/", (_request, response) => sendFile("index.html", response));
-app.get("/index.html", (_request, response) => sendFile("index.html", response));
-app.get("/checkout.html", (_request, response) => sendFile("checkout.html", response));
-app.get("/payment-result.html", (_request, response) => sendFile("payment-result.html", response));
-app.get("/styles.css", (_request, response) => sendFile("styles.css", response));
-app.get("/script.js", (_request, response) => sendFile("script.js", response));
-app.get("/zavimart-header-transparent.png", (_request, response) => sendFile("zavimart-header-transparent.png", response));
-app.get("/zavimart-favicon-transparent.png", (_request, response) => sendFile("zavimart-favicon-transparent.png", response));
+app.use(express.static(join(root, "public")));
+app.get("/", (_request, response) => sendLegacyFile("index.html", response));
+app.get("/index.html", (_request, response) => sendLegacyFile("index.html", response));
+app.get("/checkout.html", (_request, response) => sendLegacyFile("checkout.html", response));
+app.get("/payment-result.html", (_request, response) => sendLegacyFile("payment-result.html", response));
+app.get("/styles.css", (_request, response) => sendLegacyFile("styles.css", response));
+app.get("/script.js", (_request, response) => sendLegacyFile("script.js", response));
 
 app.get("/api/health", (_request, response) => {
   response.json({
@@ -142,6 +217,18 @@ app.get("/api/health", (_request, response) => {
     whatsappNotificationConfigured: whatsappConfigured,
     cashOnDeliveryAvailable: true
   });
+});
+
+app.get("/api/shipping", async (_request, response) => {
+  try {
+    const settings = await getShippingSettings();
+    return response
+      .set("Cache-Control", "no-store, max-age=0")
+      .json(settings);
+  } catch (error) {
+    console.error("Could not load shipping settings:", error);
+    return response.status(503).json({ error: "Delivery settings are temporarily unavailable." });
+  }
 });
 
 app.get("/api/geocode", rateLimit({ windowMs: 60_000, limit: 10 }), async (request, response) => {
@@ -253,10 +340,18 @@ app.post("/api/checkout", async (request, response) => {
     name: String(customer.name || "").trim().slice(0, 120),
     email: String(customer.email || "").trim().slice(0, 254),
     phone: String(customer.phone || "").trim().slice(0, 24),
-    address: String(customer.address || "").trim().slice(0, 240),
+    alternatePhone: String(customer.alternatePhone || "").trim().slice(0, 24),
     city: String(customer.city || "").trim().slice(0, 100),
+    areaSector: String(customer.areaSector || "").trim().slice(0, 160),
+    streetAddress: String(customer.streetAddress || customer.address || "").trim().slice(0, 240),
     postalCode: String(customer.postalCode || "").trim().slice(0, 20)
   };
+  customerDetails.address = [customerDetails.streetAddress, customerDetails.areaSector]
+    .filter(Boolean)
+    .join(", ");
+  customerDetails.fullAddress = [customerDetails.streetAddress, customerDetails.areaSector, customerDetails.city]
+    .filter(Boolean)
+    .join(", ");
 
   const rawLatitude = customer.deliveryLocation?.latitude;
   const rawLongitude = customer.deliveryLocation?.longitude;
@@ -275,34 +370,134 @@ app.post("/api/checkout", async (request, response) => {
     customerDetails.deliveryLocation = { latitude, longitude };
   }
 
+  const normalizedPhone = customerDetails.phone.replace(/[()\s-]/g, "");
+  const normalizedAlternatePhone = customerDetails.alternatePhone.replace(/[()\s-]/g, "");
   if (
     !customerDetails.name ||
-    !/^\S+@\S+\.\S+$/.test(customerDetails.email) ||
-    !/^[+0-9()\s-]{7,24}$/.test(customerDetails.phone) ||
-    !customerDetails.address ||
-    !customerDetails.city ||
-    !customerDetails.postalCode
+    !/^(?:\+92|0092|0)?3\d{9}$/.test(normalizedPhone) ||
+    (customerDetails.alternatePhone && !/^(?:\+92|0092|0)?3\d{9}$/.test(normalizedAlternatePhone)) ||
+    !customerDetails.areaSector ||
+    !customerDetails.streetAddress ||
+    !customerDetails.city
   ) {
     return response.status(400).json({ error: "Please provide valid delivery and contact details." });
   }
 
-  const quantities = new Map();
-  for (const item of items) {
-    const id = Number(item?.id);
-    const quantity = Number(item?.quantity);
-    if (!catalog.has(id) || !Number.isInteger(quantity) || quantity < 1 || quantity > 20) {
-      return response.status(400).json({ error: "One or more cart items are invalid." });
-    }
-    quantities.set(id, (quantities.get(id) || 0) + quantity);
-  }
+  const resolvedItems = new Map();
+  const productQuantities = new Map();
+  try {
+    for (const item of items) {
+      const id = typeof item?.id === "string" || typeof item?.id === "number" ? String(item.id).trim() : "";
+      const quantity = Number(item?.quantity);
+      if (!id || !Number.isInteger(quantity) || quantity < 1 || quantity > 20) {
+        return response.status(400).json({ error: "One or more cart items are invalid." });
+      }
 
-  const orderItems = [...quantities.entries()].map(([id, quantity]) => ({
-    id,
-    quantity,
-    unitPrice: catalog.get(id)
-  }));
+      const staticId = /^\d+$/.test(id) ? Number(id) : NaN;
+      let product;
+      let unitPrice;
+      if (Number.isSafeInteger(staticId) && catalog.has(staticId)) {
+        product = { id: staticId, title: productNames.get(staticId) || `Product ${staticId}`, stock: 100 };
+        unitPrice = catalog.get(staticId);
+      } else {
+        product = await getStorefrontProduct(id);
+        if (!product) return response.status(400).json({ error: "One or more cart products are no longer available." });
+        unitPrice = product.price;
+      }
+
+      const definitions = Array.isArray(product.variants) ? product.variants : [];
+      if (product.hasVariants === true && definitions.length === 0) {
+        return response.status(409).json({ error: `Options for ${product.title} are temporarily unavailable.` });
+      }
+      const rawSelected = item?.selectedVariants ?? {};
+      if (!rawSelected || typeof rawSelected !== "object" || Array.isArray(rawSelected) ||
+          !Object.entries(rawSelected).every(([key, value]) => key && typeof value === "string")) {
+        return response.status(400).json({ error: "Product variant selections are invalid." });
+      }
+      const selectedVariants = {};
+      for (const definition of definitions) {
+        const selected = rawSelected[definition.name] ??
+          rawSelected[definition.slug] ??
+          rawSelected[variantSlug(definition.name)];
+        if (definition.required && (typeof selected !== "string" || !definition.options.includes(selected))) {
+          return response.status(400).json({ error: `Please select ${definition.name} for ${product.title}.` });
+        }
+        if (selected !== undefined) {
+          if (typeof selected !== "string" || !definition.options.includes(selected)) {
+            return response.status(400).json({ error: `The selected ${definition.name} is not available.` });
+          }
+          selectedVariants[definition.name] = selected;
+        }
+      }
+      if (Object.keys(rawSelected).some((key) => !definitions.some((definition) =>
+        key === definition.name || key === definition.slug || key === variantSlug(definition.name)
+      ))) {
+        return response.status(400).json({ error: "One or more selected product options are invalid." });
+      }
+
+      const combinations = Array.isArray(product.variantCombinations) ? product.variantCombinations : [];
+      const matchedCombination = combinations.find((combination) =>
+        isVariantInStock(combination) &&
+        Object.keys(selectedVariants).length > 0 &&
+        Object.entries(selectedVariants).every(([key, value]) => getVariantAttribute(combination.attributes, key) === value)
+      );
+      if (combinations.length && !matchedCombination) {
+        return response.status(400).json({ error: `That variant combination is not available for ${product.title}.` });
+      }
+      if (matchedCombination && Number.isInteger(matchedCombination.stock) &&
+          quantity > matchedCombination.stock) {
+        return response.status(409).json({ error: `Only ${matchedCombination.stock} of the selected ${product.title} variant are available.` });
+      }
+      if (quantity > product.stock) {
+        return response.status(409).json({ error: `Insufficient stock for ${product.title}.` });
+      }
+
+      const key = `${id}:${JSON.stringify(Object.entries(selectedVariants).sort(([a], [b]) => a.localeCompare(b)))}`;
+      const existing = resolvedItems.get(key);
+      if (existing) {
+        existing.quantity += quantity;
+        if (Number.isInteger(matchedCombination?.stock) && existing.quantity > matchedCombination.stock) {
+          return response.status(409).json({ error: `Only ${matchedCombination.stock} of the selected ${product.title} variant are available.` });
+        }
+      } else resolvedItems.set(key, {
+        id: product.id && Number.isSafeInteger(Number(product.id)) ? Number(product.id) : id,
+        quantity,
+        unitPrice,
+        name: product.title,
+        image: product.image || product.images?.[0] || "",
+        selectedVariants,
+        variantId: matchedCombination?.id || matchedCombination?.sku || "",
+        variantString: definitions
+          .map((definition) => selectedVariants[definition.name])
+          .filter(Boolean)
+          .join("-"),
+        isMarkazProduct: product.isMarkazProduct === true,
+        markazProductId: product.markazProductId || "",
+        markazProductUrl: product.markazProductUrl || product.supplier?.productUrl || "",
+        supplier: product.supplier || {}
+      });
+      const productQuantity = (productQuantities.get(id) || 0) + quantity;
+      productQuantities.set(id, productQuantity);
+      if (productQuantity > product.stock) {
+        return response.status(409).json({ error: `Insufficient stock for ${product.title}.` });
+      }
+    }
+  } catch (error) {
+    console.error("Could not validate imported products for checkout:", error);
+    return response.status(503).json({ error: "Imported products could not be verified right now. Please try again." });
+  }
+  const orderItems = [...resolvedItems.values()];
   const subtotal = orderItems.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
-  const shipping = subtotal >= freeShippingMinimum ? 0 : shippingFee;
+  let shippingSettings;
+  try {
+    shippingSettings = await getShippingSettings();
+  } catch (error) {
+    console.error("Could not load delivery settings for checkout:", error);
+    return response.status(503).json({ error: "Delivery settings are temporarily unavailable." });
+  }
+  const qualifiesForFreeShipping = shippingSettings.freeDeliveryEnabled &&
+    subtotal >= shippingSettings.minAmountForFree;
+  const shipping = subtotal === 0 || qualifiesForFreeShipping ? 0 : shippingSettings.shippingFee;
   const discount = couponCode === "ZAVI10" ? Math.round(subtotal * 0.1) : 0;
   const orderId = await allocateOrderId();
   const order = {
@@ -352,7 +547,8 @@ app.post("/api/checkout", async (request, response) => {
         paymentMethod: "cod",
         paymentStatus: order.paymentStatus,
         orderStatus: order.orderStatus,
-        whatsappNotificationSent
+        whatsappNotificationSent,
+        items: orderItems
       });
     }
 
@@ -492,8 +688,11 @@ async function notifyOrderOnWhatsApp(order) {
   }).format(amount)}`;
   const items = order.items
     .map((item) => {
-      const itemName = productNames.get(item.id) || `Product ${item.id}`;
-      return `${itemName} x ${item.quantity}`;
+      const itemName = item.name || productNames.get(item.id) || `Product ${item.id}`;
+      const options = item.selectedVariants && Object.keys(item.selectedVariants).length
+        ? ` (${Object.entries(item.selectedVariants).map(([name, value]) => `${name}: ${value}`).join(", ")})`
+        : "";
+      return `${itemName}${options} x ${item.quantity}`;
     })
     .join("\n");
   const address = [order.customer.address, order.customer.city]

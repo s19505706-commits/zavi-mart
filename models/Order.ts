@@ -7,10 +7,15 @@ const orderSchema = new mongoose.Schema({
       productId: { type: mongoose.Schema.Types.ObjectId, ref: "Product", required: true },
       title: { type: String, required: true },
       price: { type: Number, required: true, min: 0 },
+      costPrice: { type: Number, min: 0 },
       qty: { type: Number, required: true, min: 1 },
       image: { type: String, default: "" },
+      selectedVariants: { type: Map, of: String, default: {} },
+      variantId: { type: String, default: "" },
+      variantString: { type: String, default: "" },
       isMarkazProduct: { type: Boolean, default: false },
       markazProductId: { type: String, default: "" },
+      markazProductUrl: { type: String, default: "" },
       wholesalePrice: { type: Number, min: 0 },
       profit: { type: Number, min: 0, default: 0 },
       supplier: {
@@ -29,16 +34,31 @@ const orderSchema = new mongoose.Schema({
   deliveryFee: { type: Number, required: true, min: 0 },
   total: { type: Number, required: true, min: 0 },
   profit: { type: Number, min: 0, default: 0 },
+  customerName: { type: String, trim: true, default: "" },
+  phone: { type: String, trim: true, default: "" },
+  alternatePhone: { type: String, trim: true, default: "" },
+  city: { type: String, trim: true, default: "" },
+  areaSector: { type: String, trim: true, default: "" },
+  streetAddress: { type: String, trim: true, default: "" },
+  fullAddress: { type: String, trim: true, default: "" },
+  deliveredAt: { type: Date, default: null },
+  supplierOrderedOnMarkaz: { type: Boolean, default: false },
+  supplierOrderedAt: { type: Date, default: null },
   customer: {
     name: { type: String, required: true, trim: true },
     phone: { type: String, required: true, trim: true },
+    email: { type: String, trim: true, lowercase: true, default: "" },
     address: { type: String, required: true, trim: true },
-    city: { type: String, required: true, trim: true }
+    city: { type: String, required: true, trim: true },
+    alternatePhone: { type: String, trim: true, default: "" },
+    areaSector: { type: String, trim: true, default: "" },
+    streetAddress: { type: String, trim: true, default: "" },
+    fullAddress: { type: String, trim: true, default: "" }
   },
   paymentMethod: { type: String, enum: ["COD"], default: "COD", required: true },
   status: {
     type: String,
-    enum: ["pending", "confirmed", "shipped", "delivered"],
+    enum: ["pending", "processing", "confirmed", "shipped", "delivered"],
     default: "pending",
     required: true
   }
@@ -49,6 +69,25 @@ const orderSchema = new mongoose.Schema({
 });
 
 export type OrderRecord = InferSchemaType<typeof orderSchema>;
+
+const existingOrderModel = mongoose.models.Order;
+const existingOrderStatusPath = existingOrderModel?.schema.path("status");
+const existingOrderStatusEnum = existingOrderStatusPath?.options.enum;
+const existingOrderHasProcessingStatus = Array.isArray(existingOrderStatusEnum) &&
+  existingOrderStatusEnum.includes("processing");
+if (existingOrderModel && (
+  !existingOrderModel.schema.path("products.markazProductUrl") ||
+  !existingOrderModel.schema.path("products.costPrice") ||
+  !existingOrderModel.schema.path("products.selectedVariants") ||
+  !existingOrderModel.schema.path("products.variantId") ||
+  !existingOrderModel.schema.path("products.variantString") ||
+  !existingOrderModel.schema.path("alternatePhone") ||
+  !existingOrderModel.schema.path("supplierOrderedOnMarkaz") ||
+  !existingOrderModel.schema.path("deliveredAt") ||
+  !existingOrderHasProcessingStatus
+)) {
+  mongoose.deleteModel("Order");
+}
 
 const Order = mongoose.models.Order
   ? mongoose.model<OrderRecord>("Order")

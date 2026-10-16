@@ -2,6 +2,8 @@ import { randomUUID } from "node:crypto";
 import { mkdir, readFile, rename, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { addMockProduct, type MockProduct } from "./mock-products";
+import type { ProductImportSource } from "./product-history";
+import { cleanMarkazTitle, cleanProductDescription, extractProductCode } from "./product-codes";
 
 const dataDirectory = path.join(process.cwd(), "data");
 const productsFile = path.join(dataDirectory, "markaz-products.json");
@@ -10,12 +12,41 @@ let writeQueue = Promise.resolve();
 export type LocalMarkazProduct = Omit<MockProduct, "createdAt" | "updatedAt"> & {
   createdAt: string;
   updatedAt: string;
+  importSource: ProductImportSource;
+  isHotDeal?: boolean;
+  isNewArrival?: boolean;
+  dealEndDate?: string | null;
+  discountPercent?: number;
+  brand?: string;
+  sku?: string;
+  productCode?: string | null;
+  markazCode?: string | null;
+  supplierCode?: string | null;
+  originalDescription?: string | null;
+  originalMarkazTitle?: string | null;
+  hasVariants?: boolean;
+  variantOptions?: unknown[];
+  variants?: import("./markaz-variants").ProductVariantDefinition[];
+  variantCombinations?: import("./markaz-variants").ProductVariantCombination[];
 };
 
 function normalizeLocalMarkazProduct(product: LocalMarkazProduct): LocalMarkazProduct {
   const rating = product.ratings > 0 ? product.ratings : 4.5;
+  const productCode = product.productCode ?? product.markazCode ?? product.supplierCode ??
+    extractProductCode(product.originalDescription?.trim() ? product.originalDescription : product.description);
   return {
     ...product,
+    title: cleanMarkazTitle(product.title),
+    name: cleanMarkazTitle(product.name),
+    originalMarkazTitle: product.originalMarkazTitle ??
+      (/Markaz|\bPKR\s*[\d,]+/i.test(product.title) ? product.title : null),
+    description: cleanProductDescription(product.description),
+    productCode,
+    markazCode: product.markazCode ?? productCode,
+    supplierCode: product.supplierCode ?? productCode,
+    originalDescription: product.originalDescription ??
+      (productCode ? product.description : null),
+    importSource: product.importSource ?? "bulk-import",
     ratings: rating,
     rating,
     reviews: product.reviews || 100,
@@ -51,7 +82,13 @@ function isLocalMarkazProduct(value: unknown): value is LocalMarkazProduct {
     "profit" in value && typeof value.profit === "number" &&
     "supplier" in value && typeof value.supplier === "object" && value.supplier !== null &&
     "createdAt" in value && typeof value.createdAt === "string" &&
-    "updatedAt" in value && typeof value.updatedAt === "string";
+    "updatedAt" in value && typeof value.updatedAt === "string" &&
+    (!("importSource" in value) || typeof value.importSource === "string") &&
+    (!("productCode" in value) || typeof value.productCode === "string" || value.productCode === null) &&
+    (!("markazCode" in value) || typeof value.markazCode === "string" || value.markazCode === null) &&
+    (!("supplierCode" in value) || typeof value.supplierCode === "string" || value.supplierCode === null) &&
+    (!("originalDescription" in value) || typeof value.originalDescription === "string" || value.originalDescription === null) &&
+    (!("originalMarkazTitle" in value) || typeof value.originalMarkazTitle === "string" || value.originalMarkazTitle === null);
 }
 
 async function readProductsFile(): Promise<LocalMarkazProduct[]> {
@@ -71,7 +108,10 @@ async function readProductsFile(): Promise<LocalMarkazProduct[]> {
 }
 
 export async function getLocalMarkazProducts(): Promise<LocalMarkazProduct[]> {
-  const products = (await readProductsFile()).map(normalizeLocalMarkazProduct);
+  const products = (await readProductsFile()).map((product) => normalizeLocalMarkazProduct({
+    ...product,
+    importSource: product.importSource ?? "bulk-import"
+  }));
   for (const product of products) {
     addMockProduct({
       ...product,
