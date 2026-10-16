@@ -33,7 +33,7 @@ type StoredDepartment = BaseEntity;
 type StoredCategory = BaseEntity & { departmentId: string };
 type ProductForCounts = { title: string; category: string; departmentId?: string; categoryId?: string };
 
-const dataDirectory = path.join(process.cwd(), ".data");
+const dataDirectory = path.join(process.env.VERCEL ? "/tmp" : process.cwd(), ".data");
 const departmentsFile = path.join(dataDirectory, "departments.json");
 const categoriesFile = path.join(dataDirectory, "categories.json");
 let localInitialization: Promise<void> | null = null;

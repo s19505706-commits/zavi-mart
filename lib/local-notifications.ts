@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { mkdir, readFile, rename, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-const dataDirectory = path.join(process.cwd(), ".data");
+const dataDirectory = path.join(process.env.VERCEL ? "/tmp" : process.cwd(), ".data");
 const notificationsFile = path.join(dataDirectory, "notifications.json");
 const commentsFile = path.join(dataDirectory, "comments.json");
 let writeQueue = Promise.resolve();

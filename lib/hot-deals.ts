@@ -42,7 +42,7 @@ export type HotDealInput = Omit<HotDealItem, "id" | "createdAt" | "updatedAt">;
 
 export type HotDealProduct = HotDealItem["products"][number];
 
-const dataDirectory = path.join(process.cwd(), ".data");
+const dataDirectory = path.join(process.env.VERCEL ? "/tmp" : process.cwd(), ".data");
 const hotDealsFile = path.join(dataDirectory, "hotDeals.json");
 let writeQueue: Promise<void> = Promise.resolve();
 

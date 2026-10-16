@@ -41,7 +41,7 @@ export type DeletedProduct = Record<string, unknown> & {
   reason: string;
 };
 
-const dataDirectory = path.join(process.cwd(), ".data");
+const dataDirectory = path.join(process.env.VERCEL ? "/tmp" : process.cwd(), ".data");
 const historyFile = path.join(dataDirectory, "productHistory.json");
 const deletedProductsFile = path.join(dataDirectory, "deletedProducts.json");
 let historyWriteQueue = Promise.resolve();

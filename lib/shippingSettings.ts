@@ -18,7 +18,7 @@ export const defaultShipping: ShippingSettings = {
   updatedAt: new Date().toISOString()
 };
 
-const dataDirectory = path.join(process.cwd(), ".data");
+const dataDirectory = path.join(process.env.VERCEL ? "/tmp" : process.cwd(), ".data");
 const shippingFile = path.join(dataDirectory, "shipping.json");
 let writeQueue: Promise<void> = Promise.resolve();
 

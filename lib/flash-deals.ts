@@ -25,7 +25,7 @@ export type FlashDealItem = {
 
 export type FlashDealInput = Omit<FlashDealItem, "id" | "soldCount" | "createdAt" | "updatedAt">;
 
-const dataDirectory = path.join(process.cwd(), ".data");
+const dataDirectory = path.join(process.env.VERCEL ? "/tmp" : process.cwd(), ".data");
 const dealsFile = path.join(dataDirectory, "flashDeals.json");
 let writeQueue: Promise<void> = Promise.resolve();
 

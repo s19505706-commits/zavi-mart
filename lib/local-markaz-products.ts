@@ -5,8 +5,8 @@ import { addMockProduct, type MockProduct } from "./mock-products";
 import type { ProductImportSource } from "./product-history";
 import { cleanMarkazTitle, cleanProductDescription, extractProductCode } from "./product-codes";
 
-const dataDirectory = path.join(process.cwd(), "data");
-const productsFile = path.join(dataDirectory, "markaz-products.json");
+const dataDirectory = path.join(process.env.VERCEL ? "/tmp" : process.cwd(), ".data");
+const markazProductsFile = path.join(dataDirectory, "markaz-products.json");
 let writeQueue = Promise.resolve();
 
 export type LocalMarkazProduct = Omit<MockProduct, "createdAt" | "updatedAt"> & {
@@ -93,10 +93,10 @@ function isLocalMarkazProduct(value: unknown): value is LocalMarkazProduct {
 
 async function readProductsFile(): Promise<LocalMarkazProduct[]> {
   try {
-    const contents = await readFile(productsFile, "utf8");
+    const contents = await readFile(markazProductsFile, "utf8");
     const products: unknown = JSON.parse(contents);
     if (!Array.isArray(products) || !products.every(isLocalMarkazProduct)) {
-      throw new Error("data/markaz-products.json must contain valid Markaz product records.");
+      throw new Error(".data/markaz-products.json must contain valid Markaz product records.");
     }
     return products;
   } catch (error) {
@@ -130,7 +130,7 @@ export async function saveLocalMarkazProduct(product: LocalMarkazProduct): Promi
     const temporaryFile = path.join(dataDirectory, `markaz-products.${randomUUID()}.tmp`);
     try {
       await writeFile(temporaryFile, `${JSON.stringify(products, null, 2)}\n`, "utf8");
-      await rename(temporaryFile, productsFile);
+      await rename(temporaryFile, markazProductsFile);
     } catch (error) {
       try {
         await unlink(temporaryFile);
