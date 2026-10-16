@@ -3,10 +3,13 @@
 import Link from "next/link";
 import { ArrowLeft, LockKeyhole, ShoppingCart } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+import { toast } from "sonner";
 import {
-  CART_STORAGE_KEY,
+  clearCart,
   CHECKOUT_PRODUCTS_BY_CART_ID,
   STARTER_CART_ITEMS,
+  readCart,
+  saveCart,
   type CartItem
 } from "../../lib/cart";
 import { PAK_CITIES } from "../../lib/pak-cities";
@@ -124,10 +127,7 @@ function getCheckoutItems(cart: CartItem[]): CheckoutItem[] {
 
 function loadCartFromStorage(): CartItem[] {
   try {
-    const saved = localStorage.getItem(CART_STORAGE_KEY);
-    if (!saved) return STARTER_CART_ITEMS;
-    const parsed: unknown = JSON.parse(saved);
-    return Array.isArray(parsed) ? parsed as CartItem[] : [];
+    return readCart();
   } catch (error) {
     console.error("Could not load the saved cart:", error);
     return [];
@@ -136,7 +136,6 @@ function loadCartFromStorage(): CartItem[] {
 
 export default function CheckoutForm() {
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [coupon, setCoupon] = useState("");
   const [shippingSettings, setShippingSettings] = useState(DEFAULT_SHIPPING);
   const [shippingError, setShippingError] = useState("");
   const [error, setError] = useState("");
@@ -285,8 +284,7 @@ export default function CheckoutForm() {
           return [{ ...product, quantity }];
         });
         setCart(resolved);
-        localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(resolved));
-        setCoupon(params.get("coupon")?.toUpperCase() === "ZAVI10" ? "ZAVI10" : "");
+        saveCart(resolved);
         return;
       } catch (parseError) {
         console.error("Could not import the cart for checkout:", parseError);
@@ -302,8 +300,7 @@ export default function CheckoutForm() {
   const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const hasFreeDelivery = shippingSettings.freeDeliveryEnabled && subtotal >= shippingSettings.minAmountForFree;
   const shipping = subtotal === 0 || hasFreeDelivery ? 0 : shippingSettings.shippingFee;
-  const discount = coupon === "ZAVI10" ? Math.round(subtotal * 0.1) : 0;
-  const total = subtotal - discount + shipping;
+  const total = subtotal + shipping;
 
   async function locateAddress() {
     const selectedCity = city === "Other" ? otherCity.trim() : city;
@@ -373,16 +370,18 @@ export default function CheckoutForm() {
             deliveryLocation: deliveryPin
           },
           paymentMethod: "cod",
-          couponCode: coupon
         })
       });
       const result = await response.json() as OrderResult;
       if (!response.ok) throw new Error(result.error || "We couldn’t place your order.");
       setOrder(result);
-      localStorage.removeItem(CART_STORAGE_KEY);
+      clearCart();
       setCart([]);
+      toast.success("Your order was placed successfully.");
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "We couldn’t place your order.");
+      const message = submitError instanceof Error ? submitError.message : "We couldn’t place your order.";
+      setError(message);
+      toast.error(message);
     } finally {
       setSubmitting(false);
     }
@@ -513,7 +512,6 @@ export default function CheckoutForm() {
                 </div>
               ))}
             </div>
-            {coupon && <p className={styles.coupon}>Coupon {coupon} applied · −{formatRupees(discount)}</p>}
             <div className={styles.summaryLine}><span>Subtotal</span><strong>{formatRupees(subtotal)}</strong></div>
             <div className={styles.summaryLine}><span>Shipping</span><strong className={shipping === 0 ? styles.free : ""}>{shipping === 0 ? "FREE" : formatRupees(shipping)}</strong></div>
             <div className={`${styles.summaryLine} ${styles.total}`}><span>Total</span><strong>{formatRupees(total)}</strong></div>

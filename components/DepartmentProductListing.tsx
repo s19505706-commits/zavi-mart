@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import ProductCard from "./ProductCard";
-import { CART_STORAGE_KEY, type CartItem } from "../lib/cart";
+import { addCartItem as addItem, readCart, saveCart } from "../lib/cart";
 
 type Department = { id: string; name: string; slug: string; image?: string };
 type Category = { id: string; name: string; slug: string; departmentId: string };
@@ -22,17 +23,6 @@ type StoreProduct = {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function isCartItem(value: unknown): value is CartItem {
-  return isRecord(value) &&
-    typeof value.id === "string" &&
-    typeof value.name === "string" &&
-    typeof value.image === "string" &&
-    typeof value.price === "number" && Number.isFinite(value.price) &&
-    typeof value.quantity === "number" && Number.isInteger(value.quantity) && value.quantity > 0 &&
-    (value.checkoutProductId === undefined ||
-      (typeof value.checkoutProductId === "number" && Number.isInteger(value.checkoutProductId)));
 }
 
 function parseStoreProducts(value: unknown): StoreProduct[] {
@@ -74,33 +64,23 @@ export default function DepartmentProductListing({
 
   function addToCart(product: StoreProduct) {
     try {
-      const savedCart = localStorage.getItem(CART_STORAGE_KEY);
-      const parsedCart: unknown = savedCart ? JSON.parse(savedCart) : [];
-      if (!Array.isArray(parsedCart) || !parsedCart.every(isCartItem)) {
-        throw new Error("The saved cart has an invalid format.");
-      }
-
-      const cart = parsedCart;
-      const existingItem = cart.find((item) => item.id === product._id);
-      const updatedCart = existingItem
-        ? cart.map((item) => item.id === product._id
-          ? { ...item, quantity: item.quantity + 1 }
-          : item)
-        : [...cart, {
-            id: product._id,
-            name: product.title,
-            image: product.image,
-            price: product.price,
-            quantity: 1
-          }];
-      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(updatedCart));
+      const updatedCart = addItem(readCart(), {
+        id: product._id,
+        productId: product._id,
+        name: product.title,
+        image: product.image,
+        price: product.price
+      });
+      saveCart(updatedCart);
       setAddedProductIds((current) => current.includes(product._id)
         ? current
         : [...current, product._id]);
       setCartError("");
+      toast.success(`${product.title} added to your cart.`);
     } catch (cartSaveError) {
       console.error("Could not add this product to the cart:", cartSaveError);
       setCartError("This product could not be added to your cart. Please try again.");
+      toast.error("This product could not be added to your cart.");
     }
   }
 
@@ -224,7 +204,7 @@ export default function DepartmentProductListing({
                   </h2>
                 </header>
                 <div className="department-product-grid">
-                  {newArrivals.map((product) => (
+                  {newArrivals.map((product, index) => (
                     <ProductCard
                       key={product._id}
                       product={{
@@ -233,8 +213,10 @@ export default function DepartmentProductListing({
                         category: `${department.name} · ${product.category}`,
                         image: product.image,
                         price: product.price,
+                        originalPrice: product.originalPrice,
                         badge: "New"
                       }}
+                      priority={index < 4}
                       isAdded={addedProductIds.includes(product._id)}
                       onAddToCart={() => addToCart(product)}
                     />
@@ -248,7 +230,7 @@ export default function DepartmentProductListing({
               </header>
               {visibleProducts.length ? (
             <div className="department-product-grid">
-              {visibleProducts.map((product) => (
+              {visibleProducts.map((product, index) => (
                 <ProductCard
                   key={product._id}
                   product={{
@@ -256,8 +238,10 @@ export default function DepartmentProductListing({
                     title: product.title,
                     category: `${department.name} · ${product.category}`,
                     image: product.image,
-                    price: product.price
+                    price: product.price,
+                    originalPrice: product.originalPrice
                   }}
+                  priority={index < 4}
                   isAdded={addedProductIds.includes(product._id)}
                   onAddToCart={() => addToCart(product)}
                 />

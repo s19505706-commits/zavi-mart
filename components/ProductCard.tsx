@@ -2,6 +2,7 @@
 
 import { useRef, useState, type MouseEvent } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import styles from "./ProductCard.module.css";
 
 export type ProductCardProduct = {
@@ -11,6 +12,8 @@ export type ProductCardProduct = {
   image?: string;
   images?: string[];
   price?: number;
+  originalPrice?: number | null;
+  discountPrice?: number | null;
   sellingPrice?: number;
   badge?: string;
   href?: string;
@@ -25,6 +28,7 @@ type ProductCardProps = {
   onAddToCart?: () => void;
   compact?: boolean;
   actionLabel?: string;
+  priority?: boolean;
 };
 
 export default function ProductCard({
@@ -32,7 +36,8 @@ export default function ProductCard({
   isAdded = false,
   onAddToCart,
   compact = false,
-  actionLabel
+  actionLabel,
+  priority = false
 }: ProductCardProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
@@ -40,7 +45,14 @@ export default function ProductCard({
   const images = product.images?.filter(Boolean).length
     ? product.images.filter(Boolean)
     : product.image ? [product.image] : [];
-  const price = product.price ?? product.sellingPrice ?? 0;
+  const price = product.discountPrice ?? product.price ?? product.sellingPrice ?? 0;
+  const originalPrice = product.originalPrice ??
+    (product.discountPrice !== undefined && product.discountPrice !== null && product.discountPrice < (product.price ?? product.sellingPrice ?? 0)
+      ? product.price ?? product.sellingPrice
+      : null);
+  const discountPercent = typeof originalPrice === "number" && originalPrice > price
+    ? Math.round((originalPrice - price) / originalPrice * 100)
+    : 0;
   const productHref = product.href ?? `/product/${encodeURIComponent(product.id)}`;
   const bundleImages = product.bundleImages?.filter(Boolean) ?? [];
 
@@ -68,20 +80,24 @@ export default function ProductCard({
           {product.isBundle && !product.bundleImage ? (
             <div className="grid h-full w-full grid-cols-2 gap-1 p-2">
               {(bundleImages.length ? bundleImages : images).slice(0, 4).map((image, index) => (
-                <img key={`${image}-${index}`} src={image} alt="" className="h-full w-full rounded object-cover" loading="lazy" />
+                <Image key={`${image}-${index}`} src={image} alt="" className="h-full w-full rounded object-cover" width={160} height={160} unoptimized priority={priority && index < 4} />
               ))}
             </div>
           ) : images[currentIndex] ? (
-            <img
+            <Image
               src={images[currentIndex]}
               alt={product.title}
               className={styles.image}
-              loading="lazy"
+              fill
+              unoptimized
+              sizes="(max-width: 640px) 50vw, 25vw"
+              priority={priority}
             />
           ) : (
             <span className={styles.noImage}>No image available</span>
           )}
           {product.badge && <span className={styles.badge}>{product.badge}</span>}
+          {discountPercent > 0 && <span className={styles.discountBadge}>{discountPercent}% OFF</span>}
           {images.length > 1 && isHovered && (
             <div className={styles.dots} aria-label={`Image ${currentIndex + 1} of ${images.length}`}>
               {images.map((image, index) => (
@@ -103,7 +119,10 @@ export default function ProductCard({
         <Link className={styles.titleLink} href={productHref}>
           <h3 className={styles.title}>{product.title}</h3>
         </Link>
-        <p className={styles.price}>Rs {price.toLocaleString("en-PK")}</p>
+        <p className={styles.price}>
+          Rs {price.toLocaleString("en-PK")}
+          {discountPercent > 0 && <del>Rs {originalPrice?.toLocaleString("en-PK")}</del>}
+        </p>
         <p className={styles.availability}>Available From ZaviMart</p>
         {productHref.startsWith("/hot-deal/") ? (
           <Link className={styles.addButton} href={productHref}>{actionLabel ?? "View Bundle"}</Link>

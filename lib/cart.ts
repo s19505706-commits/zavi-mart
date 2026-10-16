@@ -53,3 +53,69 @@ export const STARTER_CART_ITEMS: CartItem[] = [
     quantity: 1
   }
 ];
+
+function isCartItem(value: unknown): value is CartItem {
+  return typeof value === "object" && value !== null && !Array.isArray(value) &&
+    "id" in value && typeof value.id === "string" &&
+    "name" in value && typeof value.name === "string" &&
+    "image" in value && typeof value.image === "string" &&
+    "price" in value && typeof value.price === "number" && Number.isFinite(value.price) && value.price >= 0 &&
+    "quantity" in value && typeof value.quantity === "number" && Number.isInteger(value.quantity) && value.quantity > 0;
+}
+
+export function parseCart(value: unknown): CartItem[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter(isCartItem);
+}
+
+export function readCart(): CartItem[] {
+  const saved = localStorage.getItem(CART_STORAGE_KEY);
+  if (!saved) return [];
+  return parseCart(JSON.parse(saved));
+}
+
+export function saveCart(items: CartItem[]): void {
+  localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
+  window.dispatchEvent(new Event("zavimart_cart_updated"));
+}
+
+export function addCartItem(
+  items: CartItem[],
+  product: Omit<CartItem, "quantity">,
+  quantity = 1
+): CartItem[] {
+  if (!Number.isInteger(quantity) || quantity < 1) {
+    throw new Error("Cart quantity must be a positive integer.");
+  }
+  const variantKey = JSON.stringify(Object.fromEntries(
+    Object.entries(product.selectedVariants ?? {}).sort(([left], [right]) => left.localeCompare(right))
+  ));
+  const existing = items.find((item) =>
+    item.id === product.id &&
+    JSON.stringify(Object.fromEntries(
+      Object.entries(item.selectedVariants ?? {}).sort(([left], [right]) => left.localeCompare(right))
+    )) === variantKey
+  );
+  if (existing) {
+    return items.map((item) => item === existing
+      ? { ...item, quantity: item.quantity + quantity }
+      : item);
+  }
+  return [...items, { ...product, quantity }];
+}
+
+export function updateCartItemQuantity(items: CartItem[], id: string, quantity: number): CartItem[] {
+  if (!Number.isInteger(quantity)) throw new Error("Cart quantity must be an integer.");
+  return items.map((item) => item.id === id
+    ? { ...item, quantity: Math.max(1, quantity) }
+    : item);
+}
+
+export function removeCartItem(items: CartItem[], id: string): CartItem[] {
+  return items.filter((item) => item.id !== id);
+}
+
+export function clearCart(): void {
+  localStorage.removeItem(CART_STORAGE_KEY);
+  window.dispatchEvent(new Event("zavimart_cart_updated"));
+}

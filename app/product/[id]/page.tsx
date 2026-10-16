@@ -5,8 +5,12 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 import { ArrowLeft, Search, ShoppingCart } from "lucide-react";
+import { toast } from "sonner";
+import ProductCard from "../../../components/ProductCard";
 import {
   CART_STORAGE_KEY,
+  addCartItem,
+  saveCart,
   type CartItem
 } from "../../../lib/cart";
 import {
@@ -30,6 +34,8 @@ type ProductDetails = {
   images?: string[];
   imageUrls?: string[];
   category: string;
+  categoryId?: string | null;
+  departmentId?: string | null;
   description?: string;
   stock: number;
   hasVariants?: boolean;
@@ -167,7 +173,11 @@ function usableImageUrl(value: string): string {
 function readCart(): CartItem[] {
   try {
     const value: unknown = JSON.parse(localStorage.getItem(CART_STORAGE_KEY) ?? "[]");
-    return Array.isArray(value) ? value as CartItem[] : [];
+    return Array.isArray(value) ? value.filter((item): item is CartItem =>
+      isRecord(item) && typeof item.id === "string" &&
+      typeof item.name === "string" && typeof item.image === "string" &&
+      typeof item.price === "number" && typeof item.quantity === "number"
+    ) : [];
   } catch (error) {
     console.error("Could not read the saved cart.", error);
     return [];
@@ -178,6 +188,7 @@ export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const [product, setProduct] = useState<ProductDetails | null>(null);
+  const [relatedProducts, setRelatedProducts] = useState<ProductDetails[]>([]);
   const [selectedImage, setSelectedImage] = useState(0);
   const [failedImages, setFailedImages] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -237,13 +248,45 @@ export default function ProductDetailPage() {
   }, [id]);
 
   useEffect(() => {
+    if (!product) return;
+    setRelatedProducts([]);
+    const controller = new AbortController();
+    fetch("/api/products?limit=100", { cache: "no-store", signal: controller.signal })
+      .then(async (response) => {
+        const result: unknown = await response.json();
+        if (!response.ok || !isRecord(result) || !Array.isArray(result.products)) {
+          throw new Error("Could not load related products.");
+        }
+        const matching = result.products
+          .filter(isProductDetails)
+          .filter((candidate) => candidate._id !== product._id)
+          .filter((candidate) =>
+            Boolean(product.categoryId && candidate.categoryId === product.categoryId) ||
+            Boolean(product.departmentId && candidate.departmentId === product.departmentId) ||
+            candidate.category.toLocaleLowerCase() === product.category.toLocaleLowerCase()
+          )
+          .slice(0, 4);
+        setRelatedProducts(matching);
+      })
+      .catch((relatedError: unknown) => {
+        if (relatedError instanceof Error && relatedError.name === "AbortError") return;
+        console.error("Could not load related products.", relatedError);
+      });
+    return () => controller.abort();
+  }, [product]);
+
+  useEffect(() => {
     function updateCartCount() {
       setCartCount(readCart().reduce((count, item) => count + item.quantity, 0));
     }
 
     updateCartCount();
     window.addEventListener("storage", updateCartCount);
-    return () => window.removeEventListener("storage", updateCartCount);
+    window.addEventListener("zavimart_cart_updated", updateCartCount);
+    return () => {
+      window.removeEventListener("storage", updateCartCount);
+      window.removeEventListener("zavimart_cart_updated", updateCartCount);
+    };
   }, []);
 
   useEffect(() => {
@@ -424,26 +467,49 @@ export default function ProductDetailPage() {
       (item.productId ?? item.id) === product._id &&
       JSON.stringify(Object.fromEntries(Object.entries(item.selectedVariants ?? {}).sort(([a], [b]) => a.localeCompare(b)))) === variantKey
     );
-    const next = existing
-      ? current.map((item) => item.id === existing.id
-        ? { ...item, quantity: Math.min(product.stock, item.quantity + quantity) }
-        : item)
-      : [...current, {
-          id: `${product._id}:${variantKey}`,
-          productId: product._id,
-          name: product.name || product.title,
-          image,
-          price: product.price,
-          quantity,
-          ...(Object.keys(selectedVariants).length ? { selectedVariants: { ...selectedVariants } } : {}),
-          ...(matchedVariant?.id || matchedVariant?.sku
-            ? { variantId: matchedVariant.id || matchedVariant.sku }
-            : {})
-        }];
-    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(next));
+    if (existing && existing.quantity + quantity > product.stock) {
+      setVariantError(`Only ${product.stock - existing.quantity} more of this product are available.`);
+      return;
+    }
+    const next = addCartItem(current, {
+      id: `${product._id}:${variantKey}`,
+      productId: product._id,
+      name: product.name || product.title,
+      image,
+      price: product.price,
+      ...(Object.keys(selectedVariants).length ? { selectedVariants: { ...selectedVariants } } : {}),
+      ...(matchedVariant?.id || matchedVariant?.sku
+        ? { variantId: matchedVariant.id || matchedVariant.sku }
+        : {})
+    }, quantity);
+    try {
+      saveCart(next);
+    } catch (cartError) {
+      console.error("Could not save the cart.", cartError);
+      toast.error("Your cart could not be saved. Please try again.");
+      return;
+    }
     setCartCount(next.reduce((count, item) => count + item.quantity, 0));
     setAdded(true);
-    if (goToCheckout) router.push("/checkout");
+    toast.success(`${product.name || product.title} added to your cart.`);
+    if (goToCheckout) router.push("/cart");
+  }
+
+  function addRelatedProduct(related: ProductDetails) {
+    try {
+      const next = addCartItem(readCart(), {
+        id: related._id,
+        productId: related._id,
+        name: related.name || related.title,
+        image: related.image || related.images?.[0] || related.imageUrls?.[0] || "",
+        price: related.price
+      });
+      saveCart(next);
+      toast.success(`${related.name || related.title} added to your cart.`);
+    } catch (cartError) {
+      console.error("Could not add a related product to the cart.", cartError);
+      toast.error("This product could not be added to your cart.");
+    }
   }
 
   function getAvailableOptions(optionName: string): string[] {
@@ -728,6 +794,29 @@ export default function ProductDetailPage() {
           <Link href="/cart" className={styles.cartLink}>View cart</Link>
         </aside>
       </article>
+      {relatedProducts.length > 0 && (
+        <section className={styles.relatedSection} aria-labelledby="related-products-heading">
+          <span className={styles.eyebrow}>More to explore</span>
+          <h2 id="related-products-heading">Related products</h2>
+          <div className={styles.relatedProductGrid}>
+            {relatedProducts.map((related, index) => (
+              <ProductCard
+                key={related._id}
+                product={{
+                  id: related._id,
+                  title: related.name || related.title,
+                  category: related.category,
+                  image: related.image || related.images?.[0] || related.imageUrls?.[0],
+                  price: related.price,
+                  originalPrice: related.originalPrice
+                }}
+                priority={index < 4}
+                onAddToCart={() => addRelatedProduct(related)}
+              />
+            ))}
+          </div>
+        </section>
+      )}
     </main>
   );
 }

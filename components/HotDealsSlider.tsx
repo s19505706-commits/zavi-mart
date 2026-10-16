@@ -20,6 +20,7 @@ export type Deal = {
   badge: string;
   price?: number;
   originalPrice?: number | null;
+  imagePriority?: boolean;
   priority?: number;
   customTitle?: string;
   hotDealId?: string;
@@ -42,6 +43,7 @@ type HotDealsSliderProps = {
   categoryFilter: string;
   searchQuery: string;
   products: Deal[];
+  productsLoading?: boolean;
   flashDeals?: Deal[];
   curatedHotDeals?: Deal[];
   newArrivals?: Deal[];
@@ -62,6 +64,7 @@ export default function HotDealsSlider({
   categoryFilter,
   searchQuery,
   products,
+  productsLoading = false,
   flashDeals = [],
   curatedHotDeals = [],
   newArrivals = [],
@@ -168,6 +171,7 @@ export default function HotDealsSlider({
                           image: deal.image,
                           images: deal.images,
                           price: deal.price,
+                          originalPrice: deal.originalPrice,
                           sellingPrice: deal.price,
                           badge: deal.dealType === "bundle" ? `Pack of ${deal.bundleImages?.length ?? 2}` : deal.badge,
                           href: deal.dealType === "bundle" && deal.hotDealId
@@ -178,6 +182,7 @@ export default function HotDealsSlider({
                           bundleImage: deal.bundleImage
                         }}
                         compact
+                        priority={deal.imagePriority}
                         isAdded={isAdded}
                         onAddToCart={() => {
                           setAddedDeals((current) => new Set(current).add(deal.id));
@@ -233,6 +238,7 @@ export default function HotDealsSlider({
                         image: deal.image,
                         images: deal.images,
                         price: deal.price,
+                        originalPrice: deal.originalPrice,
                         sellingPrice: deal.price,
                         badge: deal.dealType === "bundle" ? `Pack of ${deal.bundleImages?.length ?? 2}` : deal.badge,
                         href: deal.dealType === "bundle" && deal.hotDealId
@@ -242,6 +248,7 @@ export default function HotDealsSlider({
                         bundleImages: deal.bundleImages,
                         bundleImage: deal.bundleImage
                       }}
+                      priority={deal.imagePriority}
                       isAdded={isAdded}
                       onAddToCart={() => {
                         setAddedDeals((current) => new Set(current).add(deal.id));
@@ -255,6 +262,22 @@ export default function HotDealsSlider({
           </section>
         ))}
       </div>
+      {productsLoading ? (
+        <section className="homepage-product-loading" aria-label="Loading products" aria-busy="true">
+          <div className="deal-section-heading">
+            <div><span className="section-eyebrow">Just for you</span><h2>Shop products</h2></div>
+          </div>
+          <div className="homepage-product-skeleton-grid">
+            {Array.from({ length: 4 }, (_, index) => <div className="homepage-product-skeleton" key={index} />)}
+          </div>
+        </section>
+      ) : products.length === 0 ? (
+        <section className="homepage-products-empty" role="status">
+          <span className="section-eyebrow">ZaviMart collection</span>
+          <h2>No products available</h2>
+          <p>There are no products to show right now. Please check back soon.</p>
+        </section>
+      ) : null}
       <p className="cart-feedback" aria-live="polite">
         {addedDeals.size > 0 ? `${addedDeals.size} ${addedDeals.size === 1 ? "deal" : "deals"} added to your cart.` : ""}
       </p>
