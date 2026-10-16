@@ -6,6 +6,7 @@ import type { ProductImportSource } from "./product-history";
 import { cleanMarkazTitle, cleanProductDescription, extractProductCode } from "./product-codes";
 
 const dataDirectory = path.join(process.env.VERCEL ? "/tmp" : process.cwd(), ".data");
+const markazProductsFile = path.join(dataDirectory, "markaz-products.json");
 let writeQueue = Promise.resolve();
 
 export type LocalMarkazProduct = Omit<MockProduct, "createdAt" | "updatedAt"> & {
@@ -90,9 +91,9 @@ function isLocalMarkazProduct(value: unknown): value is LocalMarkazProduct {
     (!("originalMarkazTitle" in value) || typeof value.originalMarkazTitle === "string" || value.originalMarkazTitle === null);
 }
 
-async function readmarkazmarkazProductsFile(): Promise<LocalMarkazProduct[]> {
+async function readmarkazProductsFile(): Promise<LocalMarkazProduct[]> {
   try {
-    const contents = await readFile(markazmarkazProductsFile, "utf8");
+    const contents = await readFile(markazProductsFile, "utf8");
     const products: unknown = JSON.parse(contents);
     if (!Array.isArray(products) || !products.every(isLocalMarkazProduct)) {
       throw new Error("data/markaz-products.json must contain valid Markaz product records.");
@@ -107,7 +108,7 @@ async function readmarkazmarkazProductsFile(): Promise<LocalMarkazProduct[]> {
 }
 
 export async function getLocalMarkazProducts(): Promise<LocalMarkazProduct[]> {
-  const products = (await readmarkazmarkazProductsFile()).map((product) => normalizeLocalMarkazProduct({
+  const products = (await readmarkazProductsFile()).map((product) => normalizeLocalMarkazProduct({
     ...product,
     importSource: product.importSource ?? "bulk-import"
   }));
@@ -124,12 +125,12 @@ export async function getLocalMarkazProducts(): Promise<LocalMarkazProduct[]> {
 export async function saveLocalMarkazProduct(product: LocalMarkazProduct): Promise<void> {
   const save = async () => {
     await mkdir(dataDirectory, { recursive: true });
-    const products = await readmarkazmarkazProductsFile();
+    const products = await readmarkazProductsFile();
     products.push(product);
     const temporaryFile = path.join(dataDirectory, `markaz-products.${randomUUID()}.tmp`);
     try {
       await writeFile(temporaryFile, `${JSON.stringify(products, null, 2)}\n`, "utf8");
-      await rename(temporaryFile, markazmarkazProductsFile);
+      await rename(temporaryFile, markazProductsFile);
     } catch (error) {
       try {
         await unlink(temporaryFile);
