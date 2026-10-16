@@ -7,7 +7,7 @@ import { getProductImportSource, logProductHistory, type ProductImportSource } f
 import { cleanMarkazTitle, cleanProductDescription, extractProductCode } from "./product-codes";
 
 const dataDirectory = path.join(process.env.VERCEL ? "/tmp" : process.cwd(), ".data");
-const localProductsFile = path.join(dataDirectory, "products.json");
+const productsFile = path.join(dataDirectory, "products.json");
 const staticProducts = MOCK_PRODUCTS.slice();
 let writeQueue = Promise.resolve();
 let productMetadataMigration: Promise<ProductStore> | null = null;
@@ -119,7 +119,7 @@ function isStoredProduct(value: unknown): value is StoredProduct {
 
 async function readStore(): Promise<ProductStore> {
   try {
-    const contents = await readFile(localProductsFile, "utf8");
+    const contents = await readFile(productsFile, "utf8");
     const value: unknown = JSON.parse(contents);
     if (
       typeof value !== "object" || value === null ||
@@ -154,7 +154,7 @@ async function updateStore(update: (store: ProductStore) => ProductStore): Promi
     const temporaryFile = path.join(dataDirectory, `products.${randomUUID()}.tmp`);
     try {
       await writeFile(temporaryFile, `${JSON.stringify(store, null, 2)}\n`, "utf8");
-      await rename(temporaryFile, localProductsFile);
+      await rename(temporaryFile, productsFile);
     } catch (error) {
       try {
         await unlink(temporaryFile);
