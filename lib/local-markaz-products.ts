@@ -6,7 +6,7 @@ import type { ProductImportSource } from "./product-history";
 import { cleanMarkazTitle, cleanProductDescription, extractProductCode } from "./product-codes";
 
 const dataDirectory = path.join(process.cwd(), "data");
-const productsFile = path.join(dataDirectory, "markaz-products.json");
+const dataDirectory = path.join(process.env.VERCEL ? "/tmp" : process.cwd(), ".data");
 let writeQueue = Promise.resolve();
 
 export type LocalMarkazProduct = Omit<MockProduct, "createdAt" | "updatedAt"> & {
