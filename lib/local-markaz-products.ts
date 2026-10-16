@@ -5,7 +5,6 @@ import { addMockProduct, type MockProduct } from "./mock-products";
 import type { ProductImportSource } from "./product-history";
 import { cleanMarkazTitle, cleanProductDescription, extractProductCode } from "./product-codes";
 
-const dataDirectory = path.join(process.cwd(), "data");
 const dataDirectory = path.join(process.env.VERCEL ? "/tmp" : process.cwd(), ".data");
 let writeQueue = Promise.resolve();
 
