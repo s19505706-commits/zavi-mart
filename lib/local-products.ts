@@ -6,7 +6,7 @@ import { getCategoryId } from "./product-categories";
 import { getProductImportSource, logProductHistory, type ProductImportSource } from "./product-history";
 import { cleanMarkazTitle, cleanProductDescription, extractProductCode } from "./product-codes";
 
-const dataDirectory = path.join(process.cwd(), ".data");
+const dataDirectory = path.join(process.env.VERCEL ? "/tmp" : process.cwd(), ".data");
 const productsFile = path.join(dataDirectory, "products.json");
 const staticProducts = MOCK_PRODUCTS.slice();
 let writeQueue = Promise.resolve();
