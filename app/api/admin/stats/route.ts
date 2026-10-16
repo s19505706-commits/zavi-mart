@@ -24,6 +24,7 @@ type ProductForMerge = {
   costPrice?: number | null;
   wholesalePrice?: number | null;
   stock?: number;
+  isActive?: boolean;
 };
 
 function isRecord(value: unknown): value is RecordValue {
@@ -236,18 +237,19 @@ export async function GET(request: Request) {
 
     const uniqueProducts = new Map<string, ProductForMerge>();
     for (const product of allProducts) {
+      if (product.isActive === false || localProductStore.deletedIds.includes(product._id)) continue;
       const key = makeProductKey(product);
       if (key) uniqueProducts.set(key, product);
     }
-    const lowStock = [...uniqueProducts.values()]
-      .filter((product) => number(product.stock) < 10)
-      .map((product) => ({
-        id: makeProductKey(product),
-        name: text(product.title ?? product.name, "Product"),
-        category: text(product.category, "General"),
-        stock: number(product.stock),
-        price: number(product.price)
-      }))
+    const lowStockProducts = [...uniqueProducts.values()]
+      .filter((product) => number(product.stock) < 5);
+    const lowStock = lowStockProducts.map((product) => ({
+      id: makeProductKey(product),
+      name: text(product.title ?? product.name, "Product"),
+      category: text(product.category, "General"),
+      stock: number(product.stock),
+      price: number(product.price)
+    }))
       .sort((left, right) => left.stock - right.stock)
       .slice(0, 8);
 
@@ -268,6 +270,8 @@ export async function GET(request: Request) {
 
     return Response.json({
       summary: {
+        totalProducts: uniqueProducts.size,
+        lowStockProducts: lowStockProducts.length,
         totalIncome,
         netIncome,
         totalRevenue: totalIncome,

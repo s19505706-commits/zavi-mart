@@ -16,6 +16,30 @@
   gap: 14px;
 }
 
+.statusControl {
+  display: grid;
+  gap: 4px;
+  color: #64748b;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.statusSelect {
+  min-height: 38px;
+  padding: 7px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+  color: #1e3a5f;
+  font: inherit;
+  font-size: 0.82rem;
+}
+
+.statusSelect:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
 .header {
   align-items: flex-start;
   margin-bottom: 24px;
@@ -329,6 +353,7 @@
 
 .orderActions {
   justify-content: flex-end;
+  flex-wrap: wrap;
 }
 
 .pendingFulfillment {
@@ -591,6 +616,14 @@
   }
 
   .orderActions button {
+    flex: 1;
+  }
+
+  .statusControl {
+    flex: 1 1 100%;
+  }
+
+  .orderActions a {
     flex: 1;
   }
 

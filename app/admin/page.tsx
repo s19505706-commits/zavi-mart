@@ -3,14 +3,12 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import {
-  BarChart3,
   Boxes,
   CalendarDays,
   CircleDollarSign,
   Download,
   PackageCheck,
   Search,
-  ShoppingBag,
   ShoppingCart,
   Users
 } from "lucide-react";
@@ -33,6 +31,8 @@ type Summary = {
   totalRevenue: number;
   profitMargin: number;
   totalOrders: number;
+  totalProducts: number;
+  lowStockProducts: number;
   returns: number;
   pendingOrders: number;
   codOrders: number;
@@ -194,20 +194,11 @@ export default function AdminDashboardPage() {
   }
 
   const summary = data?.summary;
-  const firstRow = [
-    ["Total Income (Gross)", summary ? formatMoney(summary.totalIncome) : "—", "Customer payments received", CircleDollarSign],
-    ["Net Income", summary ? formatMoney(summary.netIncome) : "—", "After costs and fees", CircleDollarSign],
-    ["Total Revenue", summary ? formatMoney(summary.totalRevenue) : "—", "All order revenue", BarChart3],
-    ["Profit Margin", summary ? `${summary.profitMargin.toFixed(1)}%` : "—", "Net income / revenue", BarChart3],
-    ["Total Orders", summary ? String(summary.totalOrders) : "—", "Orders in selected period", ShoppingCart],
-    ["Returns", summary ? String(summary.returns) : "—", "Returned or refunded", PackageCheck]
-  ] as const;
-  const secondRow = [
-    ["Pending Orders", summary ? String(summary.pendingOrders) : "—", ShoppingBag],
-    ["COD Orders", summary ? String(summary.codOrders) : "—", CircleDollarSign],
-    ["Delivered", summary ? String(summary.delivered) : "—", PackageCheck],
-    ["Cancelled", summary ? String(summary.cancelled) : "—", ShoppingCart],
-    ["Avg Order Value", summary ? formatMoney(summary.avgOrderValue) : "—", BarChart3]
+  const overviewCards = [
+    ["Total Products", summary ? String(summary.totalProducts) : "—", "Products in the catalog", Boxes],
+    ["Orders", summary ? String(summary.totalOrders) : "—", "Local and MongoDB orders", ShoppingCart],
+    ["Low Stock (<5)", summary ? String(summary.lowStockProducts) : "—", "Products needing restock", PackageCheck],
+    ["Revenue", summary ? formatMoney(summary.totalRevenue) : "—", "All order revenue", CircleDollarSign]
   ] as const;
 
   return (
@@ -249,16 +240,10 @@ export default function AdminDashboardPage() {
           ? <p className={styles.filterNote}>Showing orders {appliedDates.from || "from the beginning"} to {appliedDates.to || "today"}.</p>
           : null}
 
-        <section className={styles.metricGridPrimary} aria-label="Financial overview">
-          {firstRow.map(([label, value, hint, icon], index) => (
+        <section className={styles.metricGridPrimary} aria-label="Store overview">
+          {overviewCards.map(([label, value, hint, icon], index) => (
             <StatCard key={label} label={label} value={value} sublabel={hint} icon={icon}
               loading={loading} featured={index === 0} />
-          ))}
-        </section>
-        <section className={styles.metricGridSecondary} aria-label="Order overview">
-          {secondRow.map(([label, value, icon]) => (
-            <StatCard key={label} label={label} value={value} sublabel="Selected period"
-              icon={icon} loading={loading} />
           ))}
         </section>
 
@@ -366,7 +351,7 @@ export default function AdminDashboardPage() {
 
           <div className={styles.rightPanels}>
             <article className={styles.panel}>
-              <div className={styles.panelHeading}><div><h2>Low Stock</h2><p>Products with fewer than 10 units</p></div><Boxes size={18} /></div>
+              <div className={styles.panelHeading}><div><h2>Low Stock</h2><p>Products with fewer than 5 units</p></div><Boxes size={18} /></div>
               {loading ? <TableSkeleton rows={3} /> : data?.lowStock.length ? (
                 <ul className={styles.stockList}>{data.lowStock.map((product) => (
                   <li key={product.id}>

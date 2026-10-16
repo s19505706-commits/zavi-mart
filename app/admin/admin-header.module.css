@@ -74,10 +74,10 @@
 }
 
 .desktopNav a.activeLink {
-  background: #fff;
-  color: #102a4e;
+  background: #fef2f2;
+  color: #b91c1c;
   font-weight: 600;
-  box-shadow: 0 1px 2px rgb(0 0 0 / 10%);
+  box-shadow: 0 1px 2px rgb(127 29 29 / 10%);
 }
 
 .headerActions {
@@ -189,8 +189,8 @@
 }
 
 .drawer a.drawerActiveLink {
-  background: #2f6bff;
-  color: #fff;
+  background: #fef2f2;
+  color: #b91c1c;
   font-weight: 600;
 }
 

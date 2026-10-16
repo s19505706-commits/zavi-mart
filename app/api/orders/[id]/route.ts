@@ -5,7 +5,16 @@ import { markLocalOrderOrderedOnMarkaz, updateLocalOrderStatus } from "../../../
 import Order from "../../../../models/Order";
 
 type RouteContext = { params: Promise<{ id: string }> };
-const orderStatuses = ["pending", "processing", "confirmed", "shipped", "delivered"] as const;
+const orderStatuses = [
+  "pending",
+  "processing",
+  "confirmed",
+  "shipped",
+  "delivered",
+  "awaiting_payment",
+  "awaiting_easypaisa_transfer",
+  "pay_on_delivery"
+] as const;
 
 export async function PUT(request: Request, { params }: RouteContext) {
   const authError = requireAdmin(request);
@@ -25,7 +34,7 @@ export async function PUT(request: Request, { params }: RouteContext) {
             { new: true, runValidators: true }
           )
         : null;
-      const localOrder = await markLocalOrderOrderedOnMarkaz(id);
+      const localOrder = databaseOrder ? null : await markLocalOrderOrderedOnMarkaz(id);
       if (!databaseOrder && !localOrder) {
         return Response.json({ error: "Order not found." }, { status: 404 });
       }
@@ -54,7 +63,7 @@ export async function PUT(request: Request, { params }: RouteContext) {
           { new: true, runValidators: true }
         )
       : null;
-    const localOrder = await updateLocalOrderStatus(id, body.status);
+    const localOrder = databaseOrder ? null : await updateLocalOrderStatus(id, body.status);
     if (!databaseOrder && !localOrder) {
       return Response.json({ error: "Order not found." }, { status: 404 });
     }
