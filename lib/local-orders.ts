@@ -3,10 +3,10 @@ import { mkdir, readFile, rename, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { MOCK_PRODUCTS } from "./mock-products";
 
-const dataDirectory = path.join(process.cwd(), ".data");
+const dataDirectory = path.join(process.env.VERCEL ? "/tmp" : process.cwd(), ".data");
 const ordersFile = path.join(dataDirectory, "orders.json");
 let writeQueue = Promise.resolve();
-const dataDirectory = path.join(process.env.VERCEL ? "/tmp" : process.cwd(), ".data");
+
 export type LocalOrder = Record<string, unknown>;
 export type LocalOrderStore = Record<string, LocalOrder>;
 
