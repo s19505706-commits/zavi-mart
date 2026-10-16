@@ -1,3 +1,16 @@
+# Zavi Collection
+
+Professional e-commerce storefront and admin dashboard.
+
+## Quick start
+
+1. Install dependencies: `npm install`
+2. Copy `.env.example` to `.env` and configure `MONGODB_URI` for persistent product and order storage. MongoDB is required for production persistence.
+3. Start the development server: `npm run dev`
+4. Open the admin dashboard at `/admin`.
+
+For Vercel production, configure `MONGODB_URI`, `ADMIN_KEY`, and `ADMIN_SESSION_SECRET` in the project's environment variables. `ADMIN_SESSION_SECRET` must contain at least 32 bytes. The current admin login uses `ADMIN_KEY` and `ADMIN_SESSION_SECRET`.
+
 # ZaviMart local payment setup
 
 ZaviMart supports Safepay hosted checkout, manual Easypaisa wallet transfers, and Cash on Delivery (COD). The browser never receives payment credentials or decides the payable amount. The server calculates prices from its catalog and creates orders. Safepay orders are marked paid only after a verified webhook; Easypaisa transfers remain pending until checked manually; COD orders are confirmed but remain payable on delivery. When configured, the backend automatically sends an order summary to the shop WhatsApp number through Meta's WhatsApp Cloud API.
