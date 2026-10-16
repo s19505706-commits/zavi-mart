@@ -125,6 +125,39 @@
   text-transform: uppercase;
 }
 
+.productMeta {
+  display: flex;
+  min-height: 24px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.productMeta .category {
+  overflow: hidden;
+  margin: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wishlistButton {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  place-items: center;
+  border: 1px solid #e5e7eb;
+  border-radius: 50%;
+  background: #fff;
+  color: #64748b;
+}
+
+.wishlistButton:hover,
+.wishlistActive {
+  border-color: #fecdd3;
+  color: #e11d48;
+}
+
 .titleLink {
   color: #1a237e;
   text-decoration: none;

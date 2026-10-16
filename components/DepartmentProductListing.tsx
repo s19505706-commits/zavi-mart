@@ -16,6 +16,7 @@ type StoreProduct = {
   categoryId?: string | null;
   image: string;
   price: number;
+  stock: number;
   originalPrice?: number | null;
   isNewArrival: boolean;
   createdAt: string;
@@ -38,6 +39,7 @@ function parseStoreProducts(value: unknown): StoreProduct[] {
         categoryId: typeof item.categoryId === "string" ? item.categoryId : null,
         image: typeof item.image === "string" ? item.image : "",
         price: item.price,
+        stock: typeof item.stock === "number" ? item.stock : 0,
         originalPrice: typeof item.originalPrice === "number" ? item.originalPrice : null,
         isNewArrival: item.isNewArrival === true,
         createdAt: typeof item.createdAt === "string" ? item.createdAt : ""
@@ -48,9 +50,11 @@ function parseStoreProducts(value: unknown): StoreProduct[] {
 
 export default function DepartmentProductListing({
   departmentSlug,
+  departmentId,
   categorySlug
 }: {
   departmentSlug: string;
+  departmentId?: string;
   categorySlug?: string;
 }) {
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -61,6 +65,8 @@ export default function DepartmentProductListing({
   const [error, setError] = useState("");
   const [addedProductIds, setAddedProductIds] = useState<string[]>([]);
   const [cartError, setCartError] = useState("");
+  const [sortOrder, setSortOrder] = useState<"default" | "price-asc" | "price-desc">("default");
+  const [inStockOnly, setInStockOnly] = useState(false);
 
   function addToCart(product: StoreProduct) {
     try {
@@ -111,13 +117,16 @@ export default function DepartmentProductListing({
           ? [{ id: item.id, name: item.name, slug: item.slug, departmentId: item.departmentId }]
           : []
       );
-      const targetDepartment = loadedDepartments.find((item) => item.slug === departmentSlug);
+      const targetDepartment = loadedDepartments.find((item) =>
+        item.id === departmentId || item.slug === departmentSlug
+      );
       const targetCategory = categorySlug
         ? loadedCategories.find((item) => item.departmentId === targetDepartment?.id && item.slug === categorySlug)
         : undefined;
       const productParams = new URLSearchParams({ limit: "100" });
       const arrivalParams = new URLSearchParams({ limit: "100", newArrivals: "true" });
       if (targetDepartment) {
+        productParams.set("departmentId", targetDepartment.id);
         arrivalParams.set("departmentId", targetDepartment.id);
       }
       if (targetCategory) {
@@ -150,9 +159,9 @@ export default function DepartmentProductListing({
       if (!cancelled) setLoading(false);
     });
     return () => { cancelled = true; };
-  }, []);
+  }, [departmentId, departmentSlug, categorySlug]);
 
-  const department = departments.find((item) => item.slug === departmentSlug);
+  const department = departments.find((item) => item.id === departmentId || item.slug === departmentSlug);
   const departmentCategories = categories.filter((item) => item.departmentId === department?.id);
   const category = categorySlug ? departmentCategories.find((item) => item.slug === categorySlug) : undefined;
   const visibleProducts = products.filter((product) => {
@@ -160,8 +169,11 @@ export default function DepartmentProductListing({
       (!product.departmentId && product.category.toLocaleLowerCase() === department?.name.toLocaleLowerCase());
     return matchesDepartment && (!categorySlug ||
       product.categoryId === category?.id ||
-      product.category.toLocaleLowerCase() === category?.name.toLocaleLowerCase());
-  });
+      product.category.toLocaleLowerCase() === category?.name.toLocaleLowerCase()) &&
+      (!inStockOnly || product.stock > 0);
+  }).sort((left, right) => sortOrder === "price-asc"
+    ? left.price - right.price
+    : sortOrder === "price-desc" ? right.price - left.price : 0);
   const newArrivals = newArrivalProducts.filter((product) => {
     const matchesDepartment = product.departmentId === department?.id;
     return matchesDepartment && (!categorySlug || product.categoryId === category?.id);
@@ -228,6 +240,24 @@ export default function DepartmentProductListing({
               <header className="department-listing-heading">
                 <h2 id="all-products-heading">All Products</h2>
               </header>
+              <div className="department-product-filters">
+                <label>
+                  Sort by price
+                  <select value={sortOrder} onChange={(event) => setSortOrder(event.target.value as typeof sortOrder)}>
+                    <option value="default">Recommended</option>
+                    <option value="price-asc">Price: low to high</option>
+                    <option value="price-desc">Price: high to low</option>
+                  </select>
+                </label>
+                <label className="department-stock-filter">
+                  <input
+                    type="checkbox"
+                    checked={inStockOnly}
+                    onChange={(event) => setInStockOnly(event.target.checked)}
+                  />
+                  In stock only
+                </label>
+              </div>
               {visibleProducts.length ? (
             <div className="department-product-grid">
               {visibleProducts.map((product, index) => (

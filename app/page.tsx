@@ -1,17 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "./auth-context";
 import {
   Cable,
   ChevronDown,
+  Heart,
   HeartPulse,
   House,
   Laptop,
-  Search,
   Shirt,
   ShoppingBasket,
   ShoppingCart,
@@ -22,6 +21,7 @@ import {
   X
 } from "lucide-react";
 import HotDealsSlider, { type Deal, type StoreCategory } from "../components/HotDealsSlider";
+import StoreSearch from "../components/StoreSearch";
 import {
   CART_STORAGE_KEY,
   CHECKOUT_PRODUCTS_BY_CART_ID,
@@ -30,6 +30,7 @@ import {
   saveCart,
   type CartItem
 } from "../lib/cart";
+import { readWishlist } from "../lib/wishlist";
 
 const DEFAULT_SHIPPING_AMOUNT = 2999;
 type StoreDepartment = { id: string; name: string; slug: string; image?: string; categories: StoreCategory[] };
@@ -84,7 +85,6 @@ const categoryIcons: Record<string, typeof Smartphone> = {
 };
 
 export default function HomePage() {
-  const router = useRouter();
   const [activeCategory, setActiveCategory] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [products, setProducts] = useState<Deal[]>([]);
@@ -98,6 +98,7 @@ export default function HomePage() {
   const [shippingText, setShippingText] = useState("Free delivery above Rs 2,999 | COD Available");
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [cartReady, setCartReady] = useState(false);
+  const [wishlistCount, setWishlistCount] = useState(0);
   const [accountOpen, setAccountOpen] = useState(false);
   const [signInMessage, setSignInMessage] = useState("");
   const [email, setEmail] = useState("");
@@ -110,6 +111,23 @@ export default function HomePage() {
     if (new URLSearchParams(window.location.search).get("message") === "Access Denied") {
       setAccessDenied(true);
     }
+  }, []);
+
+  useEffect(() => {
+    const updateWishlistCount = () => {
+      try {
+        setWishlistCount(readWishlist().length);
+      } catch (error) {
+        console.error("Could not read the wishlist count.", error);
+      }
+    };
+    updateWishlistCount();
+    window.addEventListener("storage", updateWishlistCount);
+    window.addEventListener("zavimart_wishlist_updated", updateWishlistCount);
+    return () => {
+      window.removeEventListener("storage", updateWishlistCount);
+      window.removeEventListener("zavimart_wishlist_updated", updateWishlistCount);
+    };
   }, []);
 
   useEffect(() => {
@@ -425,17 +443,16 @@ export default function HomePage() {
           </span>
           <span className="store-brand-name">ZaviMart</span>
         </a>
-        <label className="header-search">
-          <Search size={19} strokeWidth={2} aria-hidden="true" />
-          <input
-            type="search"
-            placeholder="Search for products..."
-            aria-label="Search for products"
-            value={searchQuery}
-            onChange={(event) => setSearchQuery(event.target.value)}
-          />
-        </label>
+        <StoreSearch value={searchQuery} onChange={setSearchQuery} />
         <div className="header-actions">
+          <Link
+            className="header-icon-button"
+            href="/wishlist"
+            aria-label={`Wishlist, ${wishlistCount} items`}
+          >
+            <Heart size={20} strokeWidth={1.9} aria-hidden="true" />
+            {wishlistCount > 0 && <span className="cart-item-count">{wishlistCount}</span>}
+          </Link>
           <Link
             className="header-icon-button header-cart-button"
             href="/cart"
@@ -561,7 +578,7 @@ export default function HomePage() {
         <Link href="#flash-deals-section">Flash Deals</Link>
         <Link href="#flash-deals-section">Hot Deals</Link>
         <Link href="#flash-deals-section">New Arrivals</Link>
-        <a href="mailto:support@zavimart.com">Contact</a>
+        <Link href="/contact">Contact</Link>
       </nav>
 
       <section className="category-section" aria-labelledby="category-heading">
@@ -625,6 +642,15 @@ export default function HomePage() {
           }}
         />
       </div>
+      <footer className="store-footer">
+        <Link className="store-footer-brand" href="/">ZaviMart</Link>
+        <p>Smart shopping, delivered to your door.</p>
+        <nav aria-label="Store information">
+          <Link href="/about">About</Link>
+          <Link href="/contact">Contact</Link>
+          <Link href="/terms">Terms</Link>
+        </nav>
+      </footer>
     </main>
   );
 }

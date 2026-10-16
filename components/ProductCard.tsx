@@ -1,8 +1,11 @@
 "use client";
 
-import { useRef, useState, type MouseEvent } from "react";
+import { useEffect, useRef, useState, type MouseEvent } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { Heart } from "lucide-react";
+import { toast } from "sonner";
+import { readWishlist, toggleWishlistProduct } from "../lib/wishlist";
 import styles from "./ProductCard.module.css";
 
 export type ProductCardProduct = {
@@ -41,6 +44,7 @@ export default function ProductCard({
 }: ProductCardProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
+  const [isWishlisted, setIsWishlisted] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   const images = product.images?.filter(Boolean).length
     ? product.images.filter(Boolean)
@@ -55,6 +59,44 @@ export default function ProductCard({
     : 0;
   const productHref = product.href ?? `/product/${encodeURIComponent(product.id)}`;
   const bundleImages = product.bundleImages?.filter(Boolean) ?? [];
+
+  useEffect(() => {
+    const syncWishlist = () => {
+      try {
+        setIsWishlisted(readWishlist().some((item) => item.id === product.id));
+      } catch (error) {
+        console.error("Could not read the saved wishlist.", error);
+      }
+    };
+    syncWishlist();
+    window.addEventListener("storage", syncWishlist);
+    window.addEventListener("zavimart_wishlist_updated", syncWishlist);
+    return () => {
+      window.removeEventListener("storage", syncWishlist);
+      window.removeEventListener("zavimart_wishlist_updated", syncWishlist);
+    };
+  }, [product.id]);
+
+  function toggleWishlist(event: MouseEvent<HTMLButtonElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+    try {
+      const result = toggleWishlistProduct({
+        id: product.id,
+        title: product.title,
+        ...(product.category ? { category: product.category } : {}),
+        ...(images[0] ? { image: images[0] } : {}),
+        price,
+        originalPrice: originalPrice ?? null,
+        href: productHref
+      });
+      setIsWishlisted(!result.added ? false : true);
+      toast.success(result.added ? "Added to your wishlist." : "Removed from your wishlist.");
+    } catch (error) {
+      console.error("Could not update the wishlist.", error);
+      toast.error("Your wishlist could not be updated.");
+    }
+  }
 
   function handleMouseMove(event: MouseEvent<HTMLDivElement>) {
     if (!cardRef.current || images.length <= 1) return;
@@ -115,7 +157,18 @@ export default function ProductCard({
       </Link>
 
       <div className={styles.content}>
-        <p className={styles.category}>{product.category || "Beauty"}</p>
+        <div className={styles.productMeta}>
+          <p className={styles.category}>{product.category || "Beauty"}</p>
+          <button
+            className={`${styles.wishlistButton} ${isWishlisted ? styles.wishlistActive : ""}`}
+            type="button"
+            onClick={toggleWishlist}
+            aria-label={isWishlisted ? `Remove ${product.title} from wishlist` : `Add ${product.title} to wishlist`}
+            aria-pressed={isWishlisted}
+          >
+            <Heart size={18} fill={isWishlisted ? "currentColor" : "none"} aria-hidden="true" />
+          </button>
+        </div>
         <Link className={styles.titleLink} href={productHref}>
           <h3 className={styles.title}>{product.title}</h3>
         </Link>
