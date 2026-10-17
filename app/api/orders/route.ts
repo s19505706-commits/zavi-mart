@@ -336,6 +336,9 @@ export async function POST(request: Request) {
     }
     const responseOrder = order.toObject({ flattenMaps: true });
     return Response.json({
+      success: true,
+      message: "Order placed successfully.",
+      orderId: order.orderId,
       order: {
         ...responseOrder,
         products: responseOrder.products.map(({ markazProductUrl: _markazProductUrl, ...product }) => product)

@@ -3,16 +3,17 @@
   height: 100%;
   flex-direction: column;
   overflow: hidden;
-  border: 1px solid #f1f2f5;
-  border-radius: 12px;
-  background: #fff;
-  transition: border-color 220ms ease, box-shadow 220ms ease, transform 220ms ease;
+  border: 1px solid rgba(212, 175, 55, 0.15);
+  border-radius: 16px;
+  background: linear-gradient(145deg, #121214, #0a0a0c);
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.2), 0 0 40px rgba(212, 175, 55, 0.05);
+  transition: all 400ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .card:hover {
-  border-color: #f4c9d0;
-  box-shadow: 0 14px 30px rgba(217, 4, 41, 0.1);
-  transform: translateY(-3px);
+  border-color: rgba(212, 175, 55, 0.4);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35), 0 0 60px rgba(212, 175, 55, 0.15);
+  transform: translateY(-8px) scale(1.02);
 }
 
 .imageLink {
@@ -25,19 +26,36 @@
   position: relative;
   aspect-ratio: 1;
   overflow: hidden;
-  background: #f8f8fa;
+  background: #0a0a0c;
 }
 
 .image {
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  transition: transform 500ms ease;
+  object-fit: contain;
+  padding: 16px;
+  filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.5));
+  transition: all 600ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .card:hover .image {
-  transform: scale(1.02);
+  filter: drop-shadow(0 20px 30px rgba(212, 175, 55, 0.2)) brightness(1.1);
+  transform: scale(1.08);
+}
+
+.imageGlow {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  background: linear-gradient(to top, rgba(212, 175, 55, 0.1), transparent);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 300ms ease;
+}
+
+.card:hover .imageGlow {
+  opacity: 1;
 }
 
 .noImage {
@@ -45,7 +63,7 @@
   width: 100%;
   height: 100%;
   place-items: center;
-  color: #6b7280;
+  color: rgba(245, 230, 163, 0.65);
   font-size: 0.8rem;
 }
 
@@ -54,9 +72,9 @@
   top: 10px;
   left: 10px;
   border-radius: 999px;
-  background: #d90429;
+  background: linear-gradient(135deg, var(--gold-light), var(--gold), #b8941f);
   padding: 4px 9px;
-  color: #fff;
+  color: #000;
   font-size: 0.68rem;
   font-weight: 700;
 }
@@ -65,10 +83,12 @@
   position: absolute;
   top: 10px;
   right: 10px;
+  z-index: 2;
   border-radius: 999px;
-  background: #15803d;
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  background: var(--gold);
   padding: 4px 9px;
-  color: #fff;
+  color: #000;
   font-size: 0.68rem;
   font-weight: 700;
 }
@@ -93,7 +113,7 @@
 
 .activeDot {
   width: 20px;
-  background: #d90429;
+  background: var(--gold);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
 }
 
@@ -102,7 +122,7 @@
   top: 10px;
   right: 10px;
   border-radius: 999px;
-  background: rgba(26, 35, 126, 0.82);
+  background: rgba(15, 15, 18, 0.82);
   padding: 2px 8px;
   color: #fff;
   font-size: 0.68rem;
@@ -115,11 +135,12 @@
   flex: 1;
   flex-direction: column;
   padding: 12px;
+  color: #fff;
 }
 
 .category {
   margin: 0 0 4px;
-  color: #6b7280;
+  color: rgba(245, 230, 163, 0.68);
   font-size: 0.68rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -146,20 +167,20 @@
   height: 30px;
   flex: 0 0 30px;
   place-items: center;
-  border: 1px solid #e5e7eb;
+  border: 1px solid rgba(212, 175, 55, 0.24);
   border-radius: 50%;
-  background: #fff;
-  color: #64748b;
+  background: #17171a;
+  color: #c5b77a;
 }
 
 .wishlistButton:hover,
 .wishlistActive {
-  border-color: #fecdd3;
-  color: #e11d48;
+  border-color: rgba(212, 175, 55, 0.7);
+  color: var(--gold-light);
 }
 
 .titleLink {
-  color: #1a237e;
+  color: #f5e6a3;
   text-decoration: none;
 }
 
@@ -176,7 +197,7 @@
 }
 
 .titleLink:hover {
-  color: #d90429;
+  color: var(--gold);
 }
 
 .price {
@@ -185,45 +206,71 @@
   flex-wrap: wrap;
   gap: 8px;
   margin: 10px 0 0;
-  color: #111827;
+  color: #fff;
   font-size: 1rem;
   font-weight: 800;
 }
 
 .price del {
-  color: #6b7280;
+  color: rgba(255, 255, 255, 0.55);
   font-size: 0.75rem;
   font-weight: 500;
 }
 
 .availability {
   margin: 4px 0 0;
-  color: #6b7280;
+  color: rgba(255, 255, 255, 0.58);
   font-size: 0.68rem;
 }
 
 .addButton {
+  position: relative;
+  overflow: hidden;
   width: 100%;
   min-height: 40px;
   margin-top: auto;
   padding: 8px 12px;
   border: 0;
-  border-radius: 8px;
-  background: #d90429;
-  color: #fff;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--gold-light), var(--gold), #b8941f);
+  color: #000;
   font-size: 0.85rem;
   font-weight: 700;
   cursor: pointer;
-  transition: background-color 160ms ease;
+  box-shadow: 0 0 20px var(--gold-glow);
+  transition: all 300ms ease;
+}
+
+.addButton::after {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -100%;
+  width: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  content: "";
+  pointer-events: none;
+  transition: left 500ms ease;
+}
+
+.addButton:hover:not(:disabled)::after {
+  left: 100%;
 }
 
 .addButton:hover:not(:disabled) {
-  background: #b91c1c;
+  box-shadow: 0 0 40px rgba(212, 175, 55, 0.5);
+  transform: translateY(-2px);
 }
 
 .addButton:disabled {
   cursor: default;
   opacity: 0.85;
+}
+
+.addButton:focus-visible,
+.wishlistButton:focus-visible {
+  outline: 3px solid rgba(212, 175, 55, 0.65);
+  outline-offset: 3px;
 }
 
 .compact .imagePanel {

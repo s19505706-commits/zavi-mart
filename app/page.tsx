@@ -577,7 +577,7 @@ export default function HomePage() {
         <Link href="/contact">Contact</Link>
       </nav>
 
-      <section className="category-section" aria-labelledby="category-heading">
+      <section className="category-section hero-glow animate-fadeUp" aria-labelledby="category-heading">
         <div className="section-heading">
           <span className="section-eyebrow">Browse departments</span>
           <h1 id="category-heading">Shop by departments</h1>
