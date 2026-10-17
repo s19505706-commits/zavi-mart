@@ -700,10 +700,27 @@ export default function HomePage() {
       {!adResolved ? (
         <div
           aria-label="Loading homepage advertisement"
-          style={{ height: "100svh", minHeight: 560, background: "#0A0A0A" }}
+          style={{
+            width: "min(calc(100% - 2rem), 80rem)",
+            aspectRatio: "16 / 9",
+            maxHeight: 600,
+            margin: "1rem auto",
+            borderRadius: "1rem",
+            background: "#0A0A0A"
+          }}
         />
       ) : activeAd ? (
-        <div style={{ width: "100%", height: "100svh", minHeight: 560, background: "#0A0A0A" }}>
+        <div
+          style={{
+            width: "min(calc(100% - 2rem), 80rem)",
+            aspectRatio: "16 / 9",
+            maxHeight: 600,
+            margin: "1rem auto",
+            overflow: "hidden",
+            borderRadius: "1rem",
+            background: "#0A0A0A"
+          }}
+        >
           <KineticAd adData={activeAd} />
         </div>
       ) : null}

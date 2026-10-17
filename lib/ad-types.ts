@@ -46,6 +46,7 @@ export function normalizeAdLines(value: unknown, fallback: string[]): string[] {
     : Array.isArray(value) ? value : [];
   const lines = entries
     .filter((entry): entry is string => typeof entry === "string")
+    .flatMap((entry) => entry.split(/[-,]/))
     .map((entry) => entry.trim())
     .filter(Boolean);
   return lines.length ? lines : fallback;

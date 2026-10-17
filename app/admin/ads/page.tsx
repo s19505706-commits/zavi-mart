@@ -110,6 +110,9 @@ export default function AdminAdsPage() {
   const [ads, setAds] = useState<AdData[]>([]);
   const [products, setProducts] = useState<CatalogProduct[]>([]);
   const [draft, setDraft] = useState<AdData>(DEFAULT_AD);
+  const [openingWords, setOpeningWords] = useState(linesToText(DEFAULT_AD.titleLines));
+  const [momentumWords, setMomentumWords] = useState(linesToText(DEFAULT_AD.secondLines));
+  const [finalWords, setFinalWords] = useState(linesToText(DEFAULT_AD.finalLines));
   const [editingId, setEditingId] = useState<string | undefined>();
   const [search, setSearch] = useState("");
   const [productSearch, setProductSearch] = useState("");
@@ -178,6 +181,9 @@ export default function AdminAdsPage() {
 
   function openNewAd() {
     setDraft({ ...DEFAULT_AD, products: [], productDetails: [] });
+    setOpeningWords(linesToText(DEFAULT_AD.titleLines));
+    setMomentumWords(linesToText(DEFAULT_AD.secondLines));
+    setFinalWords(linesToText(DEFAULT_AD.finalLines));
     setEditingId(undefined);
     setProductSearch("");
     setPlayingAudio(false);
@@ -188,6 +194,9 @@ export default function AdminAdsPage() {
 
   function openEditAd(ad: AdData) {
     setDraft({ ...ad, productDetails: products.filter((product) => ad.products.includes(product.id)) });
+    setOpeningWords(linesToText(ad.titleLines));
+    setMomentumWords(linesToText(ad.secondLines));
+    setFinalWords(linesToText(ad.finalLines));
     setEditingId(ad.id);
     setProductSearch("");
     setPlayingAudio(false);
@@ -236,7 +245,13 @@ export default function AdminAdsPage() {
       const response = await fetch("/api/admin/ads", {
         method: editingId ? "PUT" : "POST",
         headers: { "Content-Type": "application/json", ...adminHeaders() },
-        body: JSON.stringify({ ...draft, id: editingId })
+        body: JSON.stringify({
+          ...draft,
+          titleLines: textToLines(openingWords),
+          secondLines: textToLines(momentumWords),
+          finalLines: textToLines(finalWords),
+          id: editingId
+        })
       });
       const payload: unknown = await response.json();
       if (!response.ok) throw new Error(errorMessage(payload, "Could not save this ad."));
@@ -402,15 +417,15 @@ export default function AdminAdsPage() {
                     <h3><span>01</span> Story beats</h3>
                     <label className={styles.field}>
                       <span>Opening words <small>comma-separated</small></span>
-                      <input value={linesToText(draft.titleLines)} onChange={(event) => updateDraft("titleLines", textToLines(event.target.value))} required />
+                      <input type="text" value={openingWords} onChange={(event) => setOpeningWords(event.target.value)} placeholder="e.g. WHAT, EVER, YOU, BUY" required />
                     </label>
                     <label className={styles.field}>
                       <span>Momentum words <small>comma-separated</small></span>
-                      <input value={linesToText(draft.secondLines)} onChange={(event) => updateDraft("secondLines", textToLines(event.target.value))} required />
+                      <input type="text" value={momentumWords} onChange={(event) => setMomentumWords(event.target.value)} placeholder="e.g. SELL, MORE, MORE" required />
                     </label>
                     <label className={styles.field}>
                       <span>Final words <small>comma-separated</small></span>
-                      <input value={linesToText(draft.finalLines)} onChange={(event) => updateDraft("finalLines", textToLines(event.target.value))} required />
+                      <input type="text" value={finalWords} onChange={(event) => setFinalWords(event.target.value)} placeholder="e.g. THE, WORLD'S, BEST, CHECKOUT" required />
                     </label>
                   </section>
 

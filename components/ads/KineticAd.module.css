@@ -3,13 +3,14 @@
   display: grid;
   width: 100%;
   height: 100%;
-  min-height: 320px;
+  min-height: 0;
   overflow: hidden;
   place-items: center;
   isolation: isolate;
   background: var(--ad-bg, #0a0a0a);
   color: var(--ad-text, #fff);
   font-family: Arial, Helvetica, sans-serif;
+  border-radius: inherit;
 }
 
 .glow {
@@ -38,25 +39,33 @@
   min-height: 0;
   align-items: center;
   justify-content: center;
-  padding: 22px 18px 34px;
+  padding: 22px 18px 24px;
   text-align: center;
 }
 
 .words {
   display: flex;
+  width: min(100%, 880px);
   max-width: 100%;
-  flex-direction: column;
+  flex-flow: row wrap;
   align-items: center;
-  font-size: clamp(2.3rem, 10vw, 9rem);
+  justify-content: center;
+  gap: 0 0.2em;
+  font-size: clamp(1.35rem, 6vw, 5rem);
   font-weight: 950;
-  letter-spacing: -0.075em;
-  line-height: 0.79;
-  overflow-wrap: anywhere;
+  letter-spacing: -0.055em;
+  line-height: 0.98;
+  overflow-wrap: break-word;
   text-shadow: 0 8px 38px rgb(0 0 0 / 44%);
 }
 
 .words > span {
-  display: block;
+  display: inline-block;
+  max-width: 100%;
+}
+
+.introWithProduct .words {
+  width: min(76%, 880px);
 }
 
 .goldWord {
@@ -65,17 +74,20 @@
 
 .productCard {
   position: absolute;
-  right: max(18px, 8%);
-  bottom: 28px;
+  top: 50%;
+  right: max(12px, 4%);
+  bottom: auto;
+  z-index: 1;
   display: grid;
-  width: clamp(90px, 19%, 180px);
-  aspect-ratio: 0.82;
+  width: clamp(76px, 12%, 130px);
+  aspect-ratio: 0.86;
+  translate: 0 -50%;
   overflow: hidden;
   place-items: center;
   border: 1px solid color-mix(in srgb, var(--ad-gold) 35%, transparent);
-  border-radius: 16px;
+  border-radius: 12px;
   background: #fff;
-  box-shadow: 0 18px 55px rgb(212 175 55 / 18%);
+  box-shadow: 0 12px 35px rgb(0 0 0 / 45%), 0 0 20px rgb(212 175 55 / 14%);
   text-decoration: none;
 }
 
@@ -95,7 +107,7 @@
   border-radius: 999px;
   background: #6b21a8;
   color: white;
-  font-size: clamp(8px, 1.2vw, 12px);
+  font-size: clamp(7px, 0.8vw, 10px);
   font-weight: 750;
 }
 
@@ -163,19 +175,19 @@
 
 .soundButton {
   position: absolute;
-  right: 16px;
-  bottom: 16px;
-  z-index: 2;
+  top: 12px;
+  right: 12px;
+  z-index: 50;
   display: grid;
-  width: 42px;
-  height: 42px;
+  width: 32px;
+  height: 32px;
   place-items: center;
-  border: 1px solid color-mix(in srgb, var(--ad-gold) 50%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ad-gold) 45%, transparent);
   border-radius: 50%;
-  background: var(--ad-gold);
-  color: #090909;
+  background: rgb(0 0 0 / 58%);
+  color: var(--ad-gold);
   cursor: pointer;
-  box-shadow: 0 0 24px color-mix(in srgb, var(--ad-gold) 22%, transparent);
+  backdrop-filter: blur(8px);
 }
 
 .progress {
@@ -183,13 +195,13 @@
   right: 0;
   bottom: 0;
   left: 0;
+  z-index: 5;
   height: 3px;
   transform-origin: left;
   background: var(--ad-gold);
 }
 
 .compact {
-  min-height: 100px;
   border-radius: 14px;
 }
 
@@ -202,10 +214,53 @@
 }
 
 .compact .productCard {
-  right: 4px;
-  bottom: 4px;
-  width: 22%;
+  right: 5%;
+  width: clamp(54px, 12%, 90px);
   border-radius: 6px;
+}
+
+@media (max-width: 640px) {
+  .phase {
+    padding: 22px 12px 18px;
+  }
+
+  .words {
+    font-size: clamp(1.3rem, 6vw, 2.4rem);
+    line-height: 1;
+  }
+
+  .introWithProduct .words {
+    width: 72%;
+  }
+
+  .productCard {
+    right: 10px;
+    width: clamp(72px, 22vw, 92px);
+    border-radius: 10px;
+  }
+
+  .productCard img {
+    padding: 6px;
+  }
+
+  .productCta {
+    right: 4px;
+    bottom: 4px;
+    left: 4px;
+    padding: 5px 3px;
+    font-size: 7px;
+  }
+
+  .soundButton {
+    top: 8px;
+    right: 8px;
+    width: 30px;
+    height: 30px;
+  }
+
+  .progress {
+    height: 2px;
+  }
 }
 
 .compact .brandPhase {

@@ -209,7 +209,7 @@ const KineticAd = forwardRef<KineticAdHandle, KineticAdProps>(function KineticAd
         {elapsed < 3 && (
           <motion.div
             key="intro"
-            className={styles.phase}
+            className={`${styles.phase} ${featuredProduct ? styles.introWithProduct : ""}`}
             initial={{ opacity: 0, scale: 0.94 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 1.04 }}
@@ -335,7 +335,7 @@ const KineticAd = forwardRef<KineticAdHandle, KineticAdProps>(function KineticAd
           }}
           aria-label={muted ? "Turn advertisement sound on" : "Mute advertisement"}
         >
-          {muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+          {muted ? <VolumeX size={14} /> : <Volume2 size={14} />}
         </button>
       )}
     </section>
