@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "./auth-context";
 import {
@@ -64,6 +64,7 @@ function parseStoreDeals(value: unknown, fallbackBadge: string): Deal[] {
 }
 
 export default function HomePage() {
+  const departmentMenuRef = useRef<HTMLDetailsElement>(null);
   const [activeCategory, setActiveCategory] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [products, setProducts] = useState<Deal[]>([]);
@@ -86,6 +87,28 @@ export default function HomePage() {
   const { user, signIn } = useAuth();
   const cartCount = cartItems.reduce((count, item) => count + item.quantity, 0);
   const [accessDenied, setAccessDenied] = useState(false);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      const menu = departmentMenuRef.current;
+      if (menu?.open && event.target instanceof Node && !menu.contains(event.target)) {
+        menu.open = false;
+      }
+    }
+
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === "Escape" && departmentMenuRef.current?.open) {
+        departmentMenuRef.current.open = false;
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, []);
 
   useEffect(() => {
     if (new URLSearchParams(window.location.search).get("message") === "Access Denied") {
@@ -559,7 +582,7 @@ export default function HomePage() {
       )}
 
       <nav className="department-mega-nav" aria-label="Shop departments">
-        <details className="department-menu">
+        <details className="department-menu" ref={departmentMenuRef}>
           <summary>
             <span>Departments</span>
             <ChevronDown size={15} aria-hidden="true" />
