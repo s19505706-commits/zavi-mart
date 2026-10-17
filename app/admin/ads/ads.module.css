@@ -668,6 +668,7 @@
 }
 
 .filterSample-luxury-dark { filter: brightness(.8) contrast(1.2); }
+.filterSample-none { filter: none; }
 .filterSample-gold-tint { background-color: #d4af37; background-blend-mode: color; }
 .filterSample-blur-bg { filter: blur(2px); }
 .filterSample-grayscale-luxury { filter: grayscale(1); }
@@ -1178,5 +1179,673 @@
 
   .editorFooter .error {
     display: none;
+  }
+}
+
+.proStudio {
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+.proHeader,
+.proHeaderActions,
+.proPreviewHeader,
+.proPreviewModes,
+.proPreviewFooter,
+.proSectionHeader,
+.proCampaignInfo,
+.proCampaignActions,
+.proBottomActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.proHeader {
+  gap: 20px;
+  margin-bottom: 24px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid rgb(212 175 55 / 18%);
+}
+
+.proHeaderActions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 9px;
+}
+
+.proBuilder {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(320px, 1fr);
+  align-items: start;
+  gap: 22px;
+}
+
+.proFormColumn {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.proSection,
+.proPreview,
+.proCampaigns {
+  border: 1px solid #292929;
+  border-radius: 18px;
+  background: #111;
+  box-shadow: 0 16px 42px rgb(0 0 0 / 22%);
+}
+
+.proSection {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: clamp(15px, 2vw, 22px);
+}
+
+.proSection > h2,
+.proSectionHeader h2,
+.proPreviewHeader h2 {
+  margin: 0;
+  color: #f3e5ad;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.08rem;
+  font-weight: 550;
+}
+
+.proSection > h2 > span {
+  display: inline-grid;
+  width: 28px;
+  height: 28px;
+  margin-right: 8px;
+  place-items: center;
+  border: 1px solid rgb(212 175 55 / 34%);
+  border-radius: 8px;
+  background: rgb(212 175 55 / 8%);
+  color: #d4af37;
+  font: 750 0.7rem/1 Arial, sans-serif;
+}
+
+.proSectionHeader {
+  gap: 12px;
+}
+
+.proSectionHeader > b,
+.proSectionHeader > span {
+  color: #d4af37;
+  font-size: 0.72rem;
+}
+
+.proField {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 7px;
+  color: #d4d4d8;
+  font-size: 0.74rem;
+}
+
+.proField > input,
+.proField > select,
+.proField > textarea {
+  width: 100%;
+  min-height: 42px;
+  padding: 10px 12px;
+  border: 1px solid #303030;
+  border-radius: 10px;
+  outline: none;
+  background: #0a0a0a;
+  color: #f4f4f5;
+  font: inherit;
+  font-size: 0.78rem;
+}
+
+.proField > textarea {
+  min-height: 68px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.proField > input:focus,
+.proField > select:focus,
+.proField > textarea:focus {
+  border-color: rgb(212 175 55 / 68%);
+  box-shadow: 0 0 0 3px rgb(212 175 55 / 9%);
+}
+
+.proField input::placeholder,
+.proField textarea::placeholder {
+  color: #707078;
+}
+
+.proHelp {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  color: #85858d;
+  font-size: 0.7rem;
+  line-height: 1.5;
+}
+
+.proTwoFields,
+.proThreeFields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.proThreeFields {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.proRange {
+  display: grid;
+  min-width: 0;
+  align-content: center;
+  gap: 9px;
+  color: #c8c8ce;
+  font-size: 0.72rem;
+}
+
+.proRange > span {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.proRange b {
+  color: #e4ca70;
+  font-variant-numeric: tabular-nums;
+}
+
+.proRange input {
+  width: 100%;
+  accent-color: #d4af37;
+}
+
+.proSearch {
+  display: flex;
+  min-height: 42px;
+  align-items: center;
+  gap: 9px;
+  padding: 0 12px;
+  border: 1px solid #303030;
+  border-radius: 10px;
+  background: #0a0a0a;
+  color: #d4af37;
+}
+
+.proSearch input {
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #fff;
+  font: inherit;
+  font-size: 0.77rem;
+}
+
+.proProductGrid {
+  display: grid;
+  max-height: 310px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  overflow: auto;
+}
+
+.proProductOption {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: 54px minmax(0, 1fr) 15px;
+  align-items: center;
+  gap: 9px;
+  padding: 8px;
+  border: 1px solid #292929;
+  border-radius: 11px;
+  background: #0a0a0a;
+  color: #dedee2;
+  text-align: left;
+  cursor: pointer;
+}
+
+.proProductOption > span:nth-child(2),
+.proSelectedProduct > span {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+  overflow: hidden;
+  font-size: 0.68rem;
+  line-height: 1.35;
+}
+
+.proProductOption small,
+.proSelectedProduct small {
+  color: #c4a848;
+  font-size: 0.63rem;
+}
+
+.proProductImage {
+  display: grid;
+  width: 54px;
+  height: 54px;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #fff;
+  color: #777;
+}
+
+.proProductImage img,
+.proSelectedProduct img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.proProductSelected {
+  border-color: rgb(212 175 55 / 65%);
+  background: rgb(212 175 55 / 7%);
+  color: #efd87c;
+}
+
+.proSelectedProducts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.proSelectedProduct {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: 44px minmax(0, 1fr) 26px;
+  align-items: center;
+  gap: 8px;
+  padding: 7px;
+  border: 1px solid rgb(212 175 55 / 20%);
+  border-radius: 11px;
+  background: #0a0a0a;
+  color: #eee;
+}
+
+.proSelectedProduct > img {
+  width: 44px;
+  height: 44px;
+  border-radius: 7px;
+  background: #fff;
+}
+
+.proSelectedProduct > button,
+.proCampaignActions button {
+  display: grid;
+  width: 27px;
+  height: 27px;
+  place-items: center;
+  border: 1px solid #343434;
+  border-radius: 7px;
+  background: #171717;
+  color: #d4af37;
+  cursor: pointer;
+}
+
+.imageDropzoneActive {
+  border-color: #d4af37;
+  background: rgb(212 175 55 / 12%);
+}
+
+.proImageRow {
+  position: relative;
+  display: grid;
+  grid-template-columns: 78px minmax(0, 1fr) 30px;
+  align-items: start;
+  gap: 12px;
+  padding: 11px;
+  border: 1px solid #292929;
+  border-radius: 12px;
+  background: #0a0a0a;
+}
+
+.proImageRow > img {
+  width: 78px;
+  height: 78px;
+  border: 1px solid rgb(212 175 55 / 25%);
+  border-radius: 8px;
+  background: #161616;
+  object-fit: contain;
+}
+
+.proImageControls {
+  display: grid;
+  gap: 9px;
+}
+
+.proRemoveImage {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border: 1px solid #442a24;
+  border-radius: 8px;
+  background: #1b0e0b;
+  color: #e99b82;
+  cursor: pointer;
+}
+
+.proFilterGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.proFilter {
+  display: grid;
+  min-width: 0;
+  gap: 6px;
+  padding: 6px;
+  border: 1px solid #303030;
+  border-radius: 10px;
+  background: #090909;
+  color: #bcbcc3;
+  font-size: 0.62rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.proFilter > span:last-child {
+  color: #d4af37;
+}
+
+.proFilterSelected {
+  border-color: #d4af37;
+  box-shadow: 0 0 16px rgb(212 175 55 / 12%);
+}
+
+.proAudioButton {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  align-self: flex-start;
+  padding: 0 14px;
+  border: 1px solid rgb(212 175 55 / 45%);
+  border-radius: 999px;
+  background: rgb(212 175 55 / 7%);
+  color: #e6ca61;
+  font-size: 0.74rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.proAudioButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.proBottomActions {
+  gap: 10px;
+  padding: 4px 0 18px;
+}
+
+.proPreview {
+  position: sticky;
+  top: 20px;
+  min-width: 0;
+  padding: 15px;
+}
+
+.proPreviewHeader {
+  gap: 12px;
+  margin-bottom: 13px;
+}
+
+.proPreviewHeader .eyebrow,
+.proCampaigns .eyebrow {
+  margin-bottom: 5px;
+}
+
+.proPreviewModes {
+  gap: 4px;
+  padding: 3px;
+  border: 1px solid #303030;
+  border-radius: 999px;
+  background: #090909;
+}
+
+.proPreviewModes button {
+  padding: 6px 9px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #8c8c94;
+  font-size: 0.62rem;
+  cursor: pointer;
+}
+
+.proPreviewModes .proModeSelected {
+  background: rgb(212 175 55 / 14%);
+  color: #efd87c;
+}
+
+.proPreviewFrame {
+  height: min(54vh, 580px);
+  min-height: 320px;
+  overflow: hidden;
+  border: 1px solid rgb(212 175 55 / 25%);
+  border-radius: 13px;
+  background: #050505;
+  transition: width 180ms ease, height 180ms ease;
+}
+
+.proPreviewFrame:fullscreen {
+  width: 100vw;
+  height: 100vh;
+  border: 0;
+  border-radius: 0;
+}
+
+.proPreviewFrame:fullscreen > section {
+  border-radius: 0;
+}
+
+.proPreviewMobile {
+  width: min(100%, 310px);
+  height: min(55vh, 570px);
+  min-height: 350px;
+  margin: 0 auto;
+}
+
+.proPreviewFooter {
+  gap: 10px;
+  margin-top: 11px;
+  color: #92929a;
+  font-size: 0.67rem;
+}
+
+.proPreviewFooter button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 0;
+  background: transparent;
+  color: #d4af37;
+  font: inherit;
+  cursor: pointer;
+}
+
+.proCampaigns {
+  margin-top: 26px;
+  padding: 20px;
+}
+
+.proCampaigns > .proSectionHeader {
+  margin-bottom: 15px;
+}
+
+.proCampaigns > .proSectionHeader h2 {
+  color: #f3e5ad;
+  font: 500 1.25rem Georgia, "Times New Roman", serif;
+}
+
+.proCampaignGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 270px), 1fr));
+  gap: 11px;
+}
+
+.proCampaignCard {
+  overflow: hidden;
+  border: 1px solid #292929;
+  border-radius: 12px;
+  background: #0a0a0a;
+}
+
+.proCampaignThumb {
+  position: relative;
+  display: grid;
+  height: 110px;
+  place-items: center;
+  overflow: hidden;
+  background: radial-gradient(ellipse at 50% 50%, rgb(212 175 55 / 13%), transparent 60%), #080808;
+  color: #d4af37;
+}
+
+.proCampaignThumb > img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.proCampaignThumb > span {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  padding: 4px 7px;
+  border: 1px solid rgb(212 175 55 / 25%);
+  border-radius: 999px;
+  background: rgb(0 0 0 / 75%);
+  color: #d4af37;
+  font-size: 0.55rem;
+  font-weight: 800;
+}
+
+.proCampaignInfo {
+  gap: 8px;
+  padding: 11px;
+}
+
+.proCampaignInfo h3 {
+  margin: 0;
+  color: #f2e5ad;
+  font-size: 0.76rem;
+}
+
+.proCampaignInfo p {
+  margin: 4px 0 0;
+  color: #8b8b93;
+  font-size: 0.62rem;
+}
+
+.proCampaignActions {
+  flex: 0 0 auto;
+  gap: 5px;
+}
+
+@media (max-width: 1000px) {
+  .proBuilder {
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 0.8fr);
+    gap: 14px;
+  }
+
+  .proPreview {
+    padding: 11px;
+  }
+}
+
+@media (max-width: 760px) {
+  .proHeader {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .proHeaderActions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .proBuilder {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .proPreview {
+    position: static;
+    order: -1;
+    width: 100%;
+  }
+
+  .proPreviewFrame {
+    height: min(50vh, 420px);
+    min-height: 250px;
+  }
+
+  .proPreviewMobile {
+    width: min(100%, 240px);
+    height: min(50vh, 420px);
+    min-height: 280px;
+  }
+}
+
+@media (max-width: 560px) {
+  .proHeaderActions {
+    gap: 7px;
+  }
+
+  .proHeaderActions > button {
+    min-height: 38px;
+    padding: 0 11px;
+    font-size: 0.68rem;
+  }
+
+  .proTwoFields,
+  .proThreeFields {
+    grid-template-columns: 1fr;
+  }
+
+  .proProductGrid,
+  .proSelectedProducts {
+    grid-template-columns: 1fr;
+  }
+
+  .proFilterGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .proImageRow {
+    grid-template-columns: 60px minmax(0, 1fr) 28px;
+    gap: 8px;
+    padding: 8px;
+  }
+
+  .proImageRow > img {
+    width: 60px;
+    height: 60px;
+  }
+
+  .proBottomActions {
+    position: sticky;
+    bottom: 0;
+    z-index: 4;
+    margin: 0 -14px;
+    padding: 10px 14px;
+    border-top: 1px solid rgb(212 175 55 / 16%);
+    background: rgb(10 10 10 / 95%);
+    backdrop-filter: blur(12px);
+  }
+
+  .proCampaigns {
+    padding: 14px;
   }
 }

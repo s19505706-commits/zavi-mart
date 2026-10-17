@@ -3,13 +3,20 @@ import {
   AD_ANIMATION_SPEEDS,
   AD_ANIMATION_STYLES,
   AD_AUDIO_TYPES,
+  AD_DISPLAY_LOCATIONS,
+  AD_DURATIONS,
   AD_FILTER_PRESETS,
+  AD_FONT_STYLES,
   AD_IMAGE_POSITIONS,
+  AD_PRODUCT_ANIMATIONS,
+  AD_PRODUCT_CARD_STYLES,
+  AD_TEXT_ALIGNMENTS,
   AD_TEXT_EFFECTS
 } from "../ad-types";
 
 const adSchema = new mongoose.Schema({
   campaignName: { type: String, required: true, trim: true, maxlength: 100, default: "New campaign" },
+  displayLocation: { type: String, enum: AD_DISPLAY_LOCATIONS, default: "homepage-hero" },
   titleLines: {
     type: [{ type: String, trim: true, maxlength: 60 }],
     default: ["WHAT", "EVER", "YOU", "SELL"],
@@ -60,6 +67,13 @@ const adSchema = new mongoose.Schema({
   contrast: { type: Number, min: 0, max: 200, default: 100 },
   blurAmount: { type: Number, min: 0, max: 20, default: 0 },
   goldTintOpacity: { type: Number, min: 0, max: 100, default: 20 },
+  fontStyle: { type: String, enum: AD_FONT_STYLES, default: "black" },
+  textSize: { type: Number, min: 24, max: 128, default: 64 },
+  textAlignment: { type: String, enum: AD_TEXT_ALIGNMENTS, default: "center" },
+  productAnimation: { type: String, enum: AD_PRODUCT_ANIMATIONS, default: "float" },
+  productCardStyle: { type: String, enum: AD_PRODUCT_CARD_STYLES, default: "luxury-gold" },
+  duration: { type: String, enum: AD_DURATIONS, default: "10" },
+  beatIntensity: { type: Number, min: 0, max: 100, default: 50 },
   isActive: { type: Boolean, default: false, index: true },
   placement: { type: String, enum: ["homepage"], default: "homepage", index: true }
 }, { timestamps: true, collection: "ads" });

@@ -76,13 +76,15 @@
   max-width: 100%;
   flex-flow: row wrap;
   align-items: center;
-  justify-content: center;
+  justify-content: var(--ad-word-justify, center);
   gap: 0 0.2em;
-  font-size: clamp(1.35rem, 6vw, 5rem);
-  font-weight: 950;
+  font-size: clamp(1.35rem, min(var(--ad-font-size, 64px), 6vw), 5rem);
+  font-weight: var(--ad-font-weight, 950);
+  font-family: var(--ad-font-family, Arial, Helvetica, sans-serif);
   letter-spacing: -0.055em;
   line-height: 0.98;
   overflow-wrap: break-word;
+  text-align: var(--ad-text-align, center);
   text-shadow: 0 8px 38px rgb(0 0 0 / 44%);
 }
 
@@ -128,6 +130,54 @@
   height: 100%;
   padding: 10px;
   object-fit: contain;
+}
+
+.productStyle-minimal {
+  border-color: rgb(255 255 255 / 18%);
+  box-shadow: 0 10px 24px rgb(0 0 0 / 40%);
+}
+
+.productStyle-glass {
+  border-color: rgb(255 255 255 / 32%);
+  background: rgb(20 20 20 / 45%);
+  backdrop-filter: blur(12px);
+}
+
+.productStyle-neon {
+  border-color: var(--ad-gold);
+  box-shadow: 0 0 12px var(--ad-gold), 0 0 34px color-mix(in srgb, var(--ad-gold) 55%, transparent);
+}
+
+.productAnimation-float {
+  animation: productFloat 2.4s ease-in-out infinite alternate;
+}
+
+.productAnimation-slide {
+  animation: productSlide 2.2s ease-in-out infinite alternate;
+}
+
+.productAnimation-rotate-3d {
+  transform-style: preserve-3d;
+  animation: productRotate 3s ease-in-out infinite alternate;
+}
+
+.productAnimation-static {
+  animation: none;
+}
+
+@keyframes productFloat {
+  from { translate: 0 -50%; }
+  to { translate: 0 calc(-50% - 8px); }
+}
+
+@keyframes productSlide {
+  from { translate: 0 -50%; }
+  to { translate: -8px -50%; }
+}
+
+@keyframes productRotate {
+  from { rotate: y 0deg; }
+  to { rotate: y 12deg; }
 }
 
 .productCta {

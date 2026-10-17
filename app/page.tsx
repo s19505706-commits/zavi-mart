@@ -166,6 +166,9 @@ export default function HomePage() {
         const parsedAd: AdData = {
           ...DEFAULT_AD,
           campaignName: typeof ad.campaignName === "string" ? ad.campaignName : DEFAULT_AD.campaignName,
+          displayLocation: ad.displayLocation === "product-page" || ad.displayLocation === "fullscreen"
+            ? ad.displayLocation
+            : DEFAULT_AD.displayLocation,
           titleLines: lines(ad.titleLines, ["WHAT", "EVER", "YOU", "BUY"]),
           secondLines: lines(ad.secondLines, ["SELL", "MORE", "MORE", "MORE"]),
           finalLines: lines(ad.finalLines, ["THE", "WORLD'S", "BEST", "CHECKOUT"]),
@@ -223,6 +226,19 @@ export default function HomePage() {
           contrast: typeof ad.contrast === "number" ? ad.contrast : DEFAULT_AD.contrast,
           blurAmount: typeof ad.blurAmount === "number" ? ad.blurAmount : DEFAULT_AD.blurAmount,
           goldTintOpacity: typeof ad.goldTintOpacity === "number" ? ad.goldTintOpacity : DEFAULT_AD.goldTintOpacity,
+          fontStyle: ad.fontStyle === "bold" || ad.fontStyle === "luxury-serif" ? ad.fontStyle : DEFAULT_AD.fontStyle,
+          textSize: typeof ad.textSize === "number" ? ad.textSize : DEFAULT_AD.textSize,
+          textAlignment: ad.textAlignment === "left" || ad.textAlignment === "right" ? ad.textAlignment : DEFAULT_AD.textAlignment,
+          productAnimation: ad.productAnimation === "slide" || ad.productAnimation === "rotate-3d" || ad.productAnimation === "static"
+            ? ad.productAnimation
+            : DEFAULT_AD.productAnimation,
+          productCardStyle: ad.productCardStyle === "minimal" || ad.productCardStyle === "glass" || ad.productCardStyle === "neon"
+            ? ad.productCardStyle
+            : DEFAULT_AD.productCardStyle,
+          duration: ad.duration === "6" || ad.duration === "8" || ad.duration === "loop"
+            ? ad.duration
+            : DEFAULT_AD.duration,
+          beatIntensity: typeof ad.beatIntensity === "number" ? ad.beatIntensity : DEFAULT_AD.beatIntensity,
           isActive: ad.isActive === true || ad.isActive === "true",
           placement: "homepage"
         };

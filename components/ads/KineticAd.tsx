@@ -213,7 +213,8 @@ const KineticAd = forwardRef<KineticAdHandle, KineticAdProps>(function KineticAd
       const startedAt = performance.now();
       let frame = 0;
       const tick = (now: number) => {
-        const normalized = ((now - startedAt) / 1000) % 10;
+        const durationSeconds = normalizedAd.duration === "loop" ? 10 : Number(normalizedAd.duration);
+        const normalized = ((now - startedAt) / 1000) % durationSeconds;
         clockRef.current = normalized;
         setElapsed(normalized);
         frame = window.requestAnimationFrame(tick);
@@ -248,7 +249,7 @@ const KineticAd = forwardRef<KineticAdHandle, KineticAdProps>(function KineticAd
       player.unload();
       if (playerRef.current === player) playerRef.current = null;
     };
-  }, [normalizedAd.audioType, normalizedAd.audioUrl, normalizedAd.volume, audioUrl, autoPlay]);
+  }, [normalizedAd.audioType, normalizedAd.audioUrl, normalizedAd.volume, normalizedAd.duration, audioUrl, autoPlay]);
 
   useEffect(() => {
     const player = playerRef.current;
@@ -263,6 +264,7 @@ const KineticAd = forwardRef<KineticAdHandle, KineticAdProps>(function KineticAd
   }, [normalizedAd.volume, muted]);
 
   useEffect(() => {
+    if (normalizedAd.audioType === "none") return;
     let frame = 0;
     const tick = () => {
       const player = playerRef.current;
@@ -273,25 +275,39 @@ const KineticAd = forwardRef<KineticAdHandle, KineticAdProps>(function KineticAd
       const duration = htmlAudioFallback
         ? audio?.duration || 10
         : Number(player?.duration() ?? 10) || 10;
-      const normalized = (rawTime % duration) * (10 / duration);
+      const storyDuration = normalizedAd.duration === "loop" ? 10 : Number(normalizedAd.duration);
+      const normalized = (rawTime % duration) * (storyDuration / duration);
       clockRef.current = normalized;
       setElapsed(normalized);
       frame = window.requestAnimationFrame(tick);
     };
     frame = window.requestAnimationFrame(tick);
     return () => window.cancelAnimationFrame(frame);
-  }, [htmlAudioFallback]);
+  }, [htmlAudioFallback, normalizedAd.duration, normalizedAd.audioType]);
 
-  const firstBeat = normalizedAd.beatSync ? 0.5 : 0.68;
+  const storyDuration = normalizedAd.duration === "loop" ? 10 : Number(normalizedAd.duration);
+  const introEnd = storyDuration * 0.3;
+  const momentumEnd = storyDuration * 0.5;
+  const checkoutEnd = storyDuration * 0.8;
+  const firstBeat = (normalizedAd.beatSync ? 0.5 : 0.68) * (storyDuration / 10);
+  const secondBeat = (normalizedAd.beatSync ? 0.34 : 0.48) * (storyDuration / 10);
+  const finalBeat = (normalizedAd.beatSync ? 0.68 : 0.82) * (storyDuration / 10);
   const firstCount = Math.min(normalizedAd.titleLines.length, Math.floor(elapsed / firstBeat) + 1);
-  const secondCount = Math.min(normalizedAd.secondLines.length, Math.floor((elapsed - 3) / (normalizedAd.beatSync ? 0.34 : 0.48)) + 1);
-  const finalCount = Math.min(normalizedAd.finalLines.length, Math.floor((elapsed - 5) / (normalizedAd.beatSync ? 0.68 : 0.82)) + 1);
+  const secondCount = Math.min(normalizedAd.secondLines.length, Math.floor((elapsed - introEnd) / secondBeat) + 1);
+  const finalCount = Math.min(normalizedAd.finalLines.length, Math.floor((elapsed - momentumEnd) / finalBeat) + 1);
   const featuredProduct = productDetails[0];
   const cssVars = {
     "--ad-bg": normalizedAd.bgColor,
     "--ad-text": normalizedAd.textColor,
     "--ad-gold": normalizedAd.goldColor,
     "--ad-overlay-opacity": normalizedAd.overlayOpacity / 100,
+    "--ad-font-size": `${normalizedAd.textSize}px`,
+    "--ad-font-weight": normalizedAd.fontStyle === "black" ? 950 : normalizedAd.fontStyle === "bold" ? 750 : 600,
+    "--ad-font-family": normalizedAd.fontStyle === "luxury-serif" ? 'Georgia, "Times New Roman", serif' : "Arial, Helvetica, sans-serif",
+    "--ad-word-justify": normalizedAd.textAlignment === "left"
+      ? "flex-start"
+      : normalizedAd.textAlignment === "right" ? "flex-end" : "center",
+    "--ad-text-align": normalizedAd.textAlignment,
     "--ad-gold-tint-opacity": normalizedAd.filterPreset === "gold-tint"
       ? normalizedAd.goldTintOpacity / 100
       : 0
@@ -351,7 +367,7 @@ const KineticAd = forwardRef<KineticAdHandle, KineticAdProps>(function KineticAd
       {normalizedAd.overlayOpacity > 0 && <div className={styles.dimOverlay} aria-hidden="true" />}
       <div
         className={styles.beatFlash}
-        style={{ opacity: normalizedAd.beatSync ? Math.max(0, 1 - (elapsed % 0.5) * 8) * 0.16 : 0 }}
+        style={{ opacity: normalizedAd.beatSync ? Math.max(0, 1 - (elapsed % 0.5) * 8) * (normalizedAd.beatIntensity / 100) * 0.16 : 0 }}
         aria-hidden="true"
       />
       {customImages.filter((image) => image.position !== "background").map((image, index) => (
@@ -369,7 +385,7 @@ const KineticAd = forwardRef<KineticAdHandle, KineticAdProps>(function KineticAd
         />
       ))}
       <AnimatePresence mode="wait">
-        {elapsed < 3 && (
+        {elapsed < introEnd && (
           <motion.div
             key="intro"
             className={`${styles.phase} ${featuredProduct ? styles.introWithProduct : ""}`}
@@ -385,7 +401,11 @@ const KineticAd = forwardRef<KineticAdHandle, KineticAdProps>(function KineticAd
             </div>
             {featuredProduct && (
               <motion.a
-                className={styles.productCard}
+                className={[
+                  styles.productCard,
+                  styles[`productAnimation-${normalizedAd.productAnimation}`],
+                  styles[`productStyle-${normalizedAd.productCardStyle}`]
+                ].join(" ")}
                 href={normalizedAd.ctaLink}
                 initial={{ opacity: 0, y: 22, scale: 0.9 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -397,7 +417,7 @@ const KineticAd = forwardRef<KineticAdHandle, KineticAdProps>(function KineticAd
             )}
           </motion.div>
         )}
-        {elapsed >= 3 && elapsed < 5 && (
+        {elapsed >= introEnd && elapsed < momentumEnd && (
           <motion.div
             key="more"
             className={`${styles.phase} ${styles.morePhase}`}
@@ -425,7 +445,7 @@ const KineticAd = forwardRef<KineticAdHandle, KineticAdProps>(function KineticAd
             </div>
           </motion.div>
         )}
-        {elapsed >= 5 && elapsed < 8 && (
+        {elapsed >= momentumEnd && elapsed < checkoutEnd && (
           <motion.div
             key="checkout"
             className={styles.phase}
@@ -441,7 +461,7 @@ const KineticAd = forwardRef<KineticAdHandle, KineticAdProps>(function KineticAd
             </div>
           </motion.div>
         )}
-        {elapsed >= 8 && (
+        {elapsed >= checkoutEnd && (
           <motion.div
             key="brand"
             className={`${styles.phase} ${styles.brandPhase}`}
@@ -455,7 +475,7 @@ const KineticAd = forwardRef<KineticAdHandle, KineticAdProps>(function KineticAd
           </motion.div>
         )}
       </AnimatePresence>
-      {!compact && <div className={styles.progress} style={{ transform: `scaleX(${elapsed / 10})` }} />}
+      {!compact && <div className={styles.progress} style={{ transform: `scaleX(${elapsed / storyDuration})` }} />}
       {showControls && normalizedAd.audioType !== "none" && (
         <button
           type="button"

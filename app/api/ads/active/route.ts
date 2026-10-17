@@ -2,8 +2,14 @@ import mongoose from "mongoose";
 import {
   AD_ANIMATION_SPEEDS,
   AD_ANIMATION_STYLES,
+  AD_DISPLAY_LOCATIONS,
+  AD_DURATIONS,
   AD_FILTER_PRESETS,
+  AD_FONT_STYLES,
   AD_TEXT_EFFECTS,
+  AD_TEXT_ALIGNMENTS,
+  AD_PRODUCT_ANIMATIONS,
+  AD_PRODUCT_CARD_STYLES,
   DEFAULT_AD,
   normalizeAdLines,
   type AdCustomImage
@@ -43,7 +49,11 @@ export async function GET() {
     if (!await connectToDatabase()) throw new ApiError("MONGODB_URI is not configured.", 503);
     const ad = await Ad.collection.find({
       isActive: { $in: [true, "true"] },
-      placement: "homepage"
+      placement: "homepage",
+      $or: [
+        { displayLocation: "homepage-hero" },
+        { displayLocation: { $exists: false } }
+      ]
     }).sort({ updatedAt: -1 }).limit(1).next();
     if (!ad) {
       console.info("[ads/active] No active homepage ad found.");
@@ -68,6 +78,7 @@ export async function GET() {
     const result: AdData = {
       id: String(ad._id),
       campaignName: typeof ad.campaignName === "string" ? ad.campaignName : DEFAULT_AD.campaignName,
+      displayLocation: enumValue(ad.displayLocation, AD_DISPLAY_LOCATIONS, DEFAULT_AD.displayLocation),
       titleLines: rawLines(ad.titleLines, DEFAULT_AD.titleLines),
       secondLines: rawLines(ad.secondLines, DEFAULT_AD.secondLines),
       finalLines: rawLines(ad.finalLines, DEFAULT_AD.finalLines),
@@ -97,6 +108,13 @@ export async function GET() {
       contrast: typeof ad.contrast === "number" ? ad.contrast : DEFAULT_AD.contrast,
       blurAmount: typeof ad.blurAmount === "number" ? ad.blurAmount : DEFAULT_AD.blurAmount,
       goldTintOpacity: typeof ad.goldTintOpacity === "number" ? ad.goldTintOpacity : DEFAULT_AD.goldTintOpacity,
+      fontStyle: enumValue(ad.fontStyle, AD_FONT_STYLES, DEFAULT_AD.fontStyle),
+      textSize: typeof ad.textSize === "number" ? ad.textSize : DEFAULT_AD.textSize,
+      textAlignment: enumValue(ad.textAlignment, AD_TEXT_ALIGNMENTS, DEFAULT_AD.textAlignment),
+      productAnimation: enumValue(ad.productAnimation, AD_PRODUCT_ANIMATIONS, DEFAULT_AD.productAnimation),
+      productCardStyle: enumValue(ad.productCardStyle, AD_PRODUCT_CARD_STYLES, DEFAULT_AD.productCardStyle),
+      duration: enumValue(ad.duration, AD_DURATIONS, DEFAULT_AD.duration),
+      beatIntensity: typeof ad.beatIntensity === "number" ? ad.beatIntensity : DEFAULT_AD.beatIntensity,
       isActive: true,
       placement: "homepage",
       createdAt: ad.createdAt instanceof Date ? ad.createdAt.toISOString() : undefined,

@@ -11,6 +11,18 @@ export const AD_FILTER_PRESETS = ["none", "luxury-dark", "gold-tint", "blur-bg",
 export type AdFilterPreset = (typeof AD_FILTER_PRESETS)[number];
 export const AD_IMAGE_POSITIONS = ["background", "foreground", "floating"] as const;
 export type AdImagePosition = (typeof AD_IMAGE_POSITIONS)[number];
+export const AD_DISPLAY_LOCATIONS = ["homepage-hero", "product-page", "fullscreen"] as const;
+export type AdDisplayLocation = (typeof AD_DISPLAY_LOCATIONS)[number];
+export const AD_FONT_STYLES = ["black", "bold", "luxury-serif"] as const;
+export type AdFontStyle = (typeof AD_FONT_STYLES)[number];
+export const AD_TEXT_ALIGNMENTS = ["left", "center", "right"] as const;
+export type AdTextAlignment = (typeof AD_TEXT_ALIGNMENTS)[number];
+export const AD_PRODUCT_ANIMATIONS = ["float", "slide", "rotate-3d", "static"] as const;
+export type AdProductAnimation = (typeof AD_PRODUCT_ANIMATIONS)[number];
+export const AD_PRODUCT_CARD_STYLES = ["minimal", "luxury-gold", "glass", "neon"] as const;
+export type AdProductCardStyle = (typeof AD_PRODUCT_CARD_STYLES)[number];
+export const AD_DURATIONS = ["6", "8", "10", "loop"] as const;
+export type AdDuration = (typeof AD_DURATIONS)[number];
 
 export type AdProductPreview = {
   id: string;
@@ -38,6 +50,7 @@ export type KineticAdInput = Partial<Omit<AdData, "titleLines" | "secondLines" |
 export type AdData = {
   id?: string;
   campaignName: string;
+  displayLocation: AdDisplayLocation;
   titleLines: string[];
   secondLines: string[];
   finalLines: string[];
@@ -64,6 +77,13 @@ export type AdData = {
   contrast: number;
   blurAmount: number;
   goldTintOpacity: number;
+  fontStyle: AdFontStyle;
+  textSize: number;
+  textAlignment: AdTextAlignment;
+  productAnimation: AdProductAnimation;
+  productCardStyle: AdProductCardStyle;
+  duration: AdDuration;
+  beatIntensity: number;
   isActive: boolean;
   placement: "homepage";
   createdAt?: string;
@@ -84,6 +104,7 @@ export function normalizeAdLines(value: unknown, fallback: string[]): string[] {
 
 export const DEFAULT_AD: AdData = {
   campaignName: "New campaign",
+  displayLocation: "homepage-hero",
   titleLines: ["WHAT", "EVER", "YOU", "SELL"],
   secondLines: ["SELL", "MORE", "MORE", "MORE", "MORE"],
   finalLines: ["THE", "WORLD'S", "BEST", "CHECKOUT"],
@@ -110,6 +131,13 @@ export const DEFAULT_AD: AdData = {
   contrast: 100,
   blurAmount: 0,
   goldTintOpacity: 20,
+  fontStyle: "black",
+  textSize: 64,
+  textAlignment: "center",
+  productAnimation: "float",
+  productCardStyle: "luxury-gold",
+  duration: "10",
+  beatIntensity: 50,
   isActive: false,
   placement: "homepage"
 };
