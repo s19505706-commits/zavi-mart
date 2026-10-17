@@ -9,6 +9,14 @@ export type AdProductPreview = {
   price: number;
 };
 
+export type KineticAdInput = Partial<Omit<AdData, "titleLines" | "secondLines" | "finalLines" | "products" | "productDetails">> & {
+  titleLines?: string | string[];
+  secondLines?: string | string[];
+  finalLines?: string | string[];
+  products?: Array<string | AdProductPreview>;
+  productDetails?: AdProductPreview[];
+};
+
 export type AdData = {
   id?: string;
   titleLines: string[];
@@ -31,6 +39,17 @@ export type AdData = {
   createdAt?: string;
   updatedAt?: string;
 };
+
+export function normalizeAdLines(value: unknown, fallback: string[]): string[] {
+  const entries = typeof value === "string"
+    ? value.split(/[-,]/)
+    : Array.isArray(value) ? value : [];
+  const lines = entries
+    .filter((entry): entry is string => typeof entry === "string")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+  return lines.length ? lines : fallback;
+}
 
 export const DEFAULT_AD: AdData = {
   titleLines: ["WHAT", "EVER", "YOU", "SELL"],

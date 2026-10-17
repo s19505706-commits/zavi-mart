@@ -4,7 +4,7 @@ import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "re
 import { AnimatePresence, motion } from "framer-motion";
 import { Howl } from "howler";
 import { ShoppingBag, Volume2, VolumeX } from "lucide-react";
-import type { AdData } from "../../lib/ad-types";
+import { DEFAULT_AD, normalizeAdLines, type AdData, type AdProductPreview, type KineticAdInput } from "../../lib/ad-types";
 import styles from "./KineticAd.module.css";
 
 const PRESET_AUDIO: Record<Exclude<AdData["audioType"], "custom">, string> = {
@@ -20,7 +20,7 @@ export type KineticAdHandle = {
 };
 
 type KineticAdProps = {
-  adData: AdData;
+  adData: AdData | KineticAdInput;
   autoPlay?: boolean;
   showControls?: boolean;
   compact?: boolean;
@@ -38,7 +38,28 @@ const KineticAd = forwardRef<KineticAdHandle, KineticAdProps>(function KineticAd
   const [elapsed, setElapsed] = useState(0);
   const [muted, setMuted] = useState(true);
   const [htmlAudioFallback, setHtmlAudioFallback] = useState(false);
-  const audioUrl = adData.audioUrl || PRESET_AUDIO[adData.audioType === "custom" ? "punchy-beat" : adData.audioType];
+  const normalizedAd = {
+    ...DEFAULT_AD,
+    ...adData,
+    titleLines: normalizeAdLines(adData.titleLines, DEFAULT_AD.titleLines),
+    secondLines: normalizeAdLines(adData.secondLines, DEFAULT_AD.secondLines),
+    finalLines: normalizeAdLines(adData.finalLines, DEFAULT_AD.finalLines)
+  };
+  const productIds = (adData.products ?? []).flatMap((product) =>
+    typeof product === "string" ? [product] : product.id ? [product.id] : []
+  );
+  const suppliedProductDetails = [
+    ...(adData.productDetails ?? []),
+    ...(adData.products ?? []).flatMap((product) =>
+      typeof product === "string" ? [] : [product]
+    )
+  ];
+  const [fetchedProductDetails, setFetchedProductDetails] = useState<AdProductPreview[]>([]);
+  const productDetails = [...suppliedProductDetails, ...fetchedProductDetails].filter((product, index, all) =>
+    all.findIndex((entry) => entry.id === product.id) === index
+  );
+  const audioType = normalizedAd.audioType === "custom" ? "punchy-beat" : normalizedAd.audioType;
+  const audioUrl = normalizedAd.audioUrl || PRESET_AUDIO[audioType];
 
   useImperativeHandle(ref, () => ({
     playWithSound() {
@@ -64,6 +85,42 @@ const KineticAd = forwardRef<KineticAdHandle, KineticAdProps>(function KineticAd
   }), [htmlAudioFallback]);
 
   useEffect(() => {
+    let cancelled = false;
+    const missingIds = productIds.filter((id) =>
+      !suppliedProductDetails.some((product) => product.id === id)
+    );
+    setFetchedProductDetails([]);
+    if (missingIds.length) {
+      void Promise.all(missingIds.map(async (id): Promise<AdProductPreview | null> => {
+        try {
+          const response = await fetch(`/api/products?id=${encodeURIComponent(id)}`, { cache: "no-store" });
+          if (!response.ok) return null;
+          const result: unknown = await response.json();
+          if (typeof result !== "object" || result === null || !("product" in result) ||
+              typeof result.product !== "object" || result.product === null) return null;
+          const product = result.product as Record<string, unknown>;
+          const images = Array.isArray(product.images) ? product.images : [];
+          const image = typeof product.image === "string" ? product.image :
+            typeof images[0] === "string" ? images[0] : "";
+          if (typeof product.title !== "string" || !image) return null;
+          return {
+            id,
+            title: product.title,
+            image,
+            price: typeof product.price === "number" ? product.price : 0
+          };
+        } catch (error) {
+          console.error("Could not load a featured product for the homepage ad.", error);
+          return null;
+        }
+      })).then((results) => {
+        if (!cancelled) setFetchedProductDetails(results.filter((product): product is AdProductPreview => product !== null));
+      });
+    }
+    return () => { cancelled = true; };
+  }, [JSON.stringify(productIds), JSON.stringify(suppliedProductDetails)]);
+
+  useEffect(() => {
     setElapsed(0);
     clockRef.current = 0;
     setHtmlAudioFallback(false);
@@ -71,7 +128,7 @@ const KineticAd = forwardRef<KineticAdHandle, KineticAdProps>(function KineticAd
       src: [audioUrl],
       html5: true,
       loop: true,
-      volume: Math.min(100, Math.max(0, adData.volume)) / 100,
+      volume: Math.min(100, Math.max(0, normalizedAd.volume)) / 100,
       mute: true,
       onload: () => {
         if (autoPlay) player.play();
@@ -94,19 +151,19 @@ const KineticAd = forwardRef<KineticAdHandle, KineticAdProps>(function KineticAd
       player.unload();
       if (playerRef.current === player) playerRef.current = null;
     };
-  }, [adData.audioType, adData.audioUrl, adData.volume, audioUrl, autoPlay]);
+  }, [normalizedAd.audioType, normalizedAd.audioUrl, normalizedAd.volume, audioUrl, autoPlay]);
 
   useEffect(() => {
     const player = playerRef.current;
     if (player) {
       player.mute(muted);
-      player.volume(Math.min(100, Math.max(0, adData.volume)) / 100);
+      player.volume(Math.min(100, Math.max(0, normalizedAd.volume)) / 100);
     }
     if (audioRef.current) {
       audioRef.current.muted = muted;
-      audioRef.current.volume = Math.min(100, Math.max(0, adData.volume)) / 100;
+      audioRef.current.volume = Math.min(100, Math.max(0, normalizedAd.volume)) / 100;
     }
-  }, [adData.volume, muted]);
+  }, [normalizedAd.volume, muted]);
 
   useEffect(() => {
     let frame = 0;
@@ -128,25 +185,25 @@ const KineticAd = forwardRef<KineticAdHandle, KineticAdProps>(function KineticAd
     return () => window.cancelAnimationFrame(frame);
   }, [htmlAudioFallback]);
 
-  const firstBeat = adData.beatSync ? 0.5 : 0.68;
-  const firstCount = Math.min(adData.titleLines.length, Math.floor(elapsed / firstBeat) + 1);
-  const secondCount = Math.min(adData.secondLines.length, Math.floor((elapsed - 3) / (adData.beatSync ? 0.34 : 0.48)) + 1);
-  const finalCount = Math.min(adData.finalLines.length, Math.floor((elapsed - 5) / (adData.beatSync ? 0.68 : 0.82)) + 1);
-  const featuredProduct = adData.productDetails?.[0];
+  const firstBeat = normalizedAd.beatSync ? 0.5 : 0.68;
+  const firstCount = Math.min(normalizedAd.titleLines.length, Math.floor(elapsed / firstBeat) + 1);
+  const secondCount = Math.min(normalizedAd.secondLines.length, Math.floor((elapsed - 3) / (normalizedAd.beatSync ? 0.34 : 0.48)) + 1);
+  const finalCount = Math.min(normalizedAd.finalLines.length, Math.floor((elapsed - 5) / (normalizedAd.beatSync ? 0.68 : 0.82)) + 1);
+  const featuredProduct = productDetails[0];
   const cssVars = {
-    "--ad-bg": adData.bgColor,
-    "--ad-text": adData.textColor,
-    "--ad-gold": adData.goldColor
+    "--ad-bg": normalizedAd.bgColor,
+    "--ad-text": normalizedAd.textColor,
+    "--ad-gold": normalizedAd.goldColor
   } as React.CSSProperties;
 
   return (
     <section
       className={`${styles.stage} ${compact ? styles.compact : ""}`}
       style={cssVars}
-      aria-label="Animated Zavi Mart advertisement preview"
+      aria-label="Animated Zavi Mart advertisement"
     >
       <div className={styles.glow} aria-hidden="true" />
-      <div className={styles.beatFlash} style={{ opacity: adData.beatSync ? Math.max(0, 1 - (elapsed % 0.5) * 8) * 0.16 : 0 }} />
+      <div className={styles.beatFlash} style={{ opacity: normalizedAd.beatSync ? Math.max(0, 1 - (elapsed % 0.5) * 8) * 0.16 : 0 }} />
       <audio ref={audioRef} src={audioUrl} preload="auto" loop muted aria-hidden="true" />
       <AnimatePresence mode="wait">
         {elapsed < 3 && (
@@ -159,7 +216,7 @@ const KineticAd = forwardRef<KineticAdHandle, KineticAdProps>(function KineticAd
             transition={{ duration: 0.22 }}
           >
             <div className={styles.words}>
-              {adData.titleLines.slice(0, firstCount).map((line, index) => (
+              {normalizedAd.titleLines.slice(0, firstCount).map((line, index) => (
                 <motion.span
                   key={`${line}-${index}`}
                   initial={{ opacity: 0, y: 36, scale: 0.78 }}
@@ -173,7 +230,7 @@ const KineticAd = forwardRef<KineticAdHandle, KineticAdProps>(function KineticAd
             {featuredProduct && (
               <motion.a
                 className={styles.productCard}
-                href={adData.ctaLink}
+                href={normalizedAd.ctaLink}
                 initial={{ opacity: 0, y: 22, scale: 0.9 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 transition={{ delay: 0.12 }}
@@ -194,7 +251,7 @@ const KineticAd = forwardRef<KineticAdHandle, KineticAdProps>(function KineticAd
             transition={{ duration: 0.16 }}
           >
             <div className={styles.parallax} aria-hidden="true">
-              {adData.productDetails?.slice(0, 4).map((product, index) => (
+              {productDetails.slice(0, 4).map((product, index) => (
                 <motion.img
                   key={product.id}
                   src={product.image}
@@ -206,7 +263,7 @@ const KineticAd = forwardRef<KineticAdHandle, KineticAdProps>(function KineticAd
               ))}
             </div>
             <div className={styles.words}>
-              {adData.secondLines.slice(0, secondCount).map((line, index) => (
+              {normalizedAd.secondLines.slice(0, secondCount).map((line, index) => (
                 <motion.span
                   key={`${line}-${index}`}
                   className={index === secondCount - 1 ? styles.goldWord : ""}
@@ -230,10 +287,10 @@ const KineticAd = forwardRef<KineticAdHandle, KineticAdProps>(function KineticAd
             transition={{ duration: 0.24 }}
           >
             <div className={styles.words}>
-              {adData.finalLines.slice(0, finalCount).map((line, index) => (
+              {normalizedAd.finalLines.slice(0, finalCount).map((line, index) => (
                 <motion.span
                   key={`${line}-${index}`}
-                  className={index === adData.finalLines.length - 1 ? styles.goldWord : ""}
+                  className={index === normalizedAd.finalLines.length - 1 ? styles.goldWord : ""}
                   initial={{ opacity: 0, scale: 0.65 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ type: "spring", stiffness: 200, damping: 16 }}
@@ -253,8 +310,8 @@ const KineticAd = forwardRef<KineticAdHandle, KineticAdProps>(function KineticAd
             transition={{ type: "spring", stiffness: 180, damping: 18 }}
           >
             <ShoppingBag className={styles.bagIcon} strokeWidth={1.4} aria-hidden="true" />
-            <strong>{adData.logoText}</strong>
-            <a href={adData.ctaLink} className={styles.startButton}>{adData.ctaText}</a>
+            <strong>{normalizedAd.logoText}</strong>
+            <a href={normalizedAd.ctaLink} className={styles.startButton}>{normalizedAd.ctaText}</a>
           </motion.div>
         )}
       </AnimatePresence>

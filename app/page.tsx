@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import HotDealsSlider, { type Deal, type StoreCategory } from "../components/HotDealsSlider";
 import StoreSearch from "../components/StoreSearch";
+import KineticAd from "../components/ads/KineticAd";
+import type { AdData } from "../lib/ad-types";
 import {
   CART_STORAGE_KEY,
   CHECKOUT_PRODUCTS_BY_CART_ID,
@@ -68,6 +70,8 @@ export default function HomePage() {
   const [activeCategory, setActiveCategory] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [products, setProducts] = useState<Deal[]>([]);
+  const [activeAd, setActiveAd] = useState<AdData | null>(null);
+  const [adResolved, setAdResolved] = useState(false);
   const [productsLoading, setProductsLoading] = useState(true);
   const [flashDeals, setFlashDeals] = useState<Deal[]>([]);
   const [flashDealsLoading, setFlashDealsLoading] = useState(true);
@@ -114,6 +118,85 @@ export default function HomePage() {
     if (new URLSearchParams(window.location.search).get("message") === "Access Denied") {
       setAccessDenied(true);
     }
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/ads/active", { cache: "no-store" })
+      .then(async (response) => {
+        const result: unknown = await response.json();
+        if (!response.ok || typeof result !== "object" || result === null || Array.isArray(result)) {
+          throw new Error(`Homepage ad request failed with status ${response.status}.`);
+        }
+        const value = "activeAd" in result ? result.activeAd : "ad" in result ? result.ad :
+          "ads" in result && Array.isArray(result.ads) ? result.ads[0] : null;
+        if (value === null) {
+          if (!cancelled) {
+            setActiveAd(null);
+            console.info("[homepage] No active homepage ad; showing the standard hero.");
+          }
+          return;
+        }
+        if (typeof value !== "object" || Array.isArray(value)) {
+          throw new Error("The active ad API returned an invalid advertisement.");
+        }
+        const ad = value as Record<string, unknown>;
+        const lines = (input: unknown, fallback: string[]) => {
+          const values = typeof input === "string" ? input.split(/[-,]/) :
+            Array.isArray(input) ? input : [];
+          const parsed = values
+            .filter((line): line is string => typeof line === "string")
+            .map((line) => line.trim())
+            .filter(Boolean);
+          return parsed.length ? parsed : fallback;
+        };
+        const details = Array.isArray(ad.productDetails)
+          ? ad.productDetails.flatMap((product): NonNullable<AdData["productDetails"]> => {
+            if (typeof product !== "object" || product === null || Array.isArray(product) ||
+                !("id" in product) || typeof product.id !== "string" ||
+                !("title" in product) || typeof product.title !== "string") return [];
+            return [{
+              id: product.id,
+              title: product.title,
+              image: "image" in product && typeof product.image === "string" ? product.image : "",
+              price: "price" in product && typeof product.price === "number" ? product.price : 0
+            }];
+          })
+          : [];
+        const parsedAd: AdData = {
+          titleLines: lines(ad.titleLines, ["WHAT", "EVER", "YOU", "BUY"]),
+          secondLines: lines(ad.secondLines, ["SELL", "MORE", "MORE", "MORE"]),
+          finalLines: lines(ad.finalLines, ["THE", "WORLD'S", "BEST", "CHECKOUT"]),
+          products: Array.isArray(ad.products) ? ad.products.filter((id): id is string => typeof id === "string") : [],
+          productDetails: details,
+          ctaText: typeof ad.ctaText === "string" ? ad.ctaText : "Shop Now",
+          ctaLink: typeof ad.ctaLink === "string" ? ad.ctaLink : "/products",
+          logoText: typeof ad.logoText === "string" ? ad.logoText : "ZAVI MART",
+          bgColor: typeof ad.bgColor === "string" ? ad.bgColor : "#0A0A0A",
+          textColor: typeof ad.textColor === "string" ? ad.textColor : "#FFFFFF",
+          goldColor: typeof ad.goldColor === "string" ? ad.goldColor : "#D4AF37",
+          audioUrl: typeof ad.audioUrl === "string" ? ad.audioUrl : "",
+          audioType: ad.audioType === "luxury-tick" || ad.audioType === "deep-bass" || ad.audioType === "custom"
+            ? ad.audioType
+            : "punchy-beat",
+          beatSync: ad.beatSync !== false,
+          volume: typeof ad.volume === "number" ? ad.volume : 80,
+          isActive: ad.isActive === true || ad.isActive === "true",
+          placement: "homepage"
+        };
+        if (!parsedAd.isActive) throw new Error("The active ad API returned an inactive advertisement.");
+        if (!cancelled) setActiveAd(parsedAd);
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          console.error("Could not load an active homepage ad.", error);
+          setActiveAd(null);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setAdResolved(true);
+      });
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
@@ -614,6 +697,16 @@ export default function HomePage() {
         <Link href="/contact">Contact</Link>
       </nav>
 
+      {!adResolved ? (
+        <div
+          aria-label="Loading homepage advertisement"
+          style={{ height: "100svh", minHeight: 560, background: "#0A0A0A" }}
+        />
+      ) : activeAd ? (
+        <div style={{ width: "100%", height: "100svh", minHeight: 560, background: "#0A0A0A" }}>
+          <KineticAd adData={activeAd} />
+        </div>
+      ) : null}
       <section className="luxury-hero" aria-labelledby="hero-heading">
         <div className="luxury-hero-glow luxury-hero-glow-primary" aria-hidden="true" />
         <div className="luxury-hero-glow luxury-hero-glow-secondary" aria-hidden="true" />

@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { revalidatePath } from "next/cache";
 import { AD_AUDIO_TYPES, type AdData, type AdProductPreview } from "../../../../lib/ad-types";
 import { ApiError, handleApiError, isRecord, readJsonBody, requireAdmin } from "../../../../lib/api-utils";
 import { connectToDatabase } from "../../../../lib/mongodb";
@@ -143,6 +144,7 @@ export async function POST(request: Request) {
     await ensureDatabase();
     const input = parseAdInput(await readJsonBody(request));
     const ad = await Ad.create(input);
+    revalidatePath("/");
     return Response.json({ success: true, ad: serializeAd(ad.toObject() as unknown as Record<string, unknown>) }, { status: 201 });
   } catch (error) {
     return handleApiError(error, "POST /api/admin/ads failed");
@@ -161,6 +163,7 @@ export async function PUT(request: Request) {
     const input = parseAdInput(body);
     const ad = await Ad.findByIdAndUpdate(body.id, { $set: input }, { new: true, runValidators: true }).lean();
     if (!ad) return Response.json({ error: "Ad not found." }, { status: 404 });
+    revalidatePath("/");
     return Response.json({ success: true, ad: serializeAd(ad as unknown as Record<string, unknown>) });
   } catch (error) {
     return handleApiError(error, "PUT /api/admin/ads failed");
@@ -178,6 +181,7 @@ export async function DELETE(request: Request) {
     }
     const deleted = await Ad.findByIdAndDelete(body.id).lean();
     if (!deleted) return Response.json({ error: "Ad not found." }, { status: 404 });
+    revalidatePath("/");
     return Response.json({ success: true, id: body.id });
   } catch (error) {
     return handleApiError(error, "DELETE /api/admin/ads failed");
