@@ -405,9 +405,9 @@
   border-radius: 50%;
 }
 
-.blueDot { background: #4e8cff; }
-.greenDot { background: #19b886; }
-.orangeDot { background: #ffb547; }
+.blueDot { background: #d4af37; }
+.greenDot { background: #ffd700; }
+.orangeDot { background: #b8941f; }
 
 .pieArea {
   display: grid;

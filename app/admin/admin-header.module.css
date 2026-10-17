@@ -9,9 +9,9 @@
   justify-content: space-between;
   gap: 22px;
   padding: 0 clamp(16px, 3vw, 36px);
-  border-bottom: 1px solid rgb(212 175 55 / 10%);
-  background: rgb(5 5 7 / 92%);
-  color: #fff;
+  border-bottom: 1px solid rgb(212 175 55 / 28%);
+  background: rgb(10 10 10 / 96%);
+  color: #d4af37;
   backdrop-filter: blur(16px);
 }
 
@@ -33,8 +33,9 @@
   height: 36px;
   place-items: center;
   border-radius: 12px;
-  background: linear-gradient(135deg, #f5e6a3, #d4af37);
-  color: #050507;
+  border: 1px solid rgb(212 175 55 / 52%);
+  background: linear-gradient(145deg, #1a1a1a, #111);
+  color: #d4af37;
   font-size: 1.1rem;
 }
 
@@ -82,8 +83,9 @@
 }
 
 .desktopNav a.activeLink {
-  border-color: rgb(212 175 55 / 20%);
-  background: #121214;
+  border-color: transparent;
+  border-left: 2px solid #d4af37;
+  background: rgb(212 175 55 / 12%);
   color: #d4af37;
   font-weight: 600;
 }
@@ -262,8 +264,9 @@
 }
 
 .drawer a.drawerActiveLink {
-  border: 1px solid rgb(212 175 55 / 20%);
-  background: #121214;
+  border: 1px solid transparent;
+  border-left: 2px solid #d4af37;
+  background: rgb(212 175 55 / 12%);
   color: #d4af37;
   font-weight: 600;
 }

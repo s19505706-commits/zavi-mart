@@ -16,7 +16,7 @@ import styles from "./dashboard.module.css";
 type MonthlyData = { month: string; revenue: number; income: number; profit: number };
 type CategoryData = { name: string; value: number };
 
-const categoryColors = ["#4787ff", "#19b886", "#ffb547", "#9164f6", "#f36c82", "#24b8cb"];
+const categoryColors = ["#D4AF37", "#FFD700", "#b8941f", "#e9d28a", "#9d7c24", "#f5e6a3"];
 
 function formatMoney(value: number): string {
   return `Rs ${new Intl.NumberFormat("en-PK", { maximumFractionDigits: 0 }).format(value)}`;
@@ -46,9 +46,9 @@ export default function AdminSalesCharts({
                 <YAxis axisLine={false} tickLine={false} tick={{ fill: "#8190a7", fontSize: 11 }}
                   tickFormatter={(value: number) => `${Math.round(value / 1000)}k`} width={42} />
                 <Tooltip formatter={(value) => formatMoney(Number(value))} />
-                <Line type="monotone" dataKey="revenue" name="Revenue" stroke="#4e8cff" strokeWidth={2.5} dot={false} />
-                <Line type="monotone" dataKey="income" name="Income" stroke="#19b886" strokeWidth={2.5} dot={false} />
-                <Line type="monotone" dataKey="profit" name="Profit" stroke="#ffb547" strokeWidth={2.5} dot={false} />
+                <Line type="monotone" dataKey="revenue" name="Revenue" stroke="#D4AF37" strokeWidth={2.5} dot={false} />
+                <Line type="monotone" dataKey="income" name="Income" stroke="#FFD700" strokeWidth={2.5} dot={false} />
+                <Line type="monotone" dataKey="profit" name="Profit" stroke="#b8941f" strokeWidth={2.5} dot={false} />
               </LineChart>
             </ResponsiveContainer>
           </div>

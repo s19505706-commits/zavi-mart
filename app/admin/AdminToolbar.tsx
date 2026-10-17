@@ -77,7 +77,7 @@ export default function AdminToolbar() {
         </button>
         <Link className={styles.brand} href="/admin" aria-label="ZaviMart Admin dashboard">
           <span className={styles.brandMark}>Z</span>
-          <span className={styles.brandText}>ZaviMart <small>ADMIN PANEL</small></span>
+          <span className={styles.brandText}>ZAVI MART <small>ADMIN PANEL</small></span>
         </Link>
         <nav className={styles.desktopNav} aria-label="Admin sections">
           {menuItems.map((item) => {

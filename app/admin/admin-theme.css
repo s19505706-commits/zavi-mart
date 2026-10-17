@@ -1,35 +1,62 @@
 :root {
-  --admin-bg: #050507;
-  --admin-header: #050507;
-  --admin-card: #121214;
+  --admin-bg: #0a0a0a;
+  --admin-header: #d4af37;
+  --admin-card: #111111;
   --admin-primary: #d4af37;
-  --admin-primary-hover: #f5e6a3;
+  --admin-primary-hover: #ffd700;
   --admin-accent: #d4af37;
   --admin-text: #fff;
-  --admin-muted: #9ca3af;
+  --admin-muted: #a1a1aa;
   --admin-danger: #f87171;
-  --admin-border: rgb(255 255 255 / 8%);
+  --admin-border: rgb(212 175 55 / 16%);
+  color-scheme: dark;
 }
 
 .admin-app {
   min-height: 100vh;
   background: var(--admin-bg);
-  color: var(--admin-text);
+  color: #d4d4d8;
   color-scheme: dark;
   --surface: var(--admin-card);
-  --heading: var(--admin-text);
-  --body: var(--admin-muted);
+  --heading: #fff;
+  --body: #a1a1aa;
   --border: var(--admin-border);
 }
 
 .admin-main {
   min-width: 0;
   min-height: calc(100vh - 64px);
-  background: #050507;
+  background: var(--admin-bg);
 }
 
 .admin-app:has(.admin-toolbar) .admin-main {
   margin-left: 260px;
+}
+
+.admin-footer {
+  display: flex;
+  min-height: 54px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 36px;
+  padding: 12px clamp(16px, 3vw, 36px);
+  border-top: 1px solid rgb(212 175 55 / 18%);
+  background: #0a0a0a;
+  color: #71717a;
+  font-size: 0.72rem;
+}
+
+.admin-footer > span:first-child {
+  color: #d4af37;
+  font-size: 0.68rem;
+  font-weight: 750;
+  letter-spacing: 0.14em;
+}
+
+.admin-footer-divider {
+  padding-inline: 4px;
+  color: #52525b;
 }
 
 @media (max-width: 1050px) and (min-width: 681px) {
@@ -42,4 +69,374 @@
   .admin-app:has(.admin-toolbar) .admin-main {
     margin-left: 0;
   }
+
+  .admin-footer {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 5px;
+    margin-top: 20px;
+  }
+}
+
+.admin-app,
+.admin-app * {
+  scrollbar-color: #51431d #111;
+}
+
+.admin-app .admin-main,
+.admin-app .admin-content,
+.admin-app main[class*="page" i],
+.admin-app section[class*="page" i],
+.admin-app [class*="dashboardShell" i] {
+  background-color: #0a0a0a;
+  color: #d4d4d8;
+}
+
+.admin-app .admin-content,
+.admin-app main[class*="page" i],
+.admin-app section[class*="page" i],
+.admin-app [class*="dashboardShell" i] {
+  min-height: calc(100vh - 64px);
+}
+
+.admin-app [class*="card" i],
+.admin-app [class*="panel" i],
+.admin-app [class*="statCard" i],
+.admin-app [class*="preview" i],
+.admin-app [class*="summary" i],
+.admin-app [class*="drawer" i]:not([class*="backdrop" i]),
+.admin-app [class*="modal" i]:not([class*="backdrop" i]),
+.admin-app [class*="mapping" i],
+.admin-app [class*="calculator" i],
+.admin-app [class*="productRow" i],
+.admin-app [class*="notificationCard" i],
+.admin-app [class*="orderCard" i],
+.admin-app [class*="search" i],
+.admin-app [class*="dateFilter" i],
+.admin-app [class*="tabs" i],
+.admin-app form[class*="form" i] {
+  border-color: rgb(212 175 55 / 16%);
+  background-color: #111 !important;
+  color: #d4d4d8;
+  box-shadow: 0 16px 42px rgb(0 0 0 / 32%);
+}
+
+.admin-app [class*="card" i]:hover,
+.admin-app [class*="panel" i]:hover,
+.admin-app [class*="statCard" i]:hover,
+.admin-app [class*="productRow" i]:hover,
+.admin-app [class*="notificationCard" i]:hover,
+.admin-app [class*="orderCard" i]:hover {
+  border-color: rgb(212 175 55 / 32%);
+}
+
+.admin-app h1,
+.admin-app h2,
+.admin-app h3,
+.admin-app h4,
+.admin-app [class*="panelHeading" i] h2,
+.admin-app [class*="productsHeading" i] h2 {
+  color: #f4f4f5;
+}
+
+.admin-app h1,
+.admin-app .admin-content > header h1,
+.admin-app [class*="pageHeader" i] h1 {
+  color: #d4af37;
+}
+
+.admin-app p,
+.admin-app label,
+.admin-app dt,
+.admin-app dd,
+.admin-app th,
+.admin-app td,
+.admin-app small,
+.admin-app [class*="description" i],
+.admin-app [class*="eyebrow" i],
+.admin-app [class*="breadcrumb" i],
+.admin-app [class*="muted" i] {
+  color: #d4d4d8;
+}
+
+.admin-app small,
+.admin-app [class*="muted" i],
+.admin-app [class*="description" i],
+.admin-app [class*="eyebrow" i],
+.admin-app [class*="count" i],
+.admin-app [class*="subtitle" i],
+.admin-app [class*="hint" i] {
+  color: #a1a1aa;
+}
+
+.admin-app [class*="statCard" i] strong,
+.admin-app [class*="metric" i] strong,
+.admin-app [class*="codAmount" i],
+.admin-app [class*="profitCard" i] strong,
+.admin-app [class*="statNumber" i] {
+  color: #d4af37;
+}
+
+.admin-app [class*="statIcon" i] {
+  border-color: rgb(212 175 55 / 18%);
+  background: rgb(212 175 55 / 12%) !important;
+  color: #d4af37 !important;
+}
+
+.admin-app input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+.admin-app select,
+.admin-app textarea {
+  border-color: #27272a !important;
+  background-color: #1a1a1a !important;
+  color: #fff !important;
+  color-scheme: dark;
+}
+
+.admin-app input[type="file"] {
+  border-color: #27272a;
+  background: #1a1a1a;
+  color: #d4d4d8;
+  color-scheme: dark;
+}
+
+.admin-app input::placeholder,
+.admin-app textarea::placeholder {
+  color: #71717a !important;
+}
+
+.admin-app input:focus,
+.admin-app select:focus,
+.admin-app textarea:focus,
+.admin-app input:focus-visible,
+.admin-app select:focus-visible,
+.admin-app textarea:focus-visible {
+  border-color: #d4af37 !important;
+  outline-color: rgb(212 175 55 / 24%);
+  box-shadow: 0 0 0 3px rgb(212 175 55 / 14%) !important;
+}
+
+.admin-app input[type="checkbox"],
+.admin-app input[type="radio"] {
+  accent-color: #d4af37;
+}
+
+.admin-app table {
+  color: #d4d4d8;
+}
+
+.admin-app table thead,
+.admin-app table thead tr,
+.admin-app table th {
+  background-color: #1a1a1a !important;
+  color: #d4af37 !important;
+}
+
+.admin-app table td,
+.admin-app table th {
+  border-color: rgb(255 255 255 / 8%) !important;
+}
+
+.admin-app table tbody tr {
+  background-color: #111 !important;
+}
+
+.admin-app table tbody tr:hover {
+  background-color: #1a1a1a !important;
+}
+
+.admin-app button {
+  color: #d4d4d8;
+}
+
+.admin-app .admin-main button:not([type="submit"]):not([class*="primary" i]):not([class*="secondary" i]):not([class*="danger" i]):not([class*="delete" i]):not([class*="active" i]) {
+  border-color: rgb(212 175 55 / 20%);
+  background-color: #1a1a1a;
+  color: #d4af37;
+}
+
+.admin-app button:not(:disabled):hover {
+  border-color: rgb(212 175 55 / 35%);
+}
+
+.admin-app button[type="submit"],
+.admin-app .admin-main button[class*="primary" i],
+.admin-app .admin-main a[class*="primary" i],
+.admin-app .admin-main button[class*="exportButton" i],
+.admin-app .admin-main button[class*="submit" i],
+.admin-app button[class*="action" i]:not([class*="rowActions" i]),
+.admin-app .account-dismiss {
+  border-color: #d4af37 !important;
+  background: linear-gradient(100deg, #d4af37, #ffd700) !important;
+  color: #090909 !important;
+  font-weight: 750;
+}
+
+.admin-app button[type="submit"]:hover:not(:disabled),
+.admin-app .admin-main button[class*="primary" i]:hover:not(:disabled),
+.admin-app .admin-main a[class*="primary" i]:hover,
+.admin-app .admin-main button[class*="exportButton" i]:hover:not(:disabled),
+.admin-app .admin-main button[class*="submit" i]:hover:not(:disabled),
+.admin-app .account-dismiss:hover:not(:disabled) {
+  box-shadow: 0 0 20px rgb(212 175 55 / 24%);
+  filter: brightness(1.05);
+}
+
+.admin-app button[class*="secondary" i],
+.admin-app a[class*="secondary" i],
+.admin-app a[class*="backLink" i],
+.admin-app button[class*="closeButton" i],
+.admin-app button[class*="auditAction" i],
+.admin-app button[class*="filterButton" i],
+.admin-app button[class*="tab" i]:not([class*="active" i]),
+.admin-app a[class*="tab" i]:not([class*="active" i]) {
+  border-color: rgb(212 175 55 / 28%) !important;
+  background: transparent !important;
+  color: #d4af37 !important;
+}
+
+.admin-app button[class*="danger" i],
+.admin-app button[class*="delete" i],
+.admin-app a[class*="danger" i] {
+  border-color: rgb(248 113 113 / 35%) !important;
+  background: rgb(127 29 29 / 24%) !important;
+  color: #fca5a5 !important;
+}
+
+.admin-app button[class*="activeTab" i],
+.admin-app button[class*="tabActive" i],
+.admin-app button[class*="activeFilter" i],
+.admin-app button[class*="selectedTab" i],
+.admin-app button[class*="productTabActive" i],
+.admin-app a[class*="activeTab" i],
+.admin-app a[class*="tabActive" i] {
+  border-color: rgb(212 175 55 / 35%) !important;
+  background: rgb(212 175 55 / 13%) !important;
+  color: #ffd700 !important;
+}
+
+.admin-app [class*="modalBackdrop" i],
+.admin-app [class*="drawerBackdrop" i],
+.admin-app [class*="backdrop" i] {
+  background-color: rgb(0 0 0 / 78%) !important;
+  backdrop-filter: blur(5px);
+}
+
+.admin-app [class*="modalActions" i],
+.admin-app [class*="drawerFooter" i] {
+  border-color: rgb(212 175 55 / 14%) !important;
+  background: #111 !important;
+}
+
+.admin-app [class*="productImagePlaceholder" i],
+.admin-app [class*="imagePlaceholder" i],
+.admin-app [class*="bundleImage" i],
+.admin-app [class*="previewExample" i] {
+  border-color: rgb(212 175 55 / 16%) !important;
+  background-color: #1a1a1a !important;
+}
+
+.admin-app img {
+  background-color: #1a1a1a;
+}
+
+.admin-app [role="alert"],
+.admin-app [class*="error" i],
+.admin-app [class*="Error" i] {
+  color: #fca5a5;
+}
+
+.admin-app [role="status"],
+.admin-app [class*="success" i] {
+  color: #d4af37;
+}
+
+.admin-app [class*="warning" i],
+.admin-app [class*="toast" i] {
+  border-color: rgb(212 175 55 / 22%);
+  background: #1a1a1a !important;
+  color: #e9d28a;
+}
+
+.admin-app [class*="status_" i] {
+  background-color: #1a1a1a !important;
+  border-color: rgb(212 175 55 / 18%);
+}
+
+.admin-app svg {
+  color: #d4af37;
+}
+
+.admin-app .recharts-tooltip-wrapper > div {
+  border: 1px solid rgb(212 175 55 / 24%) !important;
+  border-radius: 12px;
+  background: #111 !important;
+  color: #f4f4f5 !important;
+}
+
+.admin-app [class*="skeleton" i] {
+  background: linear-gradient(110deg, #1a1a1a 25%, #222 50%, #1a1a1a 75%) !important;
+}
+
+/* Compatibility values used by admin components that reference the old palette. */
+.admin-app {
+  background: var(--admin-bg);
+  --admin-header: #d4af37;
+  --brand-navy: #d4af37;
+  --blue: #d4af37;
+  --brand-orange: #d4af37;
+  --rose: #d4af37;
+}
+
+.admin-app .admin-main :is(h1, h2, h3, h4, h5, h6) {
+  color: #f4f4f5 !important;
+}
+
+.admin-app .admin-main h1 {
+  color: #d4af37 !important;
+}
+
+.admin-app .admin-main :is(p, label, dt, dd, th, td, small, legend, figcaption) {
+  color: #d4d4d8 !important;
+}
+
+.admin-app .admin-main :is(
+  [class*="muted" i],
+  [class*="description" i],
+  [class*="eyebrow" i],
+  [class*="count" i],
+  [class*="subtitle" i],
+  [class*="hint" i],
+  [class*="breadcrumb" i]
+) {
+  color: #a1a1aa !important;
+}
+
+.admin-app .admin-main [class*="statCard" i] strong,
+.admin-app .admin-main [class*="metric" i] strong,
+.admin-app .admin-main [class*="codAmount" i],
+.admin-app .admin-main [class*="profitCard" i] strong,
+.admin-app .admin-main [class*="statNumber" i] {
+  color: #d4af37 !important;
+}
+
+.admin-app .admin-main [role="alert"],
+.admin-app .admin-main [class*="error" i] {
+  color: #fca5a5 !important;
+}
+
+.admin-app .admin-main [role="status"],
+.admin-app .admin-main [class*="success" i] {
+  color: #e9d28a !important;
+}
+
+.admin-app .admin-main [class*="warning" i] {
+  color: #e9d28a !important;
+}
+
+.admin-app .admin-main button[type="submit"] svg,
+.admin-app .admin-main button[class*="primary" i] svg,
+.admin-app .admin-main a[class*="primary" i] svg,
+.admin-app .admin-main button[class*="action" i] svg,
+.admin-app .account-dismiss svg {
+  color: #090909 !important;
 }
