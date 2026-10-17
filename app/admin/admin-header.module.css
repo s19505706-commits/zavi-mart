@@ -88,6 +88,70 @@
   font-weight: 600;
 }
 
+.dealsGroup {
+  display: grid;
+  gap: 4px;
+}
+
+.dealsToggle,
+.drawerDealsToggle {
+  display: flex;
+  width: 100%;
+  min-height: 44px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  color: #9ca3af;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.dealsToggle > span,
+.drawerDealsToggle > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.dealsToggle:hover,
+.dealsToggleActive,
+.drawerDealsToggle:hover,
+.drawerDealsToggleActive {
+  background: #121214;
+  color: #d4af37;
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+.dealsToggle > svg:last-child,
+.drawerDealsToggle > svg:last-child {
+  transition: transform 150ms ease;
+}
+
+.dealsChildren {
+  display: grid;
+  gap: 3px;
+  margin: 2px 0 4px 16px;
+  padding-left: 12px;
+  border-left: 1px solid rgb(255 255 255 / 6%);
+}
+
+.desktopNav .dealsChildren a {
+  min-height: 38px;
+  gap: 10px;
+  padding-inline: 12px;
+  font-size: 12px;
+}
+
 .headerActions {
   display: flex;
   gap: 10px;
@@ -202,6 +266,35 @@
   background: #121214;
   color: #d4af37;
   font-weight: 600;
+}
+
+.drawerDealsGroup {
+  display: grid;
+  gap: 3px;
+}
+
+.drawerDealsToggle {
+  min-height: 48px;
+  padding-inline: 13px;
+  font-weight: 500;
+}
+
+.drawerDealsToggle > span {
+  gap: 13px;
+}
+
+.drawerDealsChildren {
+  display: grid;
+  gap: 3px;
+  margin: 2px 0 5px 16px;
+  padding-left: 12px;
+  border-left: 1px solid rgb(255 255 255 / 6%);
+}
+
+.drawerDealsChildren a {
+  min-height: 42px;
+  padding-left: 12px;
+  font-size: 12px;
 }
 
 .drawerDivider {

@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
+import HotDealsPanel from "../deals/HotDealsPanel";
 
 export default function LegacyHotDealsPage() {
-  redirect("/admin/deals?tab=hot");
+  return <HotDealsPanel />;
 }
