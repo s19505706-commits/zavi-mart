@@ -1363,3 +1363,336 @@
     gap: 10px;
   }
 }
+
+.page,
+.state {
+  background: #050507;
+  color: #fff;
+}
+
+.page {
+  width: 100%;
+  min-height: 100vh;
+  margin: 0;
+  padding-inline: max(12px, calc((100vw - 1440px) / 2));
+}
+
+.header {
+  border-bottom-color: rgba(212, 175, 55, 0.1);
+  background: rgba(5, 5, 7, 0.92);
+  box-shadow: 0 1px 16px rgba(0, 0, 0, 0.35);
+}
+
+.brand,
+.details h1,
+.price strong,
+.buyPrice {
+  color: #fff;
+}
+
+.brandIcon,
+.headerIconButton,
+.backButton {
+  border: 1px solid rgba(212, 175, 55, 0.15);
+  background: #121214;
+  color: var(--gold);
+}
+
+.headerCartCount {
+  border-color: #050507;
+  background: linear-gradient(to bottom right, var(--gold-light), var(--gold));
+  color: #000;
+}
+
+.product {
+  width: 100%;
+  margin-inline: auto;
+  border-color: rgba(212, 175, 55, 0.1);
+  background: #050507;
+}
+
+.gallery {
+  padding: 12px;
+  border: 1px solid rgba(212, 175, 55, 0.1);
+  border-radius: 16px;
+  background: #0a0a0c;
+}
+
+.imagePanel {
+  border: 1px solid rgba(212, 175, 55, 0.08);
+  border-radius: 16px;
+  background: #0a0a0c;
+}
+
+.thumbnail {
+  border-color: rgba(212, 175, 55, 0.15);
+  background: #121214;
+}
+
+.thumbnail:hover,
+.selectedThumbnail {
+  border-color: rgba(212, 175, 55, 0.65);
+}
+
+.selectedThumbnail {
+  box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.15);
+}
+
+.thumbnailFallback,
+.noImage,
+.category,
+.reviews,
+.buyPrice span {
+  color: #9ca3af;
+}
+
+.details h1 {
+  font-size: clamp(1.65rem, 3vw, 1.875rem);
+  font-weight: 700;
+}
+
+.price strong {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.price del {
+  color: var(--gold);
+}
+
+.description {
+  color: #9ca3af;
+}
+
+.facts {
+  gap: 0;
+  padding: 4px 16px;
+  overflow: hidden;
+  border: 1px solid rgba(212, 175, 55, 0.1);
+  border-radius: 16px;
+  background: #121214;
+}
+
+.facts div {
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.05);
+}
+
+.facts div:last-child {
+  border-bottom: 0;
+}
+
+.facts dt,
+.facts dd {
+  color: #d1d5db;
+}
+
+.buyBox {
+  border-color: rgba(212, 175, 55, 0.1);
+  background: #121214;
+}
+
+.buyPrice span {
+  color: #9ca3af;
+}
+
+.buyPrice .freeDelivery {
+  color: var(--gold-light);
+}
+
+.quantityLabel,
+.variantLegend {
+  color: #f3f4f6;
+}
+
+.quantityStepper {
+  border-color: rgba(212, 175, 55, 0.2);
+  background: #0a0a0c;
+}
+
+.quantityStepper button,
+.quantityStepper > span {
+  color: #fff;
+}
+
+.quantityControl .stockText,
+.purchaseBenefits {
+  color: #9ca3af;
+}
+
+.purchaseBenefits li::before {
+  color: var(--gold);
+}
+
+.variantOption,
+.moreVariants {
+  border-color: rgba(212, 175, 55, 0.2);
+  background: #0a0a0c;
+  color: #f3f4f6;
+}
+
+.variantOption:hover:not(:disabled),
+.moreVariants:hover {
+  border-color: rgba(212, 175, 55, 0.5);
+  background: #1a1a1e;
+}
+
+.selectedVariantOption {
+  border-color: var(--gold);
+  background: #1a1a1e;
+  color: var(--gold-light);
+  box-shadow: 0 0 12px rgba(212, 175, 55, 0.1);
+}
+
+.unavailableVariantOption,
+.unavailableVariantOption:hover {
+  border-color: #29292d;
+  background: #17171a;
+  color: #6b7280;
+}
+
+.showLessVariants,
+.buyBox .cartLink {
+  color: var(--gold-light);
+}
+
+.showLessVariants:hover,
+.buyBox .cartLink:hover {
+  color: var(--gold);
+}
+
+.buyButton,
+.codButton {
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  font-weight: 700;
+  transition: border-color 180ms ease, background 180ms ease, color 180ms ease, box-shadow 180ms ease;
+}
+
+.buyButton {
+  background: #121214;
+  color: #fff;
+}
+
+.buyButton:hover:not(:disabled) {
+  border-color: rgba(212, 175, 55, 0.4);
+}
+
+.codButton {
+  border-color: transparent;
+  background: linear-gradient(to bottom right, var(--gold-light), var(--gold));
+  color: #000;
+}
+
+.codButton:hover:not(:disabled) {
+  box-shadow: 0 0 20px rgba(212, 175, 55, 0.3);
+}
+
+.reviewsSection {
+  border-color: rgba(212, 175, 55, 0.1);
+  background: #121214;
+  color: #d1d5db;
+}
+
+.reviewsHeading h2,
+.reviewCardHeading strong {
+  color: #fff;
+}
+
+.reviewsHeading > span,
+.reviewCard {
+  border-color: rgba(212, 175, 55, 0.1);
+  background: #0a0a0c;
+}
+
+.reviewsHeading > span,
+.reviewCard time,
+.noReviews,
+.reviewCard p {
+  color: #9ca3af;
+}
+
+.reviewForm {
+  background: #0a0a0c;
+}
+
+.reviewForm label,
+.ratingField legend {
+  color: #d1d5db;
+}
+
+.reviewForm input,
+.reviewForm select,
+.reviewForm textarea {
+  border-color: rgba(212, 175, 55, 0.15);
+  background: #121214;
+  color: #fff;
+}
+
+.reviewForm input::placeholder,
+.reviewForm textarea::placeholder {
+  color: #6b7280;
+}
+
+.reviewForm .purchaseClaim input {
+  accent-color: var(--gold);
+}
+
+.reviewButton {
+  background: linear-gradient(to bottom right, var(--gold-light), var(--gold));
+  color: #000;
+}
+
+.reviewCardHeading span,
+.ratingChoices button .activeStar {
+  color: var(--gold);
+}
+
+.verifiedBadge {
+  background: rgba(212, 175, 55, 0.12);
+  color: var(--gold-light);
+}
+
+.reviewCard .storeReply {
+  border-left-color: var(--gold);
+  background: #121214;
+  color: #d1d5db;
+}
+
+.relatedSection {
+  color: #fff;
+}
+
+.relatedSection h2 {
+  color: #fff;
+}
+
+.relatedSection .eyebrow {
+  color: var(--gold);
+}
+
+.state {
+  width: 100%;
+  min-height: 100vh;
+  margin: 0;
+  padding: 80px 16px;
+}
+
+.state a {
+  color: var(--gold-light);
+}
+
+@media (max-width: 760px) {
+  .page {
+    padding-inline: 0;
+    background: #050507;
+  }
+
+  .product {
+    border-color: rgba(212, 175, 55, 0.1);
+    background: #050507;
+  }
+
+  .gallery {
+    padding: 10px;
+  }
+}

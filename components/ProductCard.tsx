@@ -111,7 +111,7 @@ export default function ProductCard({
       <Link className={styles.imageLink} href={productHref}>
         <div
           ref={cardRef}
-          className={styles.imagePanel}
+          className={`${styles.imagePanel} ${discountPercent > 0 ? styles.hasDiscount : ""}`}
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => {
             setIsHovered(false);
@@ -150,8 +150,12 @@ export default function ProductCard({
             <span className={styles.noImage}>No image available</span>
           )}
           <span className={styles.imageGlow} aria-hidden="true" />
-          {product.badge && <span className={styles.badge}>{product.badge}</span>}
-          {discountPercent > 0 && <span className={styles.discountBadge}>-{discountPercent}%</span>}
+          {product.badge && (
+            <span className={`${styles.badge} ${discountPercent > 0 ? styles.badgeWithDiscount : ""}`}>
+              {product.badge}
+            </span>
+          )}
+          {discountPercent > 0 && <span className={styles.discountBadge}>{discountPercent}% OFF</span>}
           {images.length > 1 && isHovered && (
             <div className={styles.dots} aria-label={`Image ${currentIndex + 1} of ${images.length}`}>
               {images.map((image, index) => (

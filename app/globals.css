@@ -1,10 +1,10 @@
 :root {
-  color-scheme: light;
-  --page: #f8fafc;
-  --surface: #ffffff;
-  --heading: #0f172a;
-  --body: #475569;
-  --border: #e2e8f0;
+  color-scheme: dark;
+  --page: #050507;
+  --surface: #121214;
+  --heading: #ffffff;
+  --body: #9ca3af;
+  --border: rgba(212, 175, 55, 0.1);
   --blue: #1d4ed8;
   --brand-navy: #0a2a5e;
   --brand-orange: #ff8a00;
@@ -27,7 +27,7 @@ html {
 body {
   margin: 0;
   background: var(--page);
-  color: var(--body);
+  color: #fff;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
@@ -42,7 +42,7 @@ button {
 
 button:focus-visible,
 a:focus-visible {
-  outline: 3px solid rgba(29, 78, 216, 0.45);
+  outline: 3px solid rgba(212, 175, 55, 0.55);
   outline-offset: 3px;
 }
 
@@ -57,9 +57,9 @@ a:focus-visible {
   justify-content: center;
   gap: 12px;
   padding: 8px max(24px, calc((100vw - 1240px) / 2));
-  border-bottom: 1px solid #f3dfc8;
-  background: #fff7ed;
-  color: #111827;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.1);
+  background: #0a0a0c;
+  color: #d1d5db;
   font-family: var(--font-poppins), sans-serif;
   font-size: 0.78rem;
   font-weight: 500;
@@ -71,7 +71,7 @@ a:focus-visible {
   flex: 0 0 auto;
   align-items: center;
   gap: 6px;
-  color: #c2410c;
+  color: var(--gold);
   font-size: 0.65rem;
   font-weight: 700;
 }
@@ -81,7 +81,7 @@ a:focus-visible {
   height: 7px;
   flex: 0 0 7px;
   border-radius: 50%;
-  background: #ff8a00;
+  background: var(--gold);
   animation: announcement-pulse 1.8s ease-out infinite;
 }
 
@@ -91,20 +91,20 @@ a:focus-visible {
 
 .announcement-copy > span {
   padding-inline: 4px;
-  color: #9a3412;
+  color: var(--gold-light);
 }
 
 @keyframes announcement-pulse {
   0% {
-    box-shadow: 0 0 0 0 rgba(255, 138, 0, 0.4);
+    box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.4);
   }
 
   70% {
-    box-shadow: 0 0 0 6px rgba(255, 138, 0, 0);
+    box-shadow: 0 0 0 6px rgba(212, 175, 55, 0);
   }
 
   100% {
-    box-shadow: 0 0 0 0 rgba(255, 138, 0, 0);
+    box-shadow: 0 0 0 0 rgba(212, 175, 55, 0);
   }
 }
 
@@ -163,7 +163,7 @@ a:focus-visible {
   height: 7px;
   border: 1.5px solid #050507;
   border-radius: 50%;
-  background: var(--brand-orange);
+  background: var(--gold);
 }
 
 .store-brand-name {
@@ -357,10 +357,16 @@ a:focus-visible {
   font-weight: 800;
 }
 
-.category-section,
-.deal-sections {
+.category-section {
   width: min(1240px, calc(100% - 40px));
   margin-inline: auto;
+}
+
+.deal-sections {
+  width: 100%;
+  margin-inline: auto;
+  padding: 16px max(20px, calc((100% - 1240px) / 2)) 52px;
+  background: #050507;
 }
 
 .department-mega-nav {
@@ -373,7 +379,7 @@ a:focus-visible {
   margin: 0 auto;
   padding: 10px 4px;
   border-bottom: 1px solid var(--border);
-  color: var(--heading);
+  color: #d1d5db;
   font-size: 0.82rem;
 }
 
@@ -384,7 +390,7 @@ a:focus-visible {
 }
 
 .department-mega-nav > a:hover {
-  color: var(--rose);
+  color: var(--gold);
 }
 
 .department-menu {
@@ -419,7 +425,7 @@ a:focus-visible {
 }
 
 .department-menu-panel a:hover {
-  color: var(--rose);
+  color: var(--gold);
 }
 
 .department-menu-panel {
@@ -432,9 +438,9 @@ a:focus-visible {
   overflow-y: auto;
   padding: 12px 16px;
   border: 1px solid var(--border);
-  border-radius: 10px;
-  background: #fff;
-  box-shadow: 0 12px 28px rgb(15 23 42 / 12%);
+  border-radius: 16px;
+  background: #121214;
+  box-shadow: 0 12px 28px rgb(0 0 0 / 45%);
 }
 
 .department-menu[open] .department-menu-panel,
@@ -448,7 +454,7 @@ a:focus-visible {
   grid-template-columns: minmax(130px, 0.8fr) minmax(0, 1.5fr);
   gap: 18px;
   padding: 11px 0;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid rgba(212, 175, 55, 0.08);
 }
 
 .department-menu-row:last-child {
@@ -459,6 +465,7 @@ a:focus-visible {
   align-self: start;
   padding: 4px 0;
   font-weight: 750;
+  color: #fff;
 }
 
 .department-menu-categories {
@@ -469,13 +476,14 @@ a:focus-visible {
 
 .department-menu-categories a {
   padding: 4px 0;
-  color: #64748b;
+  color: #9ca3af;
 }
 
 .category-section {
   padding: 28px 20px 24px;
+  border: 1px solid rgba(212, 175, 55, 0.1);
   border-radius: 16px;
-  background: #f9fafb;
+  background-color: #050507;
 }
 
 .section-heading,
@@ -484,7 +492,7 @@ a:focus-visible {
 }
 
 .section-eyebrow {
-  color: var(--rose);
+  color: var(--gold);
   display: inline-block;
   margin-bottom: 7px;
   font-size: 0.75rem;
@@ -500,6 +508,17 @@ a:focus-visible {
   line-height: 1.2;
 }
 
+.category-section .section-eyebrow {
+  color: var(--gold);
+  letter-spacing: 0.16em;
+}
+
+.category-section .section-heading h1 {
+  color: #fff;
+  font-size: 1.875rem;
+  font-weight: 700;
+}
+
 .category-buttons {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
@@ -513,14 +532,14 @@ a:focus-visible {
   justify-content: flex-start;
   gap: 9px;
   padding: 10px 12px;
-  border: 1px solid #edf0f4;
+  border: 1px solid rgba(212, 175, 55, 0.1);
   border-radius: 16px;
-  background: var(--surface);
-  color: var(--heading);
+  background: #121214;
+  color: #fff;
   text-align: left;
   font-size: 0.88rem;
   font-weight: 700;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
   transition: transform 160ms ease, border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
 }
 
@@ -531,16 +550,20 @@ a:focus-visible {
   flex: 0 0 36px;
   place-items: center;
   border-radius: 10px;
-  background: #eff6ff;
-  color: var(--blue);
+  background: #1a1a1e;
+  color: var(--gold);
 }
 
 .category-button:hover,
 .category-button[aria-pressed="true"] {
-  border-color: var(--rose);
-  background: #fff1f2;
-  box-shadow: 0 5px 12px rgba(15, 23, 42, 0.09);
+  border-color: rgba(212, 175, 55, 0.3);
+  background: #151518;
+  box-shadow: 0 0 20px rgba(212, 175, 55, 0.15);
   transform: translateY(-2px);
+}
+
+.category-button:focus-visible {
+  outline: 3px solid rgba(212, 175, 55, 0.65);
 }
 
 .category-button > span:last-child {
@@ -549,19 +572,32 @@ a:focus-visible {
 }
 
 .deal-sections {
-  padding: 16px 0 52px;
+  padding-top: 16px;
+  padding-bottom: 52px;
 }
 
 .deal-section {
   padding: 26px 0 30px;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid rgba(212, 175, 55, 0.1);
+}
+
+.deal-section .section-eyebrow {
+  color: var(--gold);
+  font-size: 0.75rem;
+  letter-spacing: 0.16em;
+}
+
+.deal-section-heading h2 {
+  color: #fff;
+  font-size: 1.875rem;
+  font-weight: 700;
 }
 
 .category-product-rows {
   display: grid;
   gap: 20px;
   padding-top: 18px;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid rgba(212, 175, 55, 0.1);
 }
 
 .category-product-row {
@@ -578,7 +614,7 @@ a:focus-visible {
 
 .category-product-heading h2 {
   margin: 0;
-  color: #1a237e;
+  color: #fff;
   font-size: 0.9rem;
   font-weight: 800;
   text-transform: uppercase;
@@ -587,14 +623,14 @@ a:focus-visible {
 .category-product-department {
   display: block;
   margin-bottom: 2px;
-  color: #64748b;
+  color: #9ca3af;
   font-size: 0.65rem;
   font-weight: 700;
   letter-spacing: 0.04em;
 }
 
 .category-product-heading a {
-  color: #d90429;
+  color: var(--gold);
   font-size: 0.72rem;
   font-weight: 700;
   text-decoration: none;
@@ -625,19 +661,23 @@ a:focus-visible {
   width: min(1240px, calc(100% - 40px));
   min-height: 100vh;
   margin: 0 auto;
-  padding: 22px 0 56px;
+  padding: 22px 20px 56px;
+  border: 1px solid rgba(212, 175, 55, 0.1);
+  border-radius: 18px;
+  background: #050507;
+  color: #d1d5db;
 }
 
 .department-breadcrumb {
   display: flex;
   align-items: center;
   gap: 9px;
-  color: #64748b;
+  color: #9ca3af;
   font-size: 0.8rem;
 }
 
 .department-breadcrumb a {
-  color: #1a237e;
+  color: var(--gold-light);
   text-decoration: none;
 }
 
@@ -647,12 +687,12 @@ a:focus-visible {
 
 .department-listing-heading h1 {
   margin: 0;
-  color: #1a237e;
+  color: #fff;
   font-size: clamp(1.6rem, 4vw, 2.4rem);
 }
 
 .department-listing-heading p {
-  color: #64748b;
+  color: #9ca3af;
 }
 
 .department-category-links {
@@ -664,9 +704,10 @@ a:focus-visible {
 
 .department-category-links a {
   padding: 7px 12px;
-  border: 1px solid #dbe3f1;
+  border: 1px solid rgba(212, 175, 55, 0.2);
   border-radius: 999px;
-  color: #1a237e;
+  background: #121214;
+  color: var(--gold-light);
   font-size: 0.8rem;
   text-decoration: none;
 }
@@ -683,7 +724,7 @@ a:focus-visible {
   justify-content: flex-end;
   gap: 18px;
   margin: 0 0 16px;
-  color: #475569;
+  color: #d1d5db;
   font-size: 0.82rem;
 }
 
@@ -696,10 +737,10 @@ a:focus-visible {
 .department-product-filters select {
   min-height: 38px;
   padding: 0 10px;
-  border: 1px solid #dbe3f1;
+  border: 1px solid rgba(212, 175, 55, 0.2);
   border-radius: 8px;
-  background: #fff;
-  color: #1a237e;
+  background: #121214;
+  color: #fff;
 }
 
 .department-stock-filter {
@@ -709,13 +750,18 @@ a:focus-visible {
 }
 
 .department-stock-filter input {
-  accent-color: #1a237e;
+  accent-color: var(--gold);
 }
 
 .catalog-page {
   width: min(1240px, calc(100% - 40px));
   min-height: 70vh;
   margin: 28px auto 56px;
+  padding: 22px 20px 40px;
+  border: 1px solid rgba(212, 175, 55, 0.1);
+  border-radius: 18px;
+  background: #050507;
+  color: #d1d5db;
 }
 
 .catalog-page-heading {
@@ -725,14 +771,20 @@ a:focus-visible {
 .catalog-page-heading h1,
 .wishlist-page-heading h1 {
   margin: 5px 0;
-  color: var(--brand-navy);
+  color: #fff;
   font-size: clamp(1.7rem, 4vw, 2.4rem);
 }
 
 .catalog-page-heading p,
 .wishlist-page-heading p {
   margin: 4px 0;
-  color: #64748b;
+  color: #9ca3af;
+}
+
+.catalog-page .section-eyebrow,
+.department-listing .section-eyebrow {
+  color: var(--gold);
+  letter-spacing: 0.14em;
 }
 
 .wishlist-page-heading {
@@ -748,29 +800,34 @@ a:focus-visible {
   height: 52px;
   place-items: center;
   border-radius: 14px;
-  background: #fff1f2;
-  color: #e11d48;
+  background: #121214;
+  color: var(--gold);
 }
 
 .store-footer {
   margin-top: 48px;
   padding: 30px max(24px, calc((100vw - 1240px) / 2));
-  border-top: 1px solid var(--border);
-  background: #fff;
+  border-top: 1px solid rgba(212, 175, 55, 0.1);
+  background: #020202;
   text-align: center;
 }
 
 .store-footer-brand {
-  color: var(--brand-navy);
+  color: #fff;
   font-family: var(--font-poppins), sans-serif;
   font-size: 1.2rem;
-  font-weight: 700;
+  font-weight: 600;
   text-decoration: none;
+  transition: color 180ms ease;
+}
+
+.store-footer-brand:hover {
+  color: var(--gold);
 }
 
 .store-footer p {
   margin: 6px 0 14px;
-  color: #64748b;
+  color: #9ca3af;
   font-size: 0.82rem;
 }
 
@@ -781,9 +838,14 @@ a:focus-visible {
 }
 
 .store-footer nav a {
-  color: var(--brand-navy);
+  color: #9ca3af;
   font-size: 0.82rem;
   text-decoration: none;
+  transition: color 180ms ease;
+}
+
+.store-footer nav a:hover {
+  color: var(--gold);
 }
 
 .store-info-page {
@@ -793,24 +855,29 @@ a:focus-visible {
   padding: clamp(22px, 5vw, 48px);
   border: 1px solid var(--border);
   border-radius: 18px;
-  background: #fff;
+  background: #0a0a0c;
 }
 
 .store-info-page h1 {
   margin: 8px 0 18px;
-  color: var(--brand-navy);
+  color: #fff;
   font-size: clamp(1.8rem, 4vw, 2.5rem);
 }
 
 .store-info-page p,
 .store-info-page li {
-  color: #475569;
+  color: #9ca3af;
   line-height: 1.75;
 }
 
 .store-info-page a {
-  color: var(--brand-navy);
+  color: var(--gold-light);
   font-weight: 650;
+}
+
+.store-info-page .section-eyebrow {
+  color: var(--gold);
+  letter-spacing: 0.14em;
 }
 
 .homepage-product-skeleton-grid {
@@ -821,23 +888,37 @@ a:focus-visible {
 
 .homepage-product-skeleton {
   min-height: 285px;
-  border-radius: 12px;
-  background: linear-gradient(100deg, #f1f2f5 25%, #fafafa 45%, #f1f2f5 65%);
+  border: 1px solid rgba(212, 175, 55, 0.08);
+  border-radius: 16px;
+  background: linear-gradient(100deg, #121214 25%, #19191c 45%, #121214 65%);
   background-size: 220% 100%;
   animation: product-skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+.homepage-product-loading .section-eyebrow {
+  color: var(--gold);
+  letter-spacing: 0.16em;
+}
+
+.homepage-product-loading .deal-section-heading h2 {
+  color: #fff;
+  font-size: 1.875rem;
+  font-weight: 700;
 }
 
 .homepage-products-empty {
   margin: 24px auto 40px;
   padding: 36px 20px;
-  border: 1px solid #f1f2f5;
+  border: 1px dashed rgba(212, 175, 55, 0.1);
   border-radius: 16px;
-  background: #fff;
+  background: #121214;
+  color: #9ca3af;
   text-align: center;
 }
 
 .homepage-products-empty h2 {
   margin: 8px 0;
+  color: #fff;
 }
 
 .homepage-products-empty p {
@@ -850,7 +931,7 @@ a:focus-visible {
 }
 
 .category-product-scroller:focus-visible {
-  outline: 3px solid rgba(29, 78, 216, 0.45);
+  outline: 3px solid rgba(212, 175, 55, 0.55);
   outline-offset: 3px;
 }
 
@@ -887,16 +968,24 @@ a:focus-visible {
   height: 40px;
   place-items: center;
   padding: 0;
-  border: 1px solid var(--rose);
+  border: 1px solid rgba(212, 175, 55, 0.2);
   border-radius: 50%;
-  background: var(--surface);
-  color: var(--rose);
+  background: #121214;
+  color: var(--gold);
   font-size: 1.55rem;
   line-height: 1;
+  transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease;
 }
 
 .deal-nav-button:not(:disabled):hover {
-  background: #fff1f2;
+  border-color: var(--gold);
+  background: var(--gold);
+  color: #000;
+}
+
+.deal-nav-button:focus-visible {
+  outline: 3px solid rgba(212, 175, 55, 0.55);
+  outline-offset: 3px;
 }
 
 .deal-nav-button:disabled {
@@ -914,8 +1003,8 @@ a:focus-visible {
   flex-direction: column;
   overflow: hidden;
   border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface);
+  border-radius: 16px;
+  background: #121214;
 }
 
 .deal-card-clickable {
@@ -924,7 +1013,7 @@ a:focus-visible {
 }
 
 .deal-card-clickable:focus-visible {
-  outline: 3px solid var(--blue);
+  outline: 3px solid rgba(212, 175, 55, 0.55);
   outline-offset: 3px;
 }
 
@@ -932,7 +1021,7 @@ a:focus-visible {
   position: relative;
   aspect-ratio: 4 / 3;
   overflow: hidden;
-  background: #e2e8f0;
+  background: #0a0a0c;
 }
 
 .deal-card-image img {
@@ -950,8 +1039,8 @@ a:focus-visible {
   left: 12px;
   padding: 6px 9px;
   border-radius: 999px;
-  background: var(--rose);
-  color: #fff;
+  background: linear-gradient(to bottom right, var(--gold-light), var(--gold));
+  color: #000;
   font-size: 0.68rem;
   font-weight: 800;
 }
@@ -972,13 +1061,13 @@ a:focus-visible {
 .deal-card-body h3 {
   min-height: 42px;
   margin: 5px 0 8px;
-  color: var(--heading);
+  color: #fff;
   font-size: 1rem;
   line-height: 1.35;
 }
 
 .deal-rating {
-  color: var(--green);
+  color: var(--gold-light);
   font-size: 0.84rem;
   font-weight: 700;
 }
@@ -1002,7 +1091,7 @@ a:focus-visible {
 }
 
 .deal-prices strong {
-  color: var(--heading);
+  color: #fff;
   font-size: 1.15rem;
 }
 
@@ -1015,30 +1104,38 @@ a:focus-visible {
   width: 100%;
   min-height: 42px;
   margin-top: auto;
-  border: 0;
-  border-radius: 6px;
-  background: var(--rose);
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  border-radius: 999px;
+  background: #1a1a1e;
   color: #fff;
   font-weight: 800;
 }
 
 .deal-add-button:hover:not(:disabled) {
-  background: #be123c;
+  border-color: var(--gold);
+  background: linear-gradient(to bottom right, var(--gold-light), var(--gold));
+  color: #000;
 }
 
 .deal-add-button:disabled {
-  background: var(--green);
+  border-color: rgba(212, 175, 55, 0.15);
+  background: #1a1a1e;
+  color: #9ca3af;
   cursor: default;
 }
 
 .deals-swiper .swiper-pagination-bullet-active {
-  background: var(--rose);
+  background: var(--gold);
 }
 
 .deals-empty {
   margin: 0;
-  padding: 24px 0;
-  color: var(--body);
+  padding: 32px;
+  border: 1px dashed rgba(212, 175, 55, 0.1);
+  border-radius: 16px;
+  background: #121214;
+  color: #6b7280;
+  text-align: center;
 }
 
 .cart-feedback {
@@ -1136,9 +1233,13 @@ a:focus-visible {
     grid-row: 2;
   }
 
-  .category-section,
-  .deal-sections {
+  .category-section {
     width: calc(100% - 32px);
+  }
+
+  .deal-sections {
+    padding-right: 16px;
+    padding-left: 16px;
   }
 
   .category-section {
@@ -1210,7 +1311,8 @@ a:focus-visible {
 .hero-glow {
   background:
     radial-gradient(ellipse at top right, rgba(212, 175, 55, 0.15), transparent 60%),
-    radial-gradient(ellipse at bottom left, rgba(212, 175, 55, 0.08), transparent 60%);
+    radial-gradient(ellipse at bottom left, rgba(212, 175, 55, 0.08), transparent 60%),
+    #050507;
 }
 
 @keyframes fadeUp {
@@ -1253,7 +1355,7 @@ a:focus-visible {
 
 .panel-heading h2 {
   margin: 0;
-  color: var(--heading);
+  color: #fff;
   font-size: 1.35rem;
 }
 
@@ -1265,8 +1367,8 @@ a:focus-visible {
   place-items: center;
   border: 1px solid var(--border);
   border-radius: 50%;
-  background: var(--surface);
-  color: var(--heading);
+  background: #121214;
+  color: #d1d5db;
 }
 
 .account-backdrop {
@@ -1280,13 +1382,14 @@ a:focus-visible {
   padding: 24px;
   border: 1px solid var(--border);
   border-radius: 16px;
-  background: var(--surface);
-  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.2);
+  background: #121214;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+  color: #d1d5db;
 }
 
 .account-panel > p {
   margin: 18px 0;
-  color: var(--body);
+  color: #9ca3af;
   line-height: 1.55;
 }
 
@@ -1302,7 +1405,7 @@ a:focus-visible {
 .sign-in-form label {
   display: grid;
   gap: 7px;
-  color: var(--heading);
+  color: #d1d5db;
   font-size: 0.86rem;
   font-weight: 700;
 }
@@ -1312,31 +1415,37 @@ a:focus-visible {
   min-height: 46px;
   padding: 10px 12px;
   border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface);
-  color: var(--heading);
+  border-radius: 12px;
+  background: #0a0a0c;
+  color: #fff;
   font: inherit;
 }
 
 .sign-in-form input:focus {
-  border-color: var(--blue);
-  outline: 3px solid rgba(29, 78, 216, 0.1);
+  border-color: rgba(212, 175, 55, 0.4);
+  outline: 3px solid rgba(212, 175, 55, 0.1);
 }
 
 .account-dismiss {
   width: 100%;
   min-height: 44px;
   border: 0;
-  border-radius: 8px;
-  background: var(--rose);
-  color: #fff;
+  border-radius: 999px;
+  background: linear-gradient(to bottom right, var(--gold-light), var(--gold));
+  color: #000;
   font-weight: 700;
+  transition: box-shadow 180ms ease, transform 180ms ease;
+}
+
+.account-dismiss:hover {
+  box-shadow: 0 0 20px rgba(212, 175, 55, 0.15);
+  transform: translateY(-1px);
 }
 
 .sign-in-status {
   min-height: 1.4em;
   margin: 0;
-  color: var(--body);
+  color: #9ca3af;
   font-size: 0.8rem;
   line-height: 1.45;
 }
@@ -1346,7 +1455,7 @@ a:focus-visible {
   min-height: 100vh;
   place-items: center;
   padding: 24px;
-  background: #f2f5f9;
+  background: #050507;
 }
 
 .login-panel {
@@ -1355,14 +1464,14 @@ a:focus-visible {
 
 .login-panel .panel-heading h1 {
   margin: 0;
-  color: var(--heading);
+  color: #fff;
   font-size: 1.35rem;
 }
 
 .login-home-link {
   display: inline-block;
   margin-top: 18px;
-  color: var(--blue);
+  color: var(--gold-light);
   font-size: 0.9rem;
   font-weight: 600;
   text-decoration: none;
@@ -1375,8 +1484,8 @@ a:focus-visible {
 .cart-page {
   min-height: 100vh;
   padding: 32px 20px 60px;
-  background: #f2f5f9;
-  color: var(--body);
+  background: #050507;
+  color: #d1d5db;
   font-family: var(--font-poppins), sans-serif;
 }
 
@@ -1398,12 +1507,12 @@ a:focus-visible {
 
 .cart-page-title h1 {
   margin: 0;
-  color: var(--brand-navy);
+  color: #fff;
   font-size: 1.65rem;
 }
 
 .cart-page-title span {
-  color: var(--body);
+  color: #9ca3af;
   font-size: 0.9rem;
 }
 
@@ -1423,10 +1532,10 @@ a:focus-visible {
 .cart-product-card,
 .order-summary-card,
 .cart-empty-card {
-  border: 1px solid rgba(226, 232, 240, 0.85);
+  border: 1px solid rgba(212, 175, 55, 0.1);
   border-radius: 16px;
-  background: #fff;
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+  background: #121214;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
 }
 
 .delivery-progress-card {
@@ -1446,8 +1555,8 @@ a:focus-visible {
   flex: 0 0 40px;
   place-items: center;
   border-radius: 12px;
-  background: #fff7ed;
-  color: #f97316;
+  background: #1a1a1e;
+  color: var(--gold);
 }
 
 .delivery-progress-heading div {
@@ -1457,18 +1566,18 @@ a:focus-visible {
 
 .delivery-progress-heading h2 {
   margin: 0;
-  color: var(--brand-navy);
+  color: #fff;
   font-size: 0.98rem;
 }
 
 .delivery-progress-heading p {
   margin: 4px 0 0;
-  color: var(--body);
+  color: #9ca3af;
   font-size: 0.8rem;
 }
 
 .delivery-progress-heading > strong {
-  color: #f97316;
+  color: var(--gold);
   font-size: 0.84rem;
 }
 
@@ -1477,14 +1586,14 @@ a:focus-visible {
   overflow: hidden;
   margin-top: 15px;
   border-radius: 999px;
-  background: #edf1f6;
+  background: #29292d;
 }
 
 .delivery-progress-track span {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, #ff8a00, #f97316);
+  background: linear-gradient(90deg, var(--gold-light), var(--gold));
   transition: width 220ms ease;
 }
 
@@ -1507,7 +1616,8 @@ a:focus-visible {
   height: 80px;
   overflow: hidden;
   border-radius: 12px;
-  background: linear-gradient(145deg, #eff6ff, #fff7ed);
+  border: 1px solid rgba(212, 175, 55, 0.1);
+  background: #0a0a0c;
 }
 
 .cart-product-image img {
@@ -1521,7 +1631,7 @@ a:focus-visible {
 .cart-product-details h2 {
   overflow-wrap: anywhere;
   margin: 0;
-  color: var(--brand-navy);
+  color: #fff;
   font-size: 1rem;
   line-height: 1.35;
 }
@@ -1529,7 +1639,7 @@ a:focus-visible {
 .cart-product-unit {
   display: block;
   margin-top: 4px;
-  color: var(--brand-navy);
+  color: #9ca3af;
   font-size: 0.78rem;
   font-weight: 700;
 }
@@ -1547,9 +1657,9 @@ a:focus-visible {
   align-items: center;
   gap: 10px;
   padding: 2px 5px;
-  border: 1px solid #dce3ec;
+  border: 1px solid rgba(212, 175, 55, 0.1);
   border-radius: 999px;
-  background: #fff;
+  background: #1a1a1e;
 }
 
 .quantity-control button,
@@ -1560,35 +1670,38 @@ a:focus-visible {
   flex: 0 0 30px;
   place-items: center;
   padding: 0;
-  border: 0;
+  border: 1px solid rgba(212, 175, 55, 0.1);
   border-radius: 50%;
-  background: transparent;
-  color: var(--brand-navy);
+  background: #1a1a1e;
+  color: #fff;
 }
 
 .quantity-control button:hover {
-  background: #f2f5f9;
+  border-color: rgba(212, 175, 55, 0.3);
+  background: #1a1a1e;
+  color: var(--gold);
 }
 
 .quantity-control > span {
   min-width: 16px;
-  color: var(--heading);
+  color: #fff;
   font-size: 0.88rem;
   font-weight: 700;
   text-align: center;
 }
 
 .remove-cart-item {
-  color: #94a3b8;
+  border-color: rgba(212, 175, 55, 0.1);
+  color: #9ca3af;
 }
 
 .remove-cart-item:hover {
-  background: #fff1f2;
-  color: var(--rose);
+  background: rgba(212, 175, 55, 0.1);
+  color: var(--gold);
 }
 
 .cart-product-total {
-  color: var(--brand-navy);
+  color: #fff;
   font-size: 1rem;
   white-space: nowrap;
 }
@@ -1596,12 +1709,12 @@ a:focus-visible {
 .order-summary-card {
   position: sticky;
   top: 104px;
-  padding: 22px;
+  padding: 24px;
 }
 
 .order-summary-card > h2 {
   margin: 0 0 18px;
-  color: var(--brand-navy);
+  color: #fff;
   font-size: 1.18rem;
 }
 
@@ -1610,25 +1723,25 @@ a:focus-visible {
   justify-content: space-between;
   gap: 12px;
   padding: 12px 0;
-  border-bottom: 1px solid #edf1f6;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.08);
   font-size: 0.9rem;
 }
 
 .summary-line > span {
-  color: var(--body);
+  color: #9ca3af;
 }
 
 .summary-line > strong {
-  color: var(--brand-navy);
+  color: #fff;
 }
 
 .summary-line .shipping-free {
-  color: #16a34a;
+  color: var(--gold-light);
 }
 
 .summary-line.coupon-discount > strong,
 .coupon-message[data-state="success"] {
-  color: #16a34a;
+  color: var(--gold-light);
 }
 
 .coupon-message[data-state="error"] {
@@ -1644,7 +1757,7 @@ a:focus-visible {
 }
 
 .summary-line.summary-total > strong {
-  color: #f97316;
+  color: var(--gold);
   font-size: 1.2rem;
 }
 
@@ -1655,7 +1768,7 @@ a:focus-visible {
 .coupon-form label {
   display: block;
   margin-bottom: 8px;
-  color: var(--brand-navy);
+  color: #fff;
   font-size: 0.82rem;
   font-weight: 700;
 }
@@ -1664,8 +1777,9 @@ a:focus-visible {
   display: flex;
   min-height: 44px;
   overflow: hidden;
-  border: 1px solid #dce3ec;
+  border: 1px solid rgba(212, 175, 55, 0.15);
   border-radius: 8px;
+  background: #0a0a0c;
 }
 
 .coupon-input-row input {
@@ -1674,7 +1788,8 @@ a:focus-visible {
   padding: 0 11px;
   border: 0;
   outline: 0;
-  color: var(--heading);
+  background: transparent;
+  color: #fff;
   font: inherit;
   font-size: 0.82rem;
 }
@@ -1683,8 +1798,8 @@ a:focus-visible {
   flex: 0 0 auto;
   padding: 0 13px;
   border: 0;
-  background: #ff8a00;
-  color: #fff;
+  background: linear-gradient(to bottom right, var(--gold-light), var(--gold));
+  color: #000;
   font-size: 0.76rem;
   font-weight: 800;
 }
@@ -1693,7 +1808,7 @@ a:focus-visible {
 .checkout-message {
   min-height: 1.25em;
   margin: 7px 0 0;
-  color: var(--body);
+  color: #9ca3af;
   font-size: 0.74rem;
 }
 
@@ -1702,22 +1817,23 @@ a:focus-visible {
   bottom: 12px;
   display: flex;
   width: 100%;
-  min-height: 50px;
+  min-height: 48px;
   align-items: center;
   justify-content: center;
   gap: 9px;
   margin-top: 10px;
   border: 0;
-  border-radius: 8px;
-  background: linear-gradient(100deg, #ff8a00, #f97316);
-  box-shadow: 0 8px 16px rgba(249, 115, 22, 0.22);
-  color: #fff;
-  font-size: 0.95rem;
-  font-weight: 800;
+  border-radius: 999px;
+  background: linear-gradient(to bottom right, var(--gold-light), var(--gold));
+  color: #000;
+  font-size: 1rem;
+  font-weight: 700;
+  transition: box-shadow 180ms ease, transform 180ms ease;
 }
 
 .checkout-button:hover {
-  background: linear-gradient(100deg, #f97316, #ea580c);
+  box-shadow: 0 0 25px rgba(212, 175, 55, 0.3);
+  transform: translateY(-1px);
 }
 
 .checkout-message {
@@ -1731,11 +1847,11 @@ a:focus-visible {
 
 .cart-empty-card h2 {
   margin: 0;
-  color: var(--brand-navy);
+  color: #fff;
 }
 
 .cart-empty-card p {
-  color: var(--body);
+  color: #9ca3af;
 }
 
 .cart-empty-link {
@@ -1744,9 +1860,9 @@ a:focus-visible {
   align-items: center;
   justify-content: center;
   padding: 0 16px;
-  border-radius: 8px;
-  background: var(--brand-navy);
-  color: #fff;
+  border-radius: 999px;
+  background: linear-gradient(to bottom right, var(--gold-light), var(--gold));
+  color: #000;
   font-weight: 700;
   text-decoration: none;
 }

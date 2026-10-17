@@ -15,4 +15,9 @@
   min-height: 100vh;
   background: var(--admin-bg);
   color: var(--admin-text);
+  color-scheme: light;
+  --surface: var(--admin-card);
+  --heading: var(--admin-text);
+  --body: var(--admin-muted);
+  --border: var(--admin-border);
 }

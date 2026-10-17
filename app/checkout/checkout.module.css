@@ -452,3 +452,178 @@
     grid-template-columns: 1fr;
   }
 }
+
+.page {
+  background: #050507;
+  color: #d1d5db;
+}
+
+.header {
+  border-bottom-color: rgba(212, 175, 55, 0.1);
+  background: rgba(5, 5, 7, 0.92);
+  box-shadow: 0 3px 16px rgba(0, 0, 0, 0.35);
+}
+
+.brand {
+  color: #fff;
+}
+
+.brandIcon > span {
+  border-color: #050507;
+  background: #d4af37;
+}
+
+.backLink {
+  border-color: rgba(212, 175, 55, 0.15);
+  background: #121214;
+  color: #d1d5db;
+}
+
+.backLink:hover {
+  border-color: rgba(212, 175, 55, 0.35);
+  color: #f5e6a3;
+}
+
+.formCard,
+.summaryCard {
+  border-color: rgba(212, 175, 55, 0.1);
+  background: #121214;
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.25);
+  color: #d1d5db;
+}
+
+.summaryCard {
+  top: 24px;
+  padding: 24px;
+  background: #0a0a0c;
+}
+
+.eyebrow {
+  color: #d4af37;
+  letter-spacing: 0.14em;
+}
+
+.formCard h1,
+.summaryCard > h2,
+.sectionHeading,
+.locationHeading h2 {
+  color: #fff;
+}
+
+.form label,
+.locationHeading p,
+.mapStatus,
+.pinCoordinates,
+.item,
+.item > div span,
+.summaryLine,
+.itemCount {
+  color: #d1d5db;
+}
+
+.form input,
+.form select,
+.form textarea {
+  border-color: rgba(212, 175, 55, 0.15);
+  background: #0a0a0c;
+  color: #fff;
+}
+
+.form input::placeholder,
+.form textarea::placeholder {
+  color: #6b7280;
+}
+
+.form input:focus,
+.form select:focus,
+.form textarea:focus {
+  border-color: rgba(212, 175, 55, 0.4);
+  box-shadow: 0 0 20px rgba(212, 175, 55, 0.1);
+}
+
+.locationCard {
+  border-color: rgba(212, 175, 55, 0.1);
+  background: #0a0a0c;
+}
+
+.locateButton {
+  background: linear-gradient(to bottom right, #f5e6a3, #d4af37);
+  color: #000;
+}
+
+.map {
+  border-color: rgba(212, 175, 55, 0.15);
+  background: #0a0a0c;
+}
+
+.pinCoordinates {
+  color: #f5e6a3;
+}
+
+.mapError {
+  color: #f5e6a3;
+}
+
+.error {
+  border-color: rgba(212, 175, 55, 0.25);
+  background: #121214;
+  color: #f5e6a3;
+}
+
+.primaryButton {
+  min-height: 48px;
+  border-radius: 999px;
+  background: linear-gradient(to bottom right, #f5e6a3, #d4af37);
+  box-shadow: none;
+  color: #000;
+  font-size: 1rem;
+  font-weight: 700;
+  transition: box-shadow 180ms ease, transform 180ms ease;
+}
+
+.primaryButton:hover {
+  background: linear-gradient(to bottom right, #f5e6a3, #d4af37);
+  box-shadow: 0 0 25px rgba(212, 175, 55, 0.3);
+  transform: translateY(-1px);
+}
+
+.item,
+.summaryLine {
+  border-bottom-color: rgba(212, 175, 55, 0.08);
+}
+
+.item > strong,
+.summaryLine > strong {
+  color: #fff;
+}
+
+.summaryLine .free,
+.coupon {
+  color: #f5e6a3;
+}
+
+.total > strong {
+  color: #d4af37;
+}
+
+.emptyCart {
+  border: 1px dashed rgba(212, 175, 55, 0.1);
+  border-radius: 14px;
+  background: #0a0a0c;
+  color: #9ca3af;
+}
+
+.emptyCart a {
+  color: #f5e6a3;
+}
+
+.confirmation h1 {
+  color: #fff;
+}
+
+@media (max-width: 760px) {
+  .summaryCard {
+    position: static;
+    padding: 20px 16px;
+  }
+}
