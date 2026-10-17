@@ -602,7 +602,7 @@ export default function ProductDetailPage() {
       </header>
       <article className={styles.product}>
         <div className={styles.gallery}>
-          <div className={`product-image-blend ${styles.imagePanel}`}>
+          <div className={styles.imagePanel}>
             {currentImage && !failedImages.includes(currentImage)
               ? (
                 <Image
@@ -623,7 +623,7 @@ export default function ProductDetailPage() {
             <div className={styles.thumbnails} aria-label="Product images">
               {allImages.map((imageUrl, index) => (
                 <button
-                  className={`product-image-blend ${styles.thumbnail} ${selectedImage === index ? styles.selectedThumbnail : ""}`}
+                  className={`${styles.thumbnail} ${selectedImage === index ? styles.selectedThumbnail : ""}`}
                   key={`${imageUrl}-${index}`}
                   type="button"
                   onClick={() => setSelectedImage(index)}

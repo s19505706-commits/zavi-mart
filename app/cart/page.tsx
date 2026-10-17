@@ -187,7 +187,7 @@ export default function CartPage() {
               <section className="cart-product-list" aria-label="Cart products">
                 {cartItems.map((item) => (
                   <article className="cart-product-card" key={item.id}>
-                    <div className="product-image-blend cart-product-image">
+                    <div className="cart-product-image">
                       <Image src={item.image} alt={item.name} fill sizes="80px" unoptimized loading="lazy" />
                     </div>
                     <div className="cart-product-details">

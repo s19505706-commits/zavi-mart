@@ -111,7 +111,7 @@ export default function ProductCard({
       <Link className={styles.imageLink} href={productHref}>
         <div
           ref={cardRef}
-          className={`product-image-blend ${styles.imagePanel} ${discountPercent > 0 ? styles.hasDiscount : ""}`}
+          className={`${styles.imagePanel} ${discountPercent > 0 ? styles.hasDiscount : ""}`}
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => {
             setIsHovered(false);
@@ -120,13 +120,13 @@ export default function ProductCard({
           onMouseMove={handleMouseMove}
         >
           {product.isBundle && !product.bundleImage ? (
-            <div className="grid h-full w-full grid-cols-2 gap-1 p-2">
+            <div className="grid h-full w-full grid-cols-2 gap-1 bg-white p-2">
               {(bundleImages.length ? bundleImages : images).slice(0, 4).map((image, index) => (
                 <Image
                   key={`${image}-${index}`}
                   src={image}
                   alt=""
-                  className="h-full w-full rounded object-cover"
+                  className="h-full w-full rounded bg-white object-contain"
                   width={160}
                   height={160}
                   unoptimized

@@ -140,16 +140,16 @@ export default function HotDealBundlePage() {
       <div className="mx-auto grid max-w-5xl gap-6 md:grid-cols-[1.2fr_0.8fr]">
         <section className="rounded-2xl border border-[#d4af37]/10 bg-[#121214] p-5 shadow-[0_10px_32px_rgba(0,0,0,0.25)] md:p-7">
           <Link href="/" className="text-sm font-semibold text-[#f5e6a3]">← Back to ZaviMart</Link>
-          <div className="mt-5 overflow-hidden rounded-xl border border-[#d4af37]/10 bg-[#121214]">
+          <div className="mt-5 overflow-hidden rounded-xl border border-[#d4af37]/10 bg-white">
             {deal.image ? (
-              <div className="product-image-blend">
-                <img src={deal.image} alt={deal.title} className="h-64 w-full object-contain md:h-80" fetchPriority="high" />
+              <div className="bg-white">
+                <img src={deal.image} alt={deal.title} className="h-64 w-full bg-white object-contain md:h-80" fetchPriority="high" />
               </div>
             ) : (
-              <div className="product-image-blend grid h-64 grid-cols-2 gap-2 p-3 md:h-80">
+              <div className="grid h-64 grid-cols-2 gap-2 bg-white p-3 md:h-80">
                 {deal.products.map((product) => product.image
-                  ? <img key={product.productId} src={product.image} alt="" className="h-full w-full rounded-lg object-cover" loading="lazy" />
-                  : <div key={product.productId} className="rounded-lg bg-[#121214]" />)}
+                  ? <img key={product.productId} src={product.image} alt="" className="h-full w-full rounded-lg bg-white object-contain" loading="lazy" />
+                  : <div key={product.productId} className="rounded-lg bg-white" />)}
               </div>
             )}
           </div>
@@ -161,7 +161,7 @@ export default function HotDealBundlePage() {
           <ul className="mt-5 divide-y divide-[#d4af37]/5">
             {deal.products.map((product) => (
               <li className="flex items-center gap-3 py-3" key={product.productId}>
-                {product.image && <span className="product-image-blend h-14 w-14 shrink-0 overflow-hidden rounded-lg"><img src={product.image} alt="" className="h-full w-full object-cover" loading="lazy" /></span>}
+                {product.image && <span className="h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-white"><img src={product.image} alt="" className="h-full w-full bg-white object-contain" loading="lazy" /></span>}
                 <span className="flex-1 text-sm font-medium text-white">{product.title}</span>
                 <span className="text-sm text-gray-400">{formatMoney(product.originalPrice)}</span>
               </li>

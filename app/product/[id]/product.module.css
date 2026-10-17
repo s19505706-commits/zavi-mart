@@ -1421,12 +1421,20 @@
 .imagePanel {
   border: 1px solid rgba(212, 175, 55, 0.08);
   border-radius: 16px;
-  background: #121214;
+  background: #fff;
+}
+
+.imagePanel img {
+  background: #fff;
 }
 
 .thumbnail {
   border-color: rgba(212, 175, 55, 0.15);
-  background: #121214;
+  background: #fff;
+}
+
+.thumbnail img {
+  background: #fff;
 }
 
 .thumbnail:hover,
