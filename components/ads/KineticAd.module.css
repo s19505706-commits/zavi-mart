@@ -1,0 +1,239 @@
+.stage {
+  position: relative;
+  display: grid;
+  width: 100%;
+  height: 100%;
+  min-height: 320px;
+  overflow: hidden;
+  place-items: center;
+  isolation: isolate;
+  background: var(--ad-bg, #0a0a0a);
+  color: var(--ad-text, #fff);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.glow {
+  position: absolute;
+  z-index: -2;
+  inset: -35%;
+  background:
+    radial-gradient(ellipse at 50% 45%, color-mix(in srgb, var(--ad-gold) 13%, transparent), transparent 45%),
+    radial-gradient(ellipse at 15% 80%, rgb(212 175 55 / 8%), transparent 38%);
+  pointer-events: none;
+}
+
+.beatFlash {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background: var(--ad-gold);
+  pointer-events: none;
+}
+
+.phase {
+  position: relative;
+  display: flex;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  align-items: center;
+  justify-content: center;
+  padding: 22px 18px 34px;
+  text-align: center;
+}
+
+.words {
+  display: flex;
+  max-width: 100%;
+  flex-direction: column;
+  align-items: center;
+  font-size: clamp(2.3rem, 10vw, 9rem);
+  font-weight: 950;
+  letter-spacing: -0.075em;
+  line-height: 0.79;
+  overflow-wrap: anywhere;
+  text-shadow: 0 8px 38px rgb(0 0 0 / 44%);
+}
+
+.words > span {
+  display: block;
+}
+
+.goldWord {
+  color: var(--ad-gold);
+}
+
+.productCard {
+  position: absolute;
+  right: max(18px, 8%);
+  bottom: 28px;
+  display: grid;
+  width: clamp(90px, 19%, 180px);
+  aspect-ratio: 0.82;
+  overflow: hidden;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--ad-gold) 35%, transparent);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 18px 55px rgb(212 175 55 / 18%);
+  text-decoration: none;
+}
+
+.productCard img {
+  width: 100%;
+  height: 100%;
+  padding: 10px;
+  object-fit: contain;
+}
+
+.productCta {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  left: 6px;
+  padding: 7px 5px;
+  border-radius: 999px;
+  background: #6b21a8;
+  color: white;
+  font-size: clamp(8px, 1.2vw, 12px);
+  font-weight: 750;
+}
+
+.morePhase {
+  overflow: hidden;
+}
+
+.parallax {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  opacity: 0.3;
+  filter: drop-shadow(0 8px 22px color-mix(in srgb, var(--ad-gold) 40%, transparent));
+}
+
+.parallax img {
+  width: 20%;
+  max-height: 70%;
+  object-fit: contain;
+}
+
+.morePhase .words {
+  position: relative;
+  z-index: 1;
+}
+
+.brandPhase {
+  flex-direction: column;
+  gap: 14px;
+}
+
+.bagIcon {
+  width: clamp(42px, 8vw, 82px);
+  height: clamp(42px, 8vw, 82px);
+  padding: 9px;
+  border-radius: 20px 20px 24px 24px;
+  background: var(--ad-gold);
+  color: #090909;
+  filter: drop-shadow(0 10px 35px color-mix(in srgb, var(--ad-gold) 38%, transparent));
+}
+
+.brandPhase strong {
+  color: var(--ad-gold);
+  font-size: clamp(1.7rem, 5vw, 4.4rem);
+  font-weight: 850;
+  letter-spacing: 0.12em;
+}
+
+.startButton {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 26px;
+  border-radius: 999px;
+  background: linear-gradient(110deg, var(--ad-gold), #ffd700);
+  color: #090909;
+  font-size: 0.85rem;
+  font-weight: 800;
+  text-decoration: none;
+  box-shadow: 0 0 28px color-mix(in srgb, var(--ad-gold) 28%, transparent);
+}
+
+.soundButton {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  z-index: 2;
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--ad-gold) 50%, transparent);
+  border-radius: 50%;
+  background: var(--ad-gold);
+  color: #090909;
+  cursor: pointer;
+  box-shadow: 0 0 24px color-mix(in srgb, var(--ad-gold) 22%, transparent);
+}
+
+.progress {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  transform-origin: left;
+  background: var(--ad-gold);
+}
+
+.compact {
+  min-height: 100px;
+  border-radius: 14px;
+}
+
+.compact .phase {
+  padding: 6px;
+}
+
+.compact .words {
+  font-size: clamp(0.8rem, 2.3vw, 2rem);
+}
+
+.compact .productCard {
+  right: 4px;
+  bottom: 4px;
+  width: 22%;
+  border-radius: 6px;
+}
+
+.compact .brandPhase {
+  gap: 2px;
+}
+
+.compact .bagIcon {
+  width: 20px;
+  height: 20px;
+  padding: 2px;
+  border-radius: 6px;
+}
+
+.compact .brandPhase strong {
+  font-size: 0.55rem;
+}
+
+.compact .startButton {
+  min-height: 18px;
+  padding: 0 8px;
+  font-size: 0.5rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stage *,
+  .stage *::before,
+  .stage *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

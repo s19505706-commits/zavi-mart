@@ -11,6 +11,7 @@ import {
   Grid3X3,
   Globe,
   LayoutDashboard,
+  Megaphone,
   Menu,
   Package,
   Settings,
@@ -36,6 +37,7 @@ const menuItems: AdminMenuItem[] = [
   { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
   { label: "Products", href: "/admin/products", icon: Package },
   { label: "Departments", href: "/admin/departments", icon: Grid3X3 },
+  { label: "Ads Manager", href: "/admin/ads", icon: Megaphone },
   {
     label: "Deals",
     icon: Boxes,
