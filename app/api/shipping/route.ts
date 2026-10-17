@@ -2,6 +2,7 @@ import { ApiError, handleApiError, isRecord, readJsonBody, requireAdmin } from "
 import { getShippingSettings, saveShippingSettings } from "../../../lib/shippingSettings";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {

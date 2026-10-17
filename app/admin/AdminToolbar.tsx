@@ -5,28 +5,32 @@ import { usePathname } from "next/navigation";
 import {
   Boxes,
   ExternalLink,
+  Gift,
+  Grid3X3,
   Globe,
   LayoutDashboard,
   Menu,
-  PackageCheck,
+  Package,
   Settings,
   ShoppingBag,
-  ShoppingCart,
   Store,
   Users,
-  X
+  X,
+  Zap
 } from "lucide-react";
 import { useState } from "react";
 import AdminBellWithSound from "../../components/admin/AdminBellWithSound";
 import styles from "./admin-header.module.css";
 
 const navItems = [
-  { label: "Overview", href: "/admin", icon: LayoutDashboard },
-  { label: "Products", href: "/admin/products", icon: Boxes },
-  { label: "Orders", href: "/admin/orders", icon: ShoppingCart },
-  { label: "Customers", href: "/admin/customers", icon: Users },
-  { label: "Departments", href: "/admin/departments", icon: ShoppingBag },
-  { label: "Deals", href: "/admin/deals", icon: PackageCheck },
+  { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
+  { label: "Products", href: "/admin/products", icon: Package },
+  { label: "Departments", href: "/admin/departments", icon: Grid3X3 },
+  { label: "Value Sets", href: "/admin/bundles", icon: Gift },
+  { label: "Flash Deals", href: "/admin/flash-deals", icon: Zap },
+  { label: "Orders", href: "/admin/orders", icon: ShoppingBag },
+  { label: "Users", href: "/admin/customers", icon: Users },
+  { label: "Deals", href: "/admin/deals", icon: Boxes },
   { label: "Store Settings", href: "/admin/free-delivery", icon: Settings }
 ];
 
@@ -42,7 +46,7 @@ export default function AdminToolbar() {
 
   return (
     <>
-      <header className={styles.header}>
+      <header className={`${styles.header} admin-toolbar`}>
         <button
           className={styles.menuButton}
           type="button"

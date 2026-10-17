@@ -12,6 +12,7 @@ type StoreProduct = {
   _id: string;
   title: string;
   category: string;
+  brand?: string;
   departmentId?: string | null;
   categoryId?: string | null;
   image: string;
@@ -35,6 +36,7 @@ function parseStoreProducts(value: unknown): StoreProduct[] {
         _id: item._id,
         title: item.title,
         category: item.category,
+        brand: typeof item.brand === "string" ? item.brand : "",
         departmentId: typeof item.departmentId === "string" ? item.departmentId : null,
         categoryId: typeof item.categoryId === "string" ? item.categoryId : null,
         image: typeof item.image === "string" ? item.image : "",
@@ -65,8 +67,10 @@ export default function DepartmentProductListing({
   const [error, setError] = useState("");
   const [addedProductIds, setAddedProductIds] = useState<string[]>([]);
   const [cartError, setCartError] = useState("");
-  const [sortOrder, setSortOrder] = useState<"default" | "price-asc" | "price-desc">("default");
+  const [sortOrder, setSortOrder] = useState<"default" | "newest" | "price-asc" | "price-desc">("default");
   const [inStockOnly, setInStockOnly] = useState(false);
+  const [priceLimit, setPriceLimit] = useState(0);
+  const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
 
   function addToCart(product: StoreProduct) {
     try {
@@ -164,16 +168,26 @@ export default function DepartmentProductListing({
   const department = departments.find((item) => item.id === departmentId || item.slug === departmentSlug);
   const departmentCategories = categories.filter((item) => item.departmentId === department?.id);
   const category = categorySlug ? departmentCategories.find((item) => item.slug === categorySlug) : undefined;
-  const visibleProducts = products.filter((product) => {
+  const matchingProducts = products.filter((product) => {
     const matchesDepartment = product.departmentId === department?.id ||
       (!product.departmentId && product.category.toLocaleLowerCase() === department?.name.toLocaleLowerCase());
     return matchesDepartment && (!categorySlug ||
       product.categoryId === category?.id ||
       product.category.toLocaleLowerCase() === category?.name.toLocaleLowerCase()) &&
       (!inStockOnly || product.stock > 0);
-  }).sort((left, right) => sortOrder === "price-asc"
+  });
+  const maxCatalogPrice = Math.max(0, ...matchingProducts.map((product) => product.price));
+  const brandOptions = [...new Set(matchingProducts.map((product) => product.brand?.trim()).filter((brand): brand is string => !!brand))].sort();
+  const visibleProducts = matchingProducts.filter((product) =>
+    (!priceLimit || product.price <= priceLimit) &&
+    (!selectedBrands.length || (product.brand ? selectedBrands.includes(product.brand) : false))
+  ).sort((left, right) => sortOrder === "price-asc"
     ? left.price - right.price
-    : sortOrder === "price-desc" ? right.price - left.price : 0);
+    : sortOrder === "price-desc"
+      ? right.price - left.price
+      : sortOrder === "newest"
+        ? (Date.parse(right.createdAt) || 0) - (Date.parse(left.createdAt) || 0)
+        : 0);
   const newArrivals = newArrivalProducts.filter((product) => {
     const matchesDepartment = product.departmentId === department?.id;
     return matchesDepartment && (!categorySlug || product.categoryId === category?.id);
@@ -186,7 +200,9 @@ export default function DepartmentProductListing({
     <main className="department-listing">
       <nav aria-label="Breadcrumb" className="department-breadcrumb">
         <Link href="/">Home</Link>
-        {department && <><span aria-hidden="true">›</span><Link href={`/department/${encodeURIComponent(department.slug)}`}>{department.name}</Link></>}
+        <span aria-hidden="true">›</span>
+        <Link href="/#departments">Departments</Link>
+        {department && <><span aria-hidden="true">›</span><Link href={`/departments/${encodeURIComponent(department.slug)}`}>{department.name}</Link></>}
         {category && <><span aria-hidden="true">›</span><span aria-current="page">{category.name}</span></>}
       </nav>
       <header className="department-listing-heading">
@@ -239,12 +255,46 @@ export default function DepartmentProductListing({
             <section aria-labelledby="all-products-heading">
               <header className="department-listing-heading">
                 <h2 id="all-products-heading">All Products</h2>
+                <p>{visibleProducts.length} of {matchingProducts.length} products</p>
               </header>
               <div className="department-product-filters">
+                <label className="department-price-filter">
+                  <span>Price up to Rs {(priceLimit || maxCatalogPrice).toLocaleString("en-PK")}</span>
+                  <input
+                    aria-label="Maximum price"
+                    type="range"
+                    min="0"
+                    max={Math.max(1, maxCatalogPrice)}
+                    step={Math.max(1, Math.round(maxCatalogPrice / 100))}
+                    value={Math.min(priceLimit || maxCatalogPrice, Math.max(1, maxCatalogPrice))}
+                    onChange={(event) => setPriceLimit(Number(event.target.value) >= maxCatalogPrice ? 0 : Number(event.target.value))}
+                    disabled={maxCatalogPrice === 0}
+                  />
+                </label>
+                {brandOptions.length > 0 && (
+                  <fieldset className="department-brand-filter">
+                    <legend>Brands</legend>
+                    {brandOptions.map((brand) => (
+                      <label key={brand}>
+                        <input
+                          type="checkbox"
+                          checked={selectedBrands.includes(brand)}
+                          onChange={(event) => setSelectedBrands((current) =>
+                            event.target.checked
+                              ? [...current, brand]
+                              : current.filter((selected) => selected !== brand)
+                          )}
+                        />
+                        {brand}
+                      </label>
+                    ))}
+                  </fieldset>
+                )}
                 <label>
-                  Sort by price
+                  Sort by
                   <select value={sortOrder} onChange={(event) => setSortOrder(event.target.value as typeof sortOrder)}>
                     <option value="default">Recommended</option>
+                    <option value="newest">Newest</option>
                     <option value="price-asc">Price: low to high</option>
                     <option value="price-desc">Price: high to low</option>
                   </select>
@@ -259,25 +309,32 @@ export default function DepartmentProductListing({
                 </label>
               </div>
               {visibleProducts.length ? (
-            <div className="department-product-grid">
-              {visibleProducts.map((product, index) => (
-                <ProductCard
-                  key={product._id}
-                  product={{
-                    id: product._id,
-                    title: product.title,
-                    category: `${department.name} · ${product.category}`,
-                    image: product.image,
-                    price: product.price,
-                    originalPrice: product.originalPrice
-                  }}
-                  priority={index < 4}
-                  isAdded={addedProductIds.includes(product._id)}
-                  onAddToCart={() => addToCart(product)}
-                />
-              ))}
-            </div>
-              ) : <p>No products are available in this collection yet.</p>}
+                <div className="department-product-grid">
+                  {visibleProducts.map((product, index) => (
+                    <ProductCard
+                      key={product._id}
+                      product={{
+                        id: product._id,
+                        title: product.title,
+                        category: `${department.name} · ${product.category}`,
+                        image: product.image,
+                        price: product.price,
+                        originalPrice: product.originalPrice
+                      }}
+                      priority={index < 4}
+                      isAdded={addedProductIds.includes(product._id)}
+                      onAddToCart={() => addToCart(product)}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="department-empty-state">
+                  <span aria-hidden="true">✦</span>
+                  <h3>No products in {department.name} yet</h3>
+                  <p>Our collection is being curated. Check back soon for new arrivals.</p>
+                  <Link href="/admin/products">Add products</Link>
+                </div>
+              )}
             </section>
           </>}
     </main>

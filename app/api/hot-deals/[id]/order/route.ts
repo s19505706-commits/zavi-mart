@@ -6,6 +6,7 @@ import { getHotDeals } from "../../../../../lib/hot-deals";
 import { getShippingSettings } from "../../../../../lib/shippingSettings";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 type RouteContext = { params: Promise<{ id: string }> };
 

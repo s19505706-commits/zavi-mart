@@ -1,6 +1,7 @@
 import { ApiError, handleApiError, isRecord, readJsonBody, requireAdmin } from "../../../../lib/api-utils";
 import { updateLocalCommentReply } from "../../../../lib/local-notifications";
 
+export const dynamic = "force-dynamic";
 export async function POST(request: Request) {
   const authError = requireAdmin(request);
   if (authError) return authError;

@@ -287,6 +287,33 @@ export default function DepartmentsPage() {
     }
   }
 
+  async function toggleDepartment(department: Department) {
+    setError("");
+    try {
+      const response = await fetch(`/api/admin/departments/${encodeURIComponent(department.id)}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", "x-admin-key": adminKey.trim() || "" },
+        body: JSON.stringify({
+          name: department.name,
+          slug: department.slug,
+          image: department.image,
+          description: department.description,
+          isActive: !department.isActive,
+          sortOrder: department.sortOrder
+        })
+      });
+      const result: unknown = await response.json();
+      if (!response.ok || !isRecord(result)) {
+        throw new Error(isRecord(result) && typeof result.error === "string"
+          ? result.error : "Could not update department status.");
+      }
+      setToast(`${department.name} ${department.isActive ? "deactivated" : "activated"}`);
+      await loadAll(adminKey.trim() || "");
+    } catch (toggleError) {
+      setError(toggleError instanceof Error ? toggleError.message : "Could not update department status.");
+    }
+  }
+
   function showDepartmentCategories(departmentId: string) {
     setDepartmentFilter(departmentId);
     setSearch("");
@@ -357,7 +384,16 @@ export default function DepartmentsPage() {
                     <td><code>{department.slug}</code></td>
                     <td>{department.totalCategories}</td>
                     <td>{department.totalProducts}</td>
-                    <td><span className={department.isActive ? styles.statusActive : styles.statusInactive}>{department.isActive ? "Active" : "Inactive"}</span></td>
+                    <td>
+                      <button
+                        type="button"
+                        className={`${styles.statusToggle} ${department.isActive ? styles.statusActive : styles.statusInactive}`}
+                        aria-pressed={department.isActive}
+                        onClick={() => void toggleDepartment(department)}
+                      >
+                        {department.isActive ? "Active" : "Inactive"}
+                      </button>
+                    </td>
                     <td><div className={styles.rowActions}>
                       <button type="button" onClick={() => openEdit("department", department)}>Edit</button>
                       <button type="button" onClick={() => showDepartmentCategories(department.id)}>View Categories</button>

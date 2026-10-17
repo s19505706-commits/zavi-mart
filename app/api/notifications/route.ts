@@ -8,6 +8,7 @@ import {
 
 const notificationTypes = ["new_order", "new_comment", "low_stock"] as const;
 
+export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
   const authError = requireAdmin(request);
   if (authError) return authError;

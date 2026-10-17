@@ -8,10 +8,9 @@ import { ArrowLeft, Search, ShoppingCart } from "lucide-react";
 import { toast } from "sonner";
 import ProductCard from "../../../components/ProductCard";
 import {
-  CART_STORAGE_KEY,
   addCartItem,
-  saveCart,
-  type CartItem
+  readCart,
+  saveCart
 } from "../../../lib/cart";
 import {
   findMatchingVariantCombination,
@@ -170,20 +169,6 @@ function usableImageUrl(value: string): string {
   }
 }
 
-function readCart(): CartItem[] {
-  try {
-    const value: unknown = JSON.parse(localStorage.getItem(CART_STORAGE_KEY) ?? "[]");
-    return Array.isArray(value) ? value.filter((item): item is CartItem =>
-      isRecord(item) && typeof item.id === "string" &&
-      typeof item.name === "string" && typeof item.image === "string" &&
-      typeof item.price === "number" && typeof item.quantity === "number"
-    ) : [];
-  } catch (error) {
-    console.error("Could not read the saved cart.", error);
-    return [];
-  }
-}
-
 export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -251,7 +236,11 @@ export default function ProductDetailPage() {
     if (!product) return;
     setRelatedProducts([]);
     const controller = new AbortController();
-    fetch("/api/products?limit=100", { cache: "no-store", signal: controller.signal })
+    const relatedParams = new URLSearchParams({ limit: "100" });
+    if (product.departmentId) relatedParams.set("departmentId", product.departmentId);
+    else if (product.categoryId) relatedParams.set("categoryId", product.categoryId);
+    else relatedParams.set("department", product.category);
+    fetch(`/api/products?${relatedParams}`, { cache: "no-store", signal: controller.signal })
       .then(async (response) => {
         const result: unknown = await response.json();
         if (!response.ok || !isRecord(result) || !Array.isArray(result.products)) {
@@ -282,9 +271,11 @@ export default function ProductDetailPage() {
 
     updateCartCount();
     window.addEventListener("storage", updateCartCount);
+    window.addEventListener("cartUpdated", updateCartCount);
     window.addEventListener("zavimart_cart_updated", updateCartCount);
     return () => {
       window.removeEventListener("storage", updateCartCount);
+      window.removeEventListener("cartUpdated", updateCartCount);
       window.removeEventListener("zavimart_cart_updated", updateCartCount);
     };
   }, []);

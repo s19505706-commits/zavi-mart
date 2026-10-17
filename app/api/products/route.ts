@@ -20,7 +20,7 @@ import {
   type StoredProduct
 } from "../../../lib/local-products";
 import { cleanCustomerProduct, extractProductCode } from "../../../lib/product-codes";
-import { validateProductClassification } from "../../../lib/department-category-store";
+import { getDepartments, validateProductClassification } from "../../../lib/department-category-store";
 import { getFlashDeals } from "../../../lib/flash-deals";
 import { mergeCatalogProducts } from "../../../lib/product-catalog";
 import {
@@ -54,6 +54,7 @@ function noStoreJson(value: unknown, status = 200): Response {
 }
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   try {
@@ -71,11 +72,16 @@ export async function GET(request: Request) {
     }
     const filter: Record<string, unknown> = {};
     const categoryValue = url.searchParams.get("category")?.trim();
-    const departmentId = url.searchParams.get("departmentId")?.trim();
+    const requestedDepartmentId = url.searchParams.get("departmentId")?.trim();
+    let departmentId = requestedDepartmentId;
+    const departmentValue = url.searchParams.get("department")?.trim() ?? "";
     const categoryId = url.searchParams.get("categoryId")?.trim();
     const search = url.searchParams.get("search")?.trim();
     if (departmentId && departmentId.length > 100) {
       throw new ApiError("departmentId must be 100 characters or fewer.", 400);
+    }
+    if (departmentValue.length > 100) {
+      throw new ApiError("department must be 100 characters or fewer.", 400);
     }
     if (categoryId && categoryId.length > 100) {
       throw new ApiError("categoryId must be 100 characters or fewer.", 400);
@@ -88,11 +94,28 @@ export async function GET(request: Request) {
     if (flashDealsOnly && flashDealsOnly !== "true" && flashDealsOnly !== "false") {
       throw new ApiError("flashDeals must be true or false.", 400);
     }
+    const flashOnly = url.searchParams.get("flash");
+    const hotOnly = url.searchParams.get("hot");
+    const newOnly = url.searchParams.get("new");
+    for (const [name, value] of [["flash", flashOnly], ["hot", hotOnly], ["new", newOnly]] as const) {
+      if (value !== null && value !== "true" && value !== "false") {
+        throw new ApiError(`${name} must be true or false.`, 400);
+      }
+    }
 
     if (categoryValue) {
       const category = normalizeCategory(categoryValue);
       if (!category) throw new ApiError("category must be a non-empty string of 100 characters or fewer.", 400);
       filter.category = category;
+    }
+    if (departmentValue) {
+      const normalizedDepartment = departmentValue.toLocaleLowerCase();
+      const department = (await getDepartments(false)).find((entry) =>
+        entry.slug.toLocaleLowerCase() === normalizedDepartment ||
+        entry.name.toLocaleLowerCase() === normalizedDepartment ||
+        entry.id === departmentValue
+      );
+      if (department) departmentId = department.id;
     }
     if (departmentId) filter.departmentId = departmentId;
     if (categoryId) filter.categoryId = categoryId;
@@ -101,9 +124,11 @@ export async function GET(request: Request) {
       filter.title = { $regex: escapeRegex(search), $options: "i" };
     }
 
-    if (newArrivalsOnly === "true") filter.isNewArrival = true;
+    if (newArrivalsOnly === "true" || newOnly === "true") filter.isNewArrival = true;
+    if (hotOnly === "true") filter.isHotDeal = true;
 
-    const limit = parseLimit(url.searchParams.get("limit"));
+    const requestedLimit = parseLimit(url.searchParams.get("limit"));
+    const limit = newOnly === "true" ? Math.min(requestedLimit, 10) : requestedLimit;
     const rawOffset = url.searchParams.get("offset");
     const offset = rawOffset === null ? 0 : Number(rawOffset);
     if (!Number.isSafeInteger(offset) || offset < 0 || offset > 100_000) {
@@ -141,7 +166,7 @@ export async function GET(request: Request) {
       getTrackedMarkazProducts().map((product) => ({ ...product }) as ProductListItem)
     ], MOCK_PRODUCTS.map((product) => ({ ...product }) as ProductListItem));
     const now = Date.now();
-    const activeFlashProductIds = flashDealsOnly === "true"
+    const activeFlashProductIds = flashDealsOnly === "true" || flashOnly === "true"
       ? new Set((await getFlashDeals()).filter((deal) =>
         deal.isActive && Date.parse(deal.startTime) <= now && Date.parse(deal.endTime) > now &&
         deal.soldCount < deal.stockLimit
@@ -150,12 +175,21 @@ export async function GET(request: Request) {
     const allProducts = catalogProducts.filter((product) =>
       product.isActive !== false &&
       !store.deletedIds.includes(product._id) &&
-      (!departmentId || product.departmentId === departmentId) &&
+      (!requestedDepartmentId || product.departmentId === requestedDepartmentId) &&
+      (!departmentValue || product.departmentId === departmentId ||
+        product.departmentId === departmentValue ||
+        ("departmentName" in product && typeof product.departmentName === "string" &&
+          product.departmentName.toLocaleLowerCase() === departmentValue.toLocaleLowerCase())) &&
       (!categoryId || product.categoryId === categoryId) &&
       (!filter.category || product.category === filter.category) &&
       (!search || product.title.toLocaleLowerCase().includes(search.toLocaleLowerCase())) &&
-      (newArrivalsOnly !== "true" || product.isNewArrival === true) &&
-      (!activeFlashProductIds || activeFlashProductIds.has(product._id) ||
+      ((newArrivalsOnly !== "true" && newOnly !== "true") || product.isNewArrival === true) &&
+      (flashOnly !== "true" || product.isFlashDeal === true ||
+        activeFlashProductIds?.has(product._id) === true ||
+        (!!product.id && activeFlashProductIds?.has(product.id) === true) ||
+        activeFlashProductIds?.has(product.title.trim().toLocaleLowerCase()) === true) &&
+      (hotOnly !== "true" || product.isHotDeal === true) &&
+      (flashDealsOnly !== "true" || !activeFlashProductIds || activeFlashProductIds.has(product._id) ||
         (!!product.id && activeFlashProductIds.has(product.id)) ||
         activeFlashProductIds.has(product.title.trim().toLocaleLowerCase()))
     );

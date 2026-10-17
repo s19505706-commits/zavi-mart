@@ -10,6 +10,7 @@ import {
 import { logProductHistory } from "../../../../lib/product-history";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   const authError = requireAdmin(request);

@@ -22,6 +22,9 @@ import { validateProductClassification } from "../../../../lib/department-catego
 
 type RouteContext = { params: Promise<{ id: string }> };
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 function noStoreJson(value: unknown, status = 200): Response {
   return Response.json(value, {
     status,

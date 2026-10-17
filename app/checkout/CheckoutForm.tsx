@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowLeft, LockKeyhole, ShoppingCart } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { toast } from "sonner";
@@ -21,6 +22,7 @@ type CheckoutItem = {
   quantity: number;
   name: string;
   price: number;
+  isBundle?: boolean;
   selectedVariants?: Record<string, string>;
   variantId?: string;
 };
@@ -112,13 +114,14 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function getCheckoutItems(cart: CartItem[]): CheckoutItem[] {
   return cart.flatMap((item) => {
     const checkoutProduct = CHECKOUT_PRODUCTS_BY_CART_ID[item.id];
-    const id = item.productId ?? (item.checkoutProductId ?? checkoutProduct?.id)?.toString();
+    const id = item.bundleId ?? item.productId ?? (item.checkoutProductId ?? checkoutProduct?.id)?.toString();
     if (!id) return [];
     return [{
       id: String(id),
       quantity: item.quantity,
       name: checkoutProduct?.name ?? item.name,
       price: checkoutProduct?.price ?? item.price,
+      ...(item.bundleId ? { isBundle: true } : {}),
       ...(item.selectedVariants ? { selectedVariants: item.selectedVariants } : {}),
       ...(item.variantId ? { variantId: item.variantId } : {})
     }];
@@ -135,7 +138,9 @@ function loadCartFromStorage(): CartItem[] {
 }
 
 export default function CheckoutForm() {
+  const router = useRouter();
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [cartReady, setCartReady] = useState(false);
   const [shippingSettings, setShippingSettings] = useState(DEFAULT_SHIPPING);
   const [shippingError, setShippingError] = useState("");
   const [error, setError] = useState("");
@@ -276,8 +281,10 @@ export default function CheckoutForm() {
             Object.entries(rawSelected).every(([key, value]) => key.length > 0 && typeof value === "string")
             ? rawSelected as Record<string, string>
             : undefined;
+          const isBundle = entry?.isBundle === true;
           const product = savedCart.find((item) =>
-            String(item.productId ?? item.checkoutProductId ?? CHECKOUT_PRODUCTS_BY_CART_ID[item.id]?.id ?? item.id) === id &&
+            (isBundle ? item.bundleId === id :
+              String(item.productId ?? item.checkoutProductId ?? CHECKOUT_PRODUCTS_BY_CART_ID[item.id]?.id ?? item.id) === id) &&
             JSON.stringify(item.selectedVariants ?? {}) === JSON.stringify(selectedVariants ?? {})
           ) ?? STARTER_CART_ITEMS.find((item) => String(item.checkoutProductId) === id);
           if (!product) return [];
@@ -285,6 +292,7 @@ export default function CheckoutForm() {
         });
         setCart(resolved);
         saveCart(resolved);
+        setCartReady(true);
         return;
       } catch (parseError) {
         console.error("Could not import the cart for checkout:", parseError);
@@ -293,7 +301,18 @@ export default function CheckoutForm() {
     }
 
     setCart(loadCartFromStorage());
+    setCartReady(true);
   }, []);
+
+  useEffect(() => {
+    if (cartReady && cart.length === 0 && !order) router.replace("/cart");
+  }, [cartReady, cart.length, order, router]);
+
+  useEffect(() => {
+    if (!order) return;
+    const timeout = window.setTimeout(() => router.replace("/"), 3000);
+    return () => window.clearTimeout(timeout);
+  }, [order, router]);
 
   const items = getCheckoutItems(cart);
   const itemCount = items.reduce((count, item) => count + item.quantity, 0);
@@ -347,10 +366,32 @@ export default function CheckoutForm() {
     setSubmitting(true);
 
     try {
-      const response = await fetch("/api/checkout", {
+      const hasBundles = items.some((item) => item.isBundle);
+      const response = await fetch(hasBundles ? "/api/orders" : "/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        body: JSON.stringify(hasBundles ? {
+          products: items.map(({ id, quantity, selectedVariants, variantId, isBundle }) => ({
+            productId: id,
+            qty: quantity,
+            ...(isBundle ? { isBundle: true } : {}),
+            ...(selectedVariants ? { selectedVariants } : {}),
+            ...(variantId ? { variantId } : {})
+          })),
+          customer: {
+            name: String(form.get("name") || "").trim(),
+            email: form.get("email"),
+            phone: form.get("phone"),
+            alternatePhone: form.get("alternatePhone"),
+            city: city === "Other" ? otherCity.trim() : city,
+            areaSector: form.get("areaSector"),
+            streetAddress: form.get("streetAddress"),
+            address: [form.get("streetAddress"), form.get("areaSector")].filter(Boolean).join(", "),
+            postalCode: form.get("postalCode"),
+            deliveryLocation: deliveryPin
+          },
+          paymentMethod: "COD"
+        } : {
           items: items.map(({ id, quantity, selectedVariants, variantId }) => ({
             id,
             quantity,
@@ -369,7 +410,7 @@ export default function CheckoutForm() {
             postalCode: form.get("postalCode"),
             deliveryLocation: deliveryPin
           },
-          paymentMethod: "cod",
+          paymentMethod: "cod"
         })
       });
       const result = await response.json() as OrderResult;
@@ -518,6 +559,24 @@ export default function CheckoutForm() {
           </aside>
         )}
       </div>
+      {order && (
+        <div className={styles.successBackdrop}>
+          <section
+            className={styles.successModal}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="order-success-title"
+          >
+            <span className={styles.successSparkle} aria-hidden="true">✦</span>
+            <span className={styles.eyebrow}>Order confirmed</span>
+            <h2 id="order-success-title">Thank you for shopping with ZaviMart!</h2>
+            <p>Order <strong>{order.orderId}</strong> is confirmed.</p>
+            <p>Pay {formatRupees(order.amount)} in cash when your order arrives.</p>
+            <Link className={styles.primaryButton} href="/">Continue shopping</Link>
+            <span className={styles.redirectMessage}>Returning to the storefront in a moment…</span>
+          </section>
+        </div>
+      )}
     </main>
   );
 }

@@ -428,6 +428,195 @@
   .form {
     grid-template-columns: 1fr;
   }
+}
+
+.page {
+  color: #e5e7eb;
+}
+
+.header h1,
+.panelHeading h2,
+.modalHeading h2 {
+  color: #fff;
+}
+
+.header p,
+.panelHeading span,
+.empty,
+.fieldHint,
+.optional {
+  color: #9ca3af;
+}
+
+.eyebrow {
+  color: #d4af37;
+}
+
+.primaryButton {
+  border-color: #d4af37;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #f5e6a3, #d4af37);
+  color: #050507;
+}
+
+.primaryButton:hover:not(:disabled) {
+  background: linear-gradient(135deg, #f5e6a3, #d4af37);
+  box-shadow: 0 0 20px rgb(212 175 55 / 16%);
+}
+
+.secondaryButton,
+.filters select,
+.adminKey input,
+.search input,
+.form input:not([type="checkbox"]):not([type="file"]),
+.form select,
+.form textarea {
+  border-color: rgb(212 175 55 / 14%);
+  border-radius: 10px;
+  background: #121214;
+  color: #fff;
+}
+
+.adminKey,
+.search,
+.form > label {
+  color: #d1d5db;
+}
+
+.secondaryButton {
+  color: #f5e6a3;
+}
+
+.panel {
+  border-color: rgb(255 255 255 / 7%);
+  border-radius: 16px;
+  background: #121214;
+  box-shadow: none;
+}
+
+.tabs {
+  border-color: rgb(255 255 255 / 8%);
+}
+
+.tab,
+.tabActive {
+  color: #9ca3af;
+}
+
+.tabActive {
+  border-bottom-color: #d4af37;
+  color: #d4af37;
+}
+
+.filters select:focus,
+.adminKey input:focus,
+.search input:focus,
+.form input:focus,
+.form select:focus,
+.form textarea:focus {
+  border-color: rgb(212 175 55 / 45%);
+  outline: none;
+}
+
+.table th,
+.table td {
+  border-bottom-color: rgb(255 255 255 / 6%);
+}
+
+.table th {
+  background: #0a0a0c;
+  color: #d4af37;
+}
+
+.table td,
+.table code {
+  color: #d1d5db;
+}
+
+.table td small {
+  color: #9ca3af;
+}
+
+.categoryImage,
+.imagePlaceholder {
+  width: 50px;
+  height: 50px;
+  border-radius: 10px;
+  background: #0a0a0c;
+}
+
+.statusToggle {
+  padding: 5px 10px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 0.69rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.statusActive {
+  border-color: rgb(212 175 55 / 32%);
+  background: rgb(212 175 55 / 10%);
+  color: #f5e6a3;
+}
+
+.statusInactive {
+  border-color: rgb(255 255 255 / 10%);
+  background: #1a1a1e;
+  color: #9ca3af;
+}
+
+.departmentBadge {
+  background: #1a1a1e;
+  color: #f5e6a3;
+}
+
+.rowActions button {
+  border-color: rgb(212 175 55 / 18%);
+  border-radius: 999px;
+  background: #1a1a1e;
+  color: #f5e6a3;
+}
+
+.rowActions .deleteButton {
+  border-color: rgb(248 113 113 / 25%);
+  color: #fca5a5;
+}
+
+.modal {
+  border: 1px solid rgb(212 175 55 / 16%);
+  border-radius: 18px;
+  background: #0a0a0c;
+  color: #fff;
+  box-shadow: 0 20px 60px rgb(0 0 0 / 55%);
+}
+
+.modalHeading button {
+  background: #1a1a1e;
+  color: #f5e6a3;
+}
+
+.form input[type="file"] {
+  color: #9ca3af;
+}
+
+.imagePreview {
+  border-color: rgb(255 255 255 / 10%);
+}
+
+.toggle input {
+  accent-color: #d4af37;
+}
+
+.error {
+  color: #fca5a5;
+}
+
+.toast {
+  border: 1px solid rgb(212 175 55 / 20%);
+  border-radius: 999px;
+  background: #121214;
+  color: #f5e6a3;
 
   .form .fullWidth {
     grid-column: auto;

@@ -1,23 +1,45 @@
 :root {
-  --admin-bg: #F4F7FB;
-  --admin-header: #102A4E;
-  --admin-card: #FFFFFF;
-  --admin-primary: #12315F;
-  --admin-primary-hover: #1A3E75;
-  --admin-accent: #2F6BFF;
-  --admin-text: #1E2D4A;
-  --admin-muted: #6B7A90;
-  --admin-danger: #E5484D;
-  --admin-border: #E8EEF6;
+  --admin-bg: #050507;
+  --admin-header: #050507;
+  --admin-card: #121214;
+  --admin-primary: #d4af37;
+  --admin-primary-hover: #f5e6a3;
+  --admin-accent: #d4af37;
+  --admin-text: #fff;
+  --admin-muted: #9ca3af;
+  --admin-danger: #f87171;
+  --admin-border: rgb(255 255 255 / 8%);
 }
 
 .admin-app {
   min-height: 100vh;
   background: var(--admin-bg);
   color: var(--admin-text);
-  color-scheme: light;
+  color-scheme: dark;
   --surface: var(--admin-card);
   --heading: var(--admin-text);
   --body: var(--admin-muted);
   --border: var(--admin-border);
+}
+
+.admin-main {
+  min-width: 0;
+  min-height: calc(100vh - 64px);
+  background: #050507;
+}
+
+.admin-app:has(.admin-toolbar) .admin-main {
+  margin-left: 260px;
+}
+
+@media (max-width: 1050px) and (min-width: 681px) {
+  .admin-app:has(.admin-toolbar) .admin-main {
+    margin-left: 240px;
+  }
+}
+
+@media (max-width: 680px) {
+  .admin-app:has(.admin-toolbar) .admin-main {
+    margin-left: 0;
+  }
 }

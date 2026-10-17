@@ -16,6 +16,7 @@ const orderStatuses = [
   "pay_on_delivery"
 ] as const;
 
+export const dynamic = "force-dynamic";
 export async function PUT(request: Request, { params }: RouteContext) {
   const authError = requireAdmin(request);
   if (authError) return authError;

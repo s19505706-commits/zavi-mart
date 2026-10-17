@@ -9,6 +9,7 @@ import {
 } from "../../../../../lib/category-store";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 type RouteContext = { params: Promise<{ id: string }> };
 
 function isValidId(id: string): boolean {

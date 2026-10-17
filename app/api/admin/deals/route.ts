@@ -31,6 +31,7 @@ function dispatch(request: Request, method: "GET" | "POST" | "PUT" | "DELETE"): 
   }
 }
 
+export const dynamic = "force-dynamic";
 export const GET = (request: Request) => dispatch(request, "GET");
 export const POST = (request: Request) => dispatch(request, "POST");
 export const PUT = (request: Request) => dispatch(request, "PUT");

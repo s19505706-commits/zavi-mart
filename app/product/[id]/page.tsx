@@ -4,6 +4,8 @@ import { getCatalogProducts } from "../../../lib/product-catalog";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://zavimart.com";
 
+export const dynamic = "force-dynamic";
+
 export async function generateMetadata({
   params
 }: {

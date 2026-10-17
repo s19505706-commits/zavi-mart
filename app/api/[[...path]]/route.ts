@@ -2,6 +2,7 @@ function notFound(): Response {
   return Response.json({ error: "Not found" }, { status: 404 });
 }
 
+export const dynamic = "force-dynamic";
 export const GET = notFound;
 export const HEAD = notFound;
 export const POST = notFound;

@@ -36,3 +36,11 @@ export async function connectToDatabase(): Promise<typeof mongoose | null> {
 
   return cached.promise;
 }
+
+export async function dbConnect(): Promise<typeof mongoose> {
+  const connection = await connectToDatabase();
+  if (!connection) throw new Error("MONGODB_URI missing");
+  return connection;
+}
+
+export default dbConnect;

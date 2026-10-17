@@ -5,19 +5,10 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "./auth-context";
 import {
-  Cable,
   ChevronDown,
   Heart,
-  HeartPulse,
-  House,
-  Laptop,
-  Shirt,
-  ShoppingBasket,
   ShoppingCart,
-  Smartphone,
-  Sparkles,
   UserRound,
-  WashingMachine,
   X
 } from "lucide-react";
 import HotDealsSlider, { type Deal, type StoreCategory } from "../components/HotDealsSlider";
@@ -34,6 +25,7 @@ import { readWishlist } from "../lib/wishlist";
 
 const DEFAULT_SHIPPING_AMOUNT = 2999;
 type StoreDepartment = { id: string; name: string; slug: string; image?: string; categories: StoreCategory[] };
+const PLACEHOLDER_DEPARTMENTS = ["Beauty", "Fashion", "Electronics", "Home", "Accessories", "Wellness"];
 
 function parseStoreDeals(value: unknown, fallbackBadge: string): Deal[] {
   if (!Array.isArray(value)) return [];
@@ -71,25 +63,13 @@ function parseStoreDeals(value: unknown, fallbackBadge: string): Deal[] {
   });
 }
 
-const categoryIcons: Record<string, typeof Smartphone> = {
-  mobiles: Smartphone,
-  "mobile-accessories": Cable,
-  electronics: Laptop,
-  fashion: Shirt,
-  home: House,
-  "home-living": House,
-  beauty: Sparkles,
-  appliances: WashingMachine,
-  health: HeartPulse,
-  groceries: ShoppingBasket
-};
-
 export default function HomePage() {
   const [activeCategory, setActiveCategory] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [products, setProducts] = useState<Deal[]>([]);
   const [productsLoading, setProductsLoading] = useState(true);
   const [flashDeals, setFlashDeals] = useState<Deal[]>([]);
+  const [flashDealsLoading, setFlashDealsLoading] = useState(true);
   const [newArrivals, setNewArrivals] = useState<Deal[]>([]);
   const [curatedHotDeals, setCuratedHotDeals] = useState<Deal[]>([]);
   const [departmentCategories, setDepartmentCategories] = useState<StoreCategory[]>([]);
@@ -184,29 +164,49 @@ export default function HomePage() {
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([
-      fetch("/api/flash-deals", { cache: "no-store" }),
-      fetch("/api/products?newArrivals=true&limit=10", { cache: "no-store" })
-    ]).then(async ([flashResponse, arrivalsResponse]) => {
-      const [flashResult, arrivalsResult]: unknown[] = await Promise.all([
-        flashResponse.json(),
-        arrivalsResponse.json()
-      ]);
-      if (!flashResponse.ok || typeof flashResult !== "object" || flashResult === null ||
-          !("products" in flashResult) || !Array.isArray(flashResult.products)) {
-        throw new Error("The flash deals API returned an invalid response.");
+    async function loadPromotions() {
+      const arrivalsRequest = fetch("/api/products?new=true&limit=10", { cache: "no-store" })
+        .then(async (response) => {
+          const result: unknown = await response.json();
+          if (!response.ok || typeof result !== "object" || result === null ||
+              !("products" in result) || !Array.isArray(result.products)) {
+            throw new Error("The new arrivals API returned an invalid response.");
+          }
+          if (!cancelled) setNewArrivals(parseStoreDeals(result.products, "New").slice(0, 10));
+        });
+
+      try {
+        const response = await fetch("/api/flash-deals", { cache: "no-store" });
+        const result: unknown = await response.json();
+        if (!response.ok || typeof result !== "object" || result === null ||
+            !("products" in result) || !Array.isArray(result.products)) {
+          throw new Error("The flash deals API returned an invalid response.");
+        }
+        let deals = parseStoreDeals(result.products, "Flash Sale");
+        if (deals.length === 0) {
+          const fallbackResponse = await fetch("/api/products?limit=6", { cache: "no-store" });
+          const fallbackResult: unknown = await fallbackResponse.json();
+          if (!fallbackResponse.ok || typeof fallbackResult !== "object" || fallbackResult === null ||
+              !("products" in fallbackResult) || !Array.isArray(fallbackResult.products)) {
+            throw new Error("Could not load products for the Flash Deals fallback.");
+          }
+          deals = parseStoreDeals(fallbackResult.products, "Featured");
+        }
+        if (!cancelled) setFlashDeals(deals.slice(0, 10));
+      } catch (error) {
+        if (!cancelled) console.error("Could not load homepage flash deals.", error);
+      } finally {
+        if (!cancelled) setFlashDealsLoading(false);
       }
-      if (!arrivalsResponse.ok || typeof arrivalsResult !== "object" || arrivalsResult === null ||
-          !("products" in arrivalsResult) || !Array.isArray(arrivalsResult.products)) {
-        throw new Error("The new arrivals API returned an invalid response.");
+
+      try {
+        await arrivalsRequest;
+      } catch (error) {
+        if (!cancelled) console.error("Could not load homepage new arrivals.", error);
       }
-      if (!cancelled) {
-        setFlashDeals(parseStoreDeals(flashResult.products, "Flash Sale"));
-        setNewArrivals(parseStoreDeals(arrivalsResult.products, "New").slice(0, 10));
-      }
-    }).catch((error: unknown) => {
-      if (!cancelled) console.error("Could not load homepage flash deals and new arrivals.", error);
-    });
+    }
+
+    void loadPromotions();
     return () => { cancelled = true; };
   }, []);
 
@@ -274,13 +274,25 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
-    try {
-      setCartItems(readCart());
-    } catch (error) {
-      console.error("Could not restore the storefront cart.", error);
-      localStorage.removeItem(CART_STORAGE_KEY);
+    function syncCart() {
+      try {
+        const items = readCart();
+        setCartItems((current) => JSON.stringify(current) === JSON.stringify(items) ? current : items);
+      } catch (error) {
+        console.error("Could not restore the storefront cart.", error);
+        localStorage.removeItem(CART_STORAGE_KEY);
+      }
     }
+    syncCart();
+    window.addEventListener("cartUpdated", syncCart);
+    window.addEventListener("zavimart_cart_updated", syncCart);
+    window.addEventListener("storage", syncCart);
     setCartReady(true);
+    return () => {
+      window.removeEventListener("cartUpdated", syncCart);
+      window.removeEventListener("zavimart_cart_updated", syncCart);
+      window.removeEventListener("storage", syncCart);
+    };
   }, []);
 
   useEffect(() => {
@@ -419,6 +431,8 @@ export default function HomePage() {
       window.removeEventListener("storage", handleShippingUpdated);
     };
   }, []);
+
+  const heroProduct = products[0];
 
   return (
     <main className="storefront-page">
@@ -572,31 +586,88 @@ export default function HomePage() {
         </details>
         <Link href="#top">Home</Link>
         <Link href="#flash-deals-section">Flash Deals</Link>
-        <Link href="#flash-deals-section">Hot Deals</Link>
-        <Link href="#flash-deals-section">New Arrivals</Link>
+        <Link href="#deals">Hot Deals</Link>
+        <Link href="#new-arrivals">New Arrivals</Link>
         <Link href="/contact">Contact</Link>
       </nav>
 
-      <section className="category-section hero-glow animate-fadeUp" aria-labelledby="category-heading">
-        <div className="section-heading">
-          <span className="section-eyebrow">Browse departments</span>
-          <h1 id="category-heading">Shop by departments</h1>
+      <section className="luxury-hero" aria-labelledby="hero-heading">
+        <div className="luxury-hero-glow luxury-hero-glow-primary" aria-hidden="true" />
+        <div className="luxury-hero-glow luxury-hero-glow-secondary" aria-hidden="true" />
+        <div className="luxury-hero-inner">
+          <div className="luxury-hero-copy">
+            <span className="luxury-hero-kicker">NEW COLLECTION 2026</span>
+            <h1 id="hero-heading">
+              <span>Timeless Luxury,</span>
+              <br />
+              Redefined
+            </h1>
+            <p>Discover curated perfumes, fashion &amp; beauty — crafted for the modern luxury lifestyle. Authentic guaranteed.</p>
+            <div className="luxury-hero-actions">
+              <Link href="/search" className="luxury-button-primary">Shop Now</Link>
+              <a href="#departments" className="luxury-button-secondary">Explore Collections</a>
+            </div>
+            <div className="luxury-hero-promises">
+              <span><i aria-hidden="true">✓</i> Authentic Guaranteed</span>
+              <span><i aria-hidden="true">↩</i> Free Returns 30 Days</span>
+            </div>
+          </div>
+          <div className="luxury-hero-feature">
+            <div className="luxury-hero-feature-glow" aria-hidden="true" />
+            <div className="luxury-hero-product-image">
+              <img
+                src={heroProduct?.image || "/placeholder.svg"}
+                alt={heroProduct?.name || "Featured ZaviMart product"}
+                fetchPriority="high"
+              />
+            </div>
+            <div className="luxury-hero-product-caption">
+              <div>
+                <strong>{heroProduct?.name || "The ZaviMart Edit"}</strong>
+                <span>{heroProduct?.categoryName || "Curated Luxury"}</span>
+              </div>
+              <b>{heroProduct ? `Rs ${heroProduct.price?.toLocaleString("en-PK")}` : "New arrivals"}</b>
+            </div>
+          </div>
         </div>
-        <div className="category-buttons">
-          {departments.map((department) => {
-            const CategoryIcon = categoryIcons[department.slug] ?? Sparkles;
-            return (
+      </section>
+
+      <section className="luxury-departments" id="departments" aria-labelledby="departments-heading">
+        <div className="luxury-section-heading">
+          <span className="section-eyebrow">THE ZAVIMART EDIT</span>
+          <h2 id="departments-heading">Shop by Departments</h2>
+          <p>Explore our curated categories</p>
+        </div>
+        {departments.length === 0 && !productsLoading ? (
+          <div className="luxury-department-grid">
+            {PLACEHOLDER_DEPARTMENTS.map((name) => (
+              <div className="luxury-department-card luxury-department-placeholder" key={name}>
+                <div className="luxury-department-image"><img src="/placeholder.svg" alt="" loading="lazy" /></div>
+                <div className="luxury-department-name">{name}</div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="luxury-department-grid">
+            {departments.length > 0 ? departments.map((department) => (
               <Link
-                className="category-button"
+                className="luxury-department-card"
                 key={department.id}
                 href={`/department/${encodeURIComponent(department.slug)}`}
               >
-                <span className="category-icon" aria-hidden="true"><CategoryIcon size={20} strokeWidth={1.8} /></span>
-                <span>{department.name}</span>
+                <div className="luxury-department-image">
+                  <img src={department.image || "/placeholder.svg"} alt={department.name} loading="lazy" />
+                </div>
+                <div className="luxury-department-name">{department.name}</div>
               </Link>
-            );
-          })}
-        </div>
+            )) : Array.from({ length: 6 }, (_, index) => (
+              <div className="luxury-department-card luxury-department-placeholder" key={`department-skeleton-${index}`} aria-hidden="true">
+                <div className="luxury-department-image luxury-department-skeleton" />
+                <div className="luxury-department-name luxury-department-skeleton-name" />
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
       <div id="flash-deals-section">
@@ -605,6 +676,7 @@ export default function HomePage() {
           searchQuery={searchQuery}
           products={products}
           productsLoading={productsLoading}
+          flashDealsLoading={flashDealsLoading}
           flashDeals={flashDeals}
           curatedHotDeals={curatedHotDeals}
           newArrivals={newArrivals}
@@ -637,6 +709,9 @@ export default function HomePage() {
             }
           }}
         />
+      </div>
+      <div className="luxury-trust-bar">
+        <p>AUTHENTIC <span>•</span> CURATED <span>•</span> LUXURY DELIVERY</p>
       </div>
       <footer className="store-footer">
         <Link className="store-footer-brand" href="/">ZaviMart</Link>

@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
   devIndicators: false,
   images: {
     remotePatterns: [
+      { protocol: "https", hostname: "**" },
       { protocol: "https", hostname: "static.markaz.app" },
       { protocol: "https", hostname: "**.markaz.app" },
       { protocol: "https", hostname: "markaz.app" }

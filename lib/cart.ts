@@ -1,6 +1,7 @@
 export type CartItem = {
   id: string;
   productId?: string;
+  bundleId?: string;
   checkoutProductId?: number;
   name: string;
   image: string;
@@ -11,6 +12,9 @@ export type CartItem = {
 };
 
 export const CART_STORAGE_KEY = "zavimart-next-cart";
+const LEGACY_CART_STORAGE_KEYS = ["zavimart-cart", "cart"] as const;
+const CART_UPDATED_EVENT = "cartUpdated";
+const CART_UPDATED_LEGACY_EVENT = "zavimart_cart_updated";
 
 export const CHECKOUT_PRODUCTS_BY_CART_ID: Record<string, { id: number; name: string; price: number }> = {
   "starter-mobile": { id: 1, name: "Samsung Galaxy A35 5G", price: 74999 },
@@ -63,20 +67,73 @@ function isCartItem(value: unknown): value is CartItem {
     "quantity" in value && typeof value.quantity === "number" && Number.isInteger(value.quantity) && value.quantity > 0;
 }
 
+function isStringRecord(value: unknown): value is Record<string, string> {
+  return typeof value === "object" && value !== null && !Array.isArray(value) &&
+    Object.values(value).every((entry) => typeof entry === "string");
+}
+
 export function parseCart(value: unknown): CartItem[] {
   if (!Array.isArray(value)) return [];
-  return value.filter(isCartItem);
+  return value.flatMap((item): CartItem[] => {
+    if (isCartItem(item)) return [item];
+    if (typeof item !== "object" || item === null || Array.isArray(item)) return [];
+    const legacy = item as Record<string, unknown>;
+    const quantity = typeof legacy.quantity === "number" ? legacy.quantity : legacy.qty;
+    const name = typeof legacy.name === "string" ? legacy.name : legacy.title;
+    if (
+      typeof legacy.id !== "string" ||
+      typeof name !== "string" ||
+      typeof legacy.image !== "string" ||
+      typeof legacy.price !== "number" ||
+      !Number.isFinite(legacy.price) ||
+      legacy.price < 0 ||
+      typeof quantity !== "number" ||
+      !Number.isInteger(quantity) ||
+      quantity < 1
+    ) return [];
+    return [{
+      id: legacy.id,
+      ...(typeof legacy.productId === "string" ? { productId: legacy.productId } : {}),
+      ...(typeof legacy.bundleId === "string" ? { bundleId: legacy.bundleId } : {}),
+      name,
+      image: legacy.image,
+      price: legacy.price,
+      quantity,
+      ...(typeof legacy.checkoutProductId === "number" ? { checkoutProductId: legacy.checkoutProductId } : {}),
+      ...(isStringRecord(legacy.selectedVariants)
+        ? { selectedVariants: legacy.selectedVariants }
+        : {}),
+      ...(typeof legacy.variantId === "string" ? { variantId: legacy.variantId } : {})
+    }];
+  });
 }
 
 export function readCart(): CartItem[] {
   const saved = localStorage.getItem(CART_STORAGE_KEY);
-  if (!saved) return [];
-  return parseCart(JSON.parse(saved));
+  if (saved !== null) return parseCart(JSON.parse(saved));
+
+  for (const key of LEGACY_CART_STORAGE_KEYS) {
+    const legacySaved = localStorage.getItem(key);
+    if (legacySaved === null) continue;
+    const items = parseCart(JSON.parse(legacySaved));
+    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
+    for (const legacyKey of LEGACY_CART_STORAGE_KEYS) {
+      localStorage.removeItem(legacyKey);
+    }
+    dispatchCartUpdated();
+    return items;
+  }
+  return [];
+}
+
+function dispatchCartUpdated(): void {
+  window.dispatchEvent(new Event(CART_UPDATED_EVENT));
+  window.dispatchEvent(new Event(CART_UPDATED_LEGACY_EVENT));
 }
 
 export function saveCart(items: CartItem[]): void {
   localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
-  window.dispatchEvent(new Event("zavimart_cart_updated"));
+  dispatchCartUpdated();
 }
 
 export function addCartItem(
@@ -117,5 +174,8 @@ export function removeCartItem(items: CartItem[], id: string): CartItem[] {
 
 export function clearCart(): void {
   localStorage.removeItem(CART_STORAGE_KEY);
-  window.dispatchEvent(new Event("zavimart_cart_updated"));
+  for (const key of LEGACY_CART_STORAGE_KEYS) {
+    localStorage.removeItem(key);
+  }
+  dispatchCartUpdated();
 }

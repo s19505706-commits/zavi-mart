@@ -2,6 +2,7 @@ import { handleApiError } from "../../../lib/api-utils";
 import { getDealProducts } from "../../../lib/product-catalog";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {

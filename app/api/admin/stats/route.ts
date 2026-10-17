@@ -79,6 +79,7 @@ function makeProductKey(product: Partial<ProductForMerge>): string {
   return recordId(product._id ?? product.id) || text(product.title ?? product.name).toLocaleLowerCase();
 }
 
+export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
   const authError = requireAdmin(request);
   if (authError) return authError;

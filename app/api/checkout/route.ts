@@ -4,6 +4,7 @@ import { isRecord } from "../../../lib/api-utils";
 import { saveLocalOrder } from "../../../lib/local-orders";
 import { MOCK_PRODUCTS } from "../../../lib/mock-products";
 
+export const dynamic = "force-dynamic";
 export async function POST(request: Request) {
   const checkoutBody = await request.text();
   let response: Response;

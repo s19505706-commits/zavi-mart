@@ -452,6 +452,7 @@ function getMarkazVariantData(html: string) {
   return best;
 }
 
+export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
   const requestedUrl = new URL(request.url).searchParams.get("url");
   if (!requestedUrl || requestedUrl.length > 2048) {

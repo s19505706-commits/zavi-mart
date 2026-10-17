@@ -13,6 +13,7 @@ import { validateProductClassification } from "../../../../lib/department-catego
 import { normalizeVariantCombinations, normalizeVariantDefinitions } from "../../../../lib/markaz-variants";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 function parseWebUrl(value: unknown, field: string): string {
   if (typeof value !== "string" || value.length > 2048) {

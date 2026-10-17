@@ -10,6 +10,7 @@ import {
 import { logProductHistory } from "../../../../lib/product-history";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 function validId(id: string): boolean {
   return mongoose.isValidObjectId(id) || /^[\da-f-]{36}$/i.test(id);

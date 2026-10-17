@@ -33,20 +33,33 @@ export default function CartPage() {
   const [shippingSettings, setShippingSettings] = useState(DEFAULT_SHIPPING);
   const [shippingError, setShippingError] = useState("");
   const [checkoutMessage, setCheckoutMessage] = useState("");
+  const [updatingBundleIds, setUpdatingBundleIds] = useState<Set<string>>(() => new Set());
 
   useEffect(() => {
-    try {
-      setCartItems(readCart().map((item) => {
-        const checkoutProduct = CHECKOUT_PRODUCTS_BY_CART_ID[item.id];
-        return checkoutProduct
-          ? { ...item, checkoutProductId: checkoutProduct.id, name: checkoutProduct.name, price: checkoutProduct.price }
-          : item;
-      }));
-    } catch (error) {
-      console.error("Could not restore the cart.", error);
-      toast.error("Your saved cart could not be loaded.");
+    function syncCart() {
+      try {
+        const items = readCart().map((item) => {
+          const checkoutProduct = CHECKOUT_PRODUCTS_BY_CART_ID[item.id];
+          return checkoutProduct
+            ? { ...item, checkoutProductId: checkoutProduct.id, name: checkoutProduct.name, price: checkoutProduct.price }
+            : item;
+        });
+        setCartItems((current) => JSON.stringify(current) === JSON.stringify(items) ? current : items);
+      } catch (error) {
+        console.error("Could not restore the cart.", error);
+        toast.error("Your saved cart could not be loaded.");
+      }
     }
+    syncCart();
+    window.addEventListener("cartUpdated", syncCart);
+    window.addEventListener("zavimart_cart_updated", syncCart);
+    window.addEventListener("storage", syncCart);
     setCartReady(true);
+    return () => {
+      window.removeEventListener("cartUpdated", syncCart);
+      window.removeEventListener("zavimart_cart_updated", syncCart);
+      window.removeEventListener("storage", syncCart);
+    };
   }, []);
 
   useEffect(() => {
@@ -105,7 +118,41 @@ export default function CartPage() {
     ? Math.min((subtotal / shippingSettings.minAmountForFree) * 100, 100)
     : 100;
 
-  function changeQuantity(itemId: string, change: number) {
+  async function changeQuantity(itemId: string, change: number) {
+    const item = cartItems.find((cartItem) => cartItem.id === itemId);
+    if (!item) return;
+    if (item.bundleId && change > 0) {
+      if (updatingBundleIds.has(itemId)) return;
+      setUpdatingBundleIds((current) => new Set(current).add(itemId));
+      try {
+        const response = await fetch("/api/bundles/purchase", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: item.bundleId })
+        });
+        const result: unknown = await response.json();
+        if (!response.ok) {
+          const message = isRecord(result) && typeof result.error === "string"
+            ? result.error
+            : "This Value Set is no longer available.";
+          throw new Error(message);
+        }
+        setCartItems((current) => updateCartItemQuantity(
+          current,
+          itemId,
+          (current.find((cartItem) => cartItem.id === itemId)?.quantity ?? 1) + change
+        ));
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "This Value Set quantity could not be updated.");
+      } finally {
+        setUpdatingBundleIds((current) => {
+          const next = new Set(current);
+          next.delete(itemId);
+          return next;
+        });
+      }
+      return;
+    }
     setCartItems((current) => updateCartItemQuantity(
       current,
       itemId,
@@ -121,8 +168,9 @@ export default function CartPage() {
   function continueToCheckout() {
     if (!cartReady || cartItems.length === 0) return;
     const items = cartItems.map((item) => ({
-      id: item.productId ?? item.checkoutProductId ?? CHECKOUT_PRODUCTS_BY_CART_ID[item.id]?.id ?? null,
+      id: item.bundleId ?? item.productId ?? item.checkoutProductId ?? CHECKOUT_PRODUCTS_BY_CART_ID[item.id]?.id ?? null,
       quantity: item.quantity,
+      ...(item.bundleId ? { isBundle: true } : {}),
       ...(item.selectedVariants ? { selectedVariants: item.selectedVariants } : {}),
       ...(item.variantId ? { variantId: item.variantId } : {})
     }));
@@ -161,9 +209,10 @@ export default function CartPage() {
 
         {!cartItems.length ? (
           <section className="cart-empty-card">
+            <span className="cart-empty-icon"><ShoppingCart size={30} aria-hidden="true" /></span>
             <h2>Your cart is empty</h2>
-            <p>Browse the deals and add something you love.</p>
-            <Link className="cart-empty-link" href="/#deals">Browse deals</Link>
+            <p>Discover something special from our curated collection.</p>
+            <Link className="cart-empty-link" href="/search">Shop now</Link>
           </section>
         ) : (
           <div className="cart-page-layout">
@@ -200,11 +249,11 @@ export default function CartPage() {
                       <span className="cart-product-unit">Rs {item.price.toLocaleString("en-PK")} each</span>
                       <div className="cart-product-controls">
                         <div className="quantity-control" aria-label={`Quantity for ${item.name}`}>
-                          <button type="button" aria-label={`Decrease ${item.name} quantity`} onClick={() => changeQuantity(item.id, -1)}>
+                          <button type="button" aria-label={`Decrease ${item.name} quantity`} disabled={updatingBundleIds.has(item.id)} onClick={() => void changeQuantity(item.id, -1)}>
                             <Minus size={15} aria-hidden="true" />
                           </button>
                           <span aria-live="polite">{item.quantity}</span>
-                          <button type="button" aria-label={`Increase ${item.name} quantity`} onClick={() => changeQuantity(item.id, 1)}>
+                          <button type="button" aria-label={`Increase ${item.name} quantity`} disabled={updatingBundleIds.has(item.id)} onClick={() => void changeQuantity(item.id, 1)}>
                             <Plus size={15} aria-hidden="true" />
                           </button>
                         </div>

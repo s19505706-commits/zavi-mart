@@ -2,6 +2,7 @@ import { handleApiError } from "../../../../lib/api-utils";
 import { getHotDeals } from "../../../../lib/hot-deals";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 type RouteContext = { params: Promise<{ id: string }> };
 

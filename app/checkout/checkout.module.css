@@ -464,6 +464,125 @@
   box-shadow: 0 3px 16px rgba(0, 0, 0, 0.35);
 }
 
+.formCard,
+.summaryCard {
+  border-color: rgba(212, 175, 55, 0.12);
+  background: #0a0a0c;
+  color: #d1d5db;
+}
+
+.brand,
+.sectionHeading,
+.summaryCard h2,
+.locationHeading h2 {
+  color: #f5e6a3;
+}
+
+.form label {
+  color: #d1d5db;
+}
+
+.form input,
+.form select,
+.form textarea {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: #050507;
+  color: #fff;
+  color-scheme: dark;
+}
+
+.form input:focus,
+.form select:focus,
+.form textarea:focus {
+  border-color: rgba(212, 175, 55, 0.55);
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
+}
+
+.locationCard {
+  border-color: rgba(212, 175, 55, 0.12);
+  background: #121214;
+}
+
+.locationHeading p,
+.mapStatus,
+.pinCoordinates {
+  color: #9ca3af;
+}
+
+.map {
+  border-color: rgba(212, 175, 55, 0.15);
+}
+
+.successBackdrop {
+  position: fixed;
+  z-index: 50;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(5, 5, 7, 0.82);
+  backdrop-filter: blur(8px);
+}
+
+.successModal {
+  position: relative;
+  width: min(100%, 480px);
+  padding: 40px 28px;
+  overflow: hidden;
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  border-radius: 24px;
+  background: radial-gradient(circle at 50% 0, rgba(212, 175, 55, 0.1), transparent 45%), #121214;
+  color: #d1d5db;
+  text-align: center;
+  box-shadow: 0 24px 100px rgba(0, 0, 0, 0.6), 0 0 60px rgba(212, 175, 55, 0.12);
+  animation: orderSuccessIn 360ms ease-out both;
+}
+
+.successModal h2 {
+  margin: 10px 0 16px;
+  color: #f5e6a3;
+  font-family: Georgia, serif;
+  font-size: clamp(1.5rem, 5vw, 2rem);
+}
+
+.successModal p {
+  line-height: 1.6;
+}
+
+.successModal p strong,
+.successSparkle {
+  color: #d4af37;
+}
+
+.successSparkle {
+  display: block;
+  margin-bottom: 12px;
+  font-size: 2.5rem;
+  text-shadow: 0 0 24px rgba(212, 175, 55, 0.6);
+}
+
+.successModal > .primaryButton {
+  margin: 20px auto 0;
+}
+
+.redirectMessage {
+  display: block;
+  margin-top: 16px;
+  color: #9ca3af;
+  font-size: 0.78rem;
+}
+
+@keyframes orderSuccessIn {
+  from { opacity: 0; transform: translateY(14px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .successModal {
+    animation: none;
+  }
+}
+
 .brand {
   color: #fff;
 }

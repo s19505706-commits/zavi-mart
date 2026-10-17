@@ -7,6 +7,7 @@ import { getLocalMarkazProducts } from "../../../lib/local-markaz-products";
 import { cleanCustomerProduct } from "../../../lib/product-codes";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   try {

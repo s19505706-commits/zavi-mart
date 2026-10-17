@@ -6,6 +6,8 @@ export const metadata: Metadata = {
   description: "Complete your ZaviMart order."
 };
 
+export const dynamic = "force-dynamic";
+
 export default function CheckoutPage() {
   return <CheckoutForm />;
 }

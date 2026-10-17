@@ -9,6 +9,7 @@ import {
   readAdminSessionToken
 } from "../../../../lib/admin-session";
 
+export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   const session = readAdminSessionToken(request.cookies.get(ADMIN_SESSION_COOKIE)?.value);
   return Response.json(

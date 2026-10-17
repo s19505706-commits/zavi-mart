@@ -35,6 +35,7 @@ function maskContact(phone: string, email: string): string {
   return name && domain ? `${name.slice(0, 1)}***@${domain}` : "";
 }
 
+export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
   try {
     const productId = new URL(request.url).searchParams.get("productId")?.trim();

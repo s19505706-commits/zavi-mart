@@ -7,6 +7,7 @@ import Department from "../../../models/Department";
 import Product from "../../../models/Product";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 const CATEGORY_SEEDS: Record<string, string[]> = {
   beauty: ["Face Wash", "Cream", "Serum", "Perfume"],

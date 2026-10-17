@@ -87,6 +87,7 @@ function serializeComment(comment: LocalComment) {
   };
 }
 
+export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
   const authError = requireAdmin(request);
   if (authError) return authError;

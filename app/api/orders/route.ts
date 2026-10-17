@@ -5,12 +5,13 @@ import { ApiError, handleApiError, isRecord, requireAdmin, readJsonBody } from "
 import { connectToDatabase } from "../../../lib/mongodb";
 import Order from "../../../models/Order";
 import Product from "../../../models/Product";
+import Bundle from "../../../models/Bundle";
 import { getLocalOrders, saveLocalOrder } from "../../../lib/local-orders";
 import { createLocalNotification } from "../../../lib/local-notifications";
 import { getShippingSettings } from "../../../lib/shippingSettings";
 import { findMatchingVariantCombination, isVariantCombinationInStock, normalizeVariantCombinations, normalizeVariantDefinitions, variantSlug } from "../../../lib/markaz-variants";
 
-type RequestedProduct = { productId: string; qty: number; selectedVariants: Record<string, string> };
+type RequestedProduct = { productId: string; qty: number; selectedVariants: Record<string, string>; isBundle: boolean };
 type CustomerDetails = {
   name: string;
   phone: string;
@@ -46,7 +47,15 @@ function parseOrderBody(value: unknown): { products: RequestedProduct[]; custome
     )) {
       throw new ApiError("Each product selectedVariants value must be a string map.", 400);
     }
-    return { productId: item.productId, qty, selectedVariants: selected as Record<string, string> };
+    if (item.isBundle !== undefined && typeof item.isBundle !== "boolean") {
+      throw new ApiError("isBundle must be a boolean.", 400);
+    }
+    return {
+      productId: item.productId,
+      qty,
+      selectedVariants: selected as Record<string, string>,
+      isBundle: item.isBundle === true
+    };
   });
 
   if (!isRecord(value.customer)) throw new ApiError("customer details are required.", 400);
@@ -89,6 +98,7 @@ function parseOrderBody(value: unknown): { products: RequestedProduct[]; custome
   return { products, customer };
 }
 
+export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
   const authError = requireAdmin(request);
   if (authError) return authError;
@@ -179,12 +189,41 @@ export async function POST(request: Request) {
     const connection = await connectToDatabase();
     if (!connection) throw new ApiError("Order creation requires a configured MongoDB database.", 503);
 
-    const productIds = [...new Set(requestedProducts.map((item) => item.productId))];
-    const foundProducts = await Product.find({ _id: { $in: productIds } });
+    const productIds = [...new Set(requestedProducts.filter((item) => !item.isBundle).map((item) => item.productId))];
+    const bundleIds = [...new Set(requestedProducts.filter((item) => item.isBundle).map((item) => item.productId))];
+    const [foundProducts, foundBundles] = await Promise.all([
+      productIds.length ? Product.find({ _id: { $in: productIds } }) : Promise.resolve([]),
+      bundleIds.length ? Bundle.find({ _id: { $in: bundleIds } }) : Promise.resolve([])
+    ]);
     const productsById = new Map(foundProducts.map((product) => [product._id.toString(), product]));
+    const bundlesById = new Map(foundBundles.map((bundle) => [bundle._id.toString(), bundle]));
     const quantitiesByVariant = new Map<string, number>();
     const orderProducts = requestedProducts.map((requested) => {
       const productId = requested.productId;
+      if (requested.isBundle) {
+        const bundle = bundlesById.get(productId);
+        if (!bundle || !bundle.isActive || bundle.timerExpiry.getTime() <= Date.now() ||
+            bundle.stockClaimed < requested.qty || bundle.stockClaimed > bundle.stockTotal) {
+          throw new ApiError("This Value Set is no longer available in the requested quantity.", 409);
+        }
+        return {
+          productId: bundle._id,
+          isBundle: true,
+          title: `${bundle.name} — Value Set`,
+          price: bundle.setPrice,
+          costPrice: bundle.setPrice,
+          qty: requested.qty,
+          image: bundle.images[0] ?? bundle.items[0]?.image ?? "",
+          selectedVariants: {},
+          variantId: "",
+          variantString: "",
+          isMarkazProduct: false,
+          markazProductId: "",
+          markazProductUrl: "",
+          profit: 0,
+          supplier: {}
+        };
+      }
       const product = productsById.get(productId);
       const qty = requested.qty;
       if (!product) throw new ApiError(`Product ${productId} was not found.`, 404);
@@ -229,6 +268,7 @@ export async function POST(request: Request) {
       }
       return {
         productId: product._id,
+        isBundle: false,
         title: product.title,
         price: product.price,
         costPrice: product.costPrice ?? product.wholesalePrice ?? product.price * 0.7,
@@ -281,6 +321,7 @@ export async function POST(request: Request) {
       products: orderProducts.map((product) => ({
         productId: product.productId.toString(),
         name: product.title,
+        isBundle: product.isBundle,
         price: product.price,
         costPrice: product.costPrice,
         wholesalePrice: product.wholesalePrice,
@@ -339,6 +380,7 @@ export async function POST(request: Request) {
       success: true,
       message: "Order placed successfully.",
       orderId: order.orderId,
+      amount: order.total,
       order: {
         ...responseOrder,
         products: responseOrder.products.map(({ markazProductUrl: _markazProductUrl, ...product }) => product)

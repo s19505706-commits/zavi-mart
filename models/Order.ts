@@ -5,6 +5,7 @@ const orderSchema = new mongoose.Schema({
   products: {
     type: [{
       productId: { type: mongoose.Schema.Types.ObjectId, ref: "Product", required: true },
+      isBundle: { type: Boolean, default: false },
       title: { type: String, required: true },
       price: { type: Number, required: true, min: 0 },
       costPrice: { type: Number, min: 0 },
@@ -78,6 +79,7 @@ const existingOrderHasProcessingStatus = Array.isArray(existingOrderStatusEnum) 
 if (existingOrderModel && (
   !existingOrderModel.schema.path("products.markazProductUrl") ||
   !existingOrderModel.schema.path("products.costPrice") ||
+  !existingOrderModel.schema.path("products.isBundle") ||
   !existingOrderModel.schema.path("products.selectedVariants") ||
   !existingOrderModel.schema.path("products.variantId") ||
   !existingOrderModel.schema.path("products.variantString") ||
