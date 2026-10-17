@@ -40,7 +40,7 @@ export default function SearchSuggestionList({
           onClick={onSelect}
         >
           {product.image
-            ? <Image src={product.image} alt="" width={48} height={48} unoptimized loading="lazy" />
+            ? <span className="product-image-blend search-suggestion-image"><Image src={product.image} alt="" width={48} height={48} unoptimized loading="lazy" /></span>
             : <span className="search-suggestion-placeholder" aria-hidden="true" />}
           <span className="search-suggestion-copy">
             <strong>{product.title}</strong>

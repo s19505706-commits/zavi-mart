@@ -25,7 +25,7 @@
   position: relative;
   aspect-ratio: 1;
   overflow: hidden;
-  background: #0a0a0c;
+  background: #121214;
 }
 
 .image {
@@ -34,6 +34,8 @@
   height: 100%;
   object-fit: contain;
   padding: 16px;
+  filter: brightness(1.02) contrast(1.05);
+  mix-blend-mode: multiply;
   transition: transform 500ms ease;
 }
 

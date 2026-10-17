@@ -111,7 +111,7 @@ export default function ProductCard({
       <Link className={styles.imageLink} href={productHref}>
         <div
           ref={cardRef}
-          className={`${styles.imagePanel} ${discountPercent > 0 ? styles.hasDiscount : ""}`}
+          className={`product-image-blend ${styles.imagePanel} ${discountPercent > 0 ? styles.hasDiscount : ""}`}
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => {
             setIsHovered(false);
