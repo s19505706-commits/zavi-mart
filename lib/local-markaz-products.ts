@@ -1,4 +1,3 @@
-import trackedMarkazProducts from "../data/markaz-products.json";
 import { addMockProduct, type MockProduct } from "./mock-products";
 import type { ProductImportSource } from "./product-history";
 import { cleanMarkazTitle, cleanProductDescription, extractProductCode } from "./product-codes";
@@ -106,28 +105,12 @@ async function readStoredMarkazProductsFile(): Promise<LocalMarkazProduct[]> {
   return [];
 }
 
-export function getTrackedMarkazProducts(): LocalMarkazProduct[] {
-  const trackedProducts: unknown = trackedMarkazProducts;
-  if (!Array.isArray(trackedProducts) || !trackedProducts.every(isLocalMarkazProduct)) {
-    throw new Error("data/markaz-products.json must contain valid Markaz product records.");
-  }
-  return trackedProducts.map((product) => normalizeLocalMarkazProduct({
-    ...product,
-    importSource: product.importSource ?? "bulk-import"
-  }));
-}
-
-async function readmarkazProductsFile(): Promise<LocalMarkazProduct[]> {
-  const storedProducts = await readStoredMarkazProductsFile();
-  return storedProducts.length > 0 ? storedProducts : getTrackedMarkazProducts();
-}
-
 export async function getStoredLocalMarkazProducts(): Promise<LocalMarkazProduct[]> {
   return (await readStoredMarkazProductsFile()).map(normalizeLocalMarkazProduct);
 }
 
 export async function getLocalMarkazProducts(): Promise<LocalMarkazProduct[]> {
-  const products = (await readmarkazProductsFile()).map((product) => normalizeLocalMarkazProduct({
+  const products = (await readStoredMarkazProductsFile()).map((product) => normalizeLocalMarkazProduct({
     ...product,
     importSource: product.importSource ?? "bulk-import"
   }));
@@ -144,7 +127,7 @@ export async function getLocalMarkazProducts(): Promise<LocalMarkazProduct[]> {
 export async function saveLocalMarkazProduct(product: LocalMarkazProduct): Promise<void> {
   const save = async () => {
     assertLocalStoreWritesAllowed("Markaz product");
-    const products = await readmarkazProductsFile();
+    const products = await readStoredMarkazProductsFile();
     products.push(product);
     await writeStoreJson(markazProductsFile, products);
     addMockProduct({

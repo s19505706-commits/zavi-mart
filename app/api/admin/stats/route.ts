@@ -1,12 +1,8 @@
 import { handleApiError, requireAdmin } from "../../../../lib/api-utils";
 import { connectToDatabase } from "../../../../lib/mongodb";
-import {
-  getStoredLocalMarkazProducts,
-  getTrackedMarkazProducts
-} from "../../../../lib/local-markaz-products";
+import { getStoredLocalMarkazProducts } from "../../../../lib/local-markaz-products";
 import { getLocalOrders } from "../../../../lib/local-orders";
 import { getLocalProductStore } from "../../../../lib/local-products";
-import { MOCK_PRODUCTS } from "../../../../lib/mock-products";
 import Order from "../../../../models/Order";
 import Product from "../../../../models/Product";
 import { mergeCatalogProducts } from "../../../../lib/product-catalog";
@@ -120,9 +116,8 @@ export async function GET(request: Request) {
     const allProducts = mergeCatalogProducts<ProductForMerge>([
       databaseProducts.map((product) => ({ ...product, _id: product._id.toString() })),
       localProductStore.products,
-      localMarkazProducts,
-      getTrackedMarkazProducts()
-    ], MOCK_PRODUCTS);
+      localMarkazProducts
+    ], []);
     const productsById = new Map<string, ProductForMerge>();
     const productsByName = new Map<string, ProductForMerge>();
     for (const product of allProducts) {

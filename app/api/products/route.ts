@@ -9,8 +9,7 @@ import { serializeProduct } from "../../../lib/product-response";
 import Product from "../../../models/Product";
 import {
   getLocalMarkazProducts,
-  getStoredLocalMarkazProducts,
-  getTrackedMarkazProducts
+  getStoredLocalMarkazProducts
 } from "../../../lib/local-markaz-products";
 import {
   deleteLocalProduct,
@@ -162,9 +161,18 @@ export async function GET(request: Request) {
     const catalogProducts = mergeCatalogProducts<ProductListItem>([
       databaseList,
       store.products.map((product) => ({ ...product }) as ProductListItem),
-      localMarkazProducts.map((product) => ({ ...product }) as ProductListItem),
-      getTrackedMarkazProducts().map((product) => ({ ...product }) as ProductListItem)
-    ], MOCK_PRODUCTS.map((product) => ({ ...product }) as ProductListItem));
+      localMarkazProducts.map((product) => ({ ...product }) as ProductListItem)
+    ], includeAdminFields
+      ? []
+      : MOCK_PRODUCTS.map((product) => ({ ...product }) as ProductListItem));
+    if (includeAdminFields && !requestedId) {
+      console.info("[admin/products] Catalog sources:", {
+        database: databaseList.length,
+        localStore: store.products.length,
+        explicitlyImportedMarkaz: localMarkazProducts.length,
+        demoProductsIncluded: 0
+      });
+    }
     const now = Date.now();
     const activeFlashProductIds = flashDealsOnly === "true" || flashOnly === "true"
       ? new Set((await getFlashDeals()).filter((deal) =>

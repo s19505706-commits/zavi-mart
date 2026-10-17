@@ -1,7 +1,6 @@
 import { connectToDatabase } from "./mongodb";
 import {
-  getStoredLocalMarkazProducts,
-  getTrackedMarkazProducts
+  getStoredLocalMarkazProducts
 } from "./local-markaz-products";
 import { getLocalProductStore } from "./local-products";
 import { MOCK_PRODUCTS } from "./mock-products";
@@ -82,8 +81,7 @@ async function loadCatalogSnapshot(): Promise<CatalogSnapshot> {
     products: mergeCatalogProducts([
       databaseList,
       store.products.map((product) => ({ ...product }) as CatalogProduct),
-      localMarkazProducts.map((product) => ({ ...product }) as CatalogProduct),
-      getTrackedMarkazProducts().map((product) => ({ ...product }) as CatalogProduct)
+      localMarkazProducts.map((product) => ({ ...product }) as CatalogProduct)
     ], MOCK_PRODUCTS.map((product) => ({ ...product }) as CatalogProduct)),
     deletedIds: [...store.deletedIds]
   };

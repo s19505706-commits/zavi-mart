@@ -7,8 +7,7 @@ import Category from "../models/Category";
 import Product from "../models/Product";
 import { MOCK_PRODUCTS } from "./mock-products";
 import {
-  getStoredLocalMarkazProducts,
-  getTrackedMarkazProducts
+  getStoredLocalMarkazProducts
 } from "./local-markaz-products";
 import { getLocalProductStore } from "./local-products";
 import { PRODUCT_CATEGORIES } from "./product-categories";
@@ -477,8 +476,7 @@ async function getProductRecords(connection: Awaited<ReturnType<typeof connectTo
         ? product.departmentId
         : null,
       categoryId: product.categoryId
-    })).map(toMergeProduct),
-    getTrackedMarkazProducts().map(toMergeProduct)
+    })).map(toMergeProduct)
   ], MOCK_PRODUCTS.map((product) => ({
     _id: product._id,
     id: product.id,
