@@ -1,5 +1,13 @@
 import mongoose from "mongoose";
-import { DEFAULT_AD, normalizeAdLines } from "../../../../lib/ad-types";
+import {
+  AD_ANIMATION_SPEEDS,
+  AD_ANIMATION_STYLES,
+  AD_FILTER_PRESETS,
+  AD_TEXT_EFFECTS,
+  DEFAULT_AD,
+  normalizeAdLines,
+  type AdCustomImage
+} from "../../../../lib/ad-types";
 import { ApiError, handleApiError } from "../../../../lib/api-utils";
 import { connectToDatabase } from "../../../../lib/mongodb";
 import Ad from "../../../../lib/models/Ad";
@@ -18,6 +26,12 @@ const corsHeaders = {
 
 function publicAdResponse(body: unknown, status = 200): Response {
   return Response.json(body, { status, headers: corsHeaders });
+}
+
+function enumValue<T extends readonly string[]>(value: unknown, choices: T, fallback: T[number]): T[number] {
+  return typeof value === "string" && choices.some((choice) => choice === value)
+    ? value as T[number]
+    : fallback;
 }
 
 export async function OPTIONS() {
@@ -71,6 +85,17 @@ export async function GET() {
         : DEFAULT_AD.audioType,
       beatSync: ad.beatSync !== false,
       volume: typeof ad.volume === "number" ? ad.volume : DEFAULT_AD.volume,
+      customImages: Array.isArray(ad.customImages) ? ad.customImages as AdCustomImage[] : DEFAULT_AD.customImages,
+      animationStyle: enumValue(ad.animationStyle, AD_ANIMATION_STYLES, DEFAULT_AD.animationStyle),
+      animationSpeed: enumValue(ad.animationSpeed, AD_ANIMATION_SPEEDS, DEFAULT_AD.animationSpeed),
+      textEffect: enumValue(ad.textEffect, AD_TEXT_EFFECTS, DEFAULT_AD.textEffect),
+      filterPreset: enumValue(ad.filterPreset, AD_FILTER_PRESETS, DEFAULT_AD.filterPreset),
+      customBg: typeof ad.customBg === "string" ? ad.customBg : DEFAULT_AD.customBg,
+      overlayOpacity: typeof ad.overlayOpacity === "number" ? ad.overlayOpacity : DEFAULT_AD.overlayOpacity,
+      brightness: typeof ad.brightness === "number" ? ad.brightness : DEFAULT_AD.brightness,
+      contrast: typeof ad.contrast === "number" ? ad.contrast : DEFAULT_AD.contrast,
+      blurAmount: typeof ad.blurAmount === "number" ? ad.blurAmount : DEFAULT_AD.blurAmount,
+      goldTintOpacity: typeof ad.goldTintOpacity === "number" ? ad.goldTintOpacity : DEFAULT_AD.goldTintOpacity,
       isActive: true,
       placement: "homepage",
       createdAt: ad.createdAt instanceof Date ? ad.createdAt.toISOString() : undefined,

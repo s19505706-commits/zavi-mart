@@ -14,7 +14,7 @@ import {
 import HotDealsSlider, { type Deal, type StoreCategory } from "../components/HotDealsSlider";
 import StoreSearch from "../components/StoreSearch";
 import KineticAd from "../components/ads/KineticAd";
-import type { AdData } from "../lib/ad-types";
+import { DEFAULT_AD, type AdData, type AdCustomImage } from "../lib/ad-types";
 import {
   CART_STORAGE_KEY,
   CHECKOUT_PRODUCTS_BY_CART_ID,
@@ -164,6 +164,7 @@ export default function HomePage() {
           })
           : [];
         const parsedAd: AdData = {
+          ...DEFAULT_AD,
           titleLines: lines(ad.titleLines, ["WHAT", "EVER", "YOU", "BUY"]),
           secondLines: lines(ad.secondLines, ["SELL", "MORE", "MORE", "MORE"]),
           finalLines: lines(ad.finalLines, ["THE", "WORLD'S", "BEST", "CHECKOUT"]),
@@ -181,6 +182,45 @@ export default function HomePage() {
             : "punchy-beat",
           beatSync: ad.beatSync !== false,
           volume: typeof ad.volume === "number" ? ad.volume : 80,
+          customImages: Array.isArray(ad.customImages)
+            ? ad.customImages.flatMap((image): AdCustomImage[] => {
+              if (typeof image !== "object" || image === null || Array.isArray(image) ||
+                  !("url" in image) || typeof image.url !== "string") return [];
+              const position = "position" in image && (image.position === "background" || image.position === "foreground" || image.position === "floating")
+                ? image.position
+                : "foreground";
+              return [{
+                url: image.url,
+                position,
+                x: "x" in image && typeof image.x === "number" ? image.x : 50,
+                y: "y" in image && typeof image.y === "number" ? image.y : 50,
+                scale: "scale" in image && typeof image.scale === "number" ? image.scale : 1
+              }];
+            })
+            : DEFAULT_AD.customImages,
+          animationStyle: ad.animationStyle === "fade-up" || ad.animationStyle === "zoom-in" ||
+            ad.animationStyle === "slide-left" || ad.animationStyle === "typewriter" ||
+            ad.animationStyle === "bounce" || ad.animationStyle === "rotate-3d"
+            ? ad.animationStyle
+            : DEFAULT_AD.animationStyle,
+          animationSpeed: ad.animationSpeed === "slow" || ad.animationSpeed === "fast" || ad.animationSpeed === "beat-sync"
+            ? ad.animationSpeed
+            : DEFAULT_AD.animationSpeed,
+          textEffect: ad.textEffect === "glow-gold" || ad.textEffect === "stroke" ||
+            ad.textEffect === "shadow-3d" || ad.textEffect === "gradient-gold"
+            ? ad.textEffect
+            : DEFAULT_AD.textEffect,
+          filterPreset: ad.filterPreset === "luxury-dark" || ad.filterPreset === "gold-tint" ||
+            ad.filterPreset === "blur-bg" || ad.filterPreset === "grayscale-luxury" ||
+            ad.filterPreset === "vintage" || ad.filterPreset === "neon-glow" || ad.filterPreset === "cinematic"
+            ? ad.filterPreset
+            : DEFAULT_AD.filterPreset,
+          customBg: typeof ad.customBg === "string" ? ad.customBg : DEFAULT_AD.customBg,
+          overlayOpacity: typeof ad.overlayOpacity === "number" ? ad.overlayOpacity : DEFAULT_AD.overlayOpacity,
+          brightness: typeof ad.brightness === "number" ? ad.brightness : DEFAULT_AD.brightness,
+          contrast: typeof ad.contrast === "number" ? ad.contrast : DEFAULT_AD.contrast,
+          blurAmount: typeof ad.blurAmount === "number" ? ad.blurAmount : DEFAULT_AD.blurAmount,
+          goldTintOpacity: typeof ad.goldTintOpacity === "number" ? ad.goldTintOpacity : DEFAULT_AD.goldTintOpacity,
           isActive: ad.isActive === true || ad.isActive === "true",
           placement: "homepage"
         };

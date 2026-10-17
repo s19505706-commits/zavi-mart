@@ -1,5 +1,12 @@
 import mongoose, { type HydratedDocument, type InferSchemaType } from "mongoose";
-import { AD_AUDIO_TYPES } from "../ad-types";
+import {
+  AD_ANIMATION_SPEEDS,
+  AD_ANIMATION_STYLES,
+  AD_AUDIO_TYPES,
+  AD_FILTER_PRESETS,
+  AD_IMAGE_POSITIONS,
+  AD_TEXT_EFFECTS
+} from "../ad-types";
 
 const adSchema = new mongoose.Schema({
   titleLines: {
@@ -32,6 +39,26 @@ const adSchema = new mongoose.Schema({
   audioType: { type: String, enum: AD_AUDIO_TYPES, default: "punchy-beat" },
   beatSync: { type: Boolean, default: true },
   volume: { type: Number, min: 0, max: 100, default: 80 },
+  customImages: {
+    type: [{
+      url: { type: String, required: true, maxlength: 500_000 },
+      position: { type: String, enum: AD_IMAGE_POSITIONS, default: "foreground" },
+      x: { type: Number, min: 0, max: 100, default: 50 },
+      y: { type: Number, min: 0, max: 100, default: 50 },
+      scale: { type: Number, min: 0.25, max: 2, default: 1 }
+    }],
+    default: []
+  },
+  animationStyle: { type: String, enum: AD_ANIMATION_STYLES, default: "kinetic-shopify" },
+  animationSpeed: { type: String, enum: AD_ANIMATION_SPEEDS, default: "normal" },
+  textEffect: { type: String, enum: AD_TEXT_EFFECTS, default: "none" },
+  filterPreset: { type: String, enum: AD_FILTER_PRESETS, default: "none" },
+  customBg: { type: String, default: "", maxlength: 2048 },
+  overlayOpacity: { type: Number, min: 0, max: 100, default: 0 },
+  brightness: { type: Number, min: 0, max: 200, default: 100 },
+  contrast: { type: Number, min: 0, max: 200, default: 100 },
+  blurAmount: { type: Number, min: 0, max: 20, default: 0 },
+  goldTintOpacity: { type: Number, min: 0, max: 100, default: 20 },
   isActive: { type: Boolean, default: false, index: true },
   placement: { type: String, enum: ["homepage"], default: "homepage", index: true }
 }, { timestamps: true, collection: "ads" });

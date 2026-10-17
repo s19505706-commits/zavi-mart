@@ -12,11 +12,29 @@ import {
   Plus,
   Search,
   Trash2,
+  Upload,
   Volume2,
   X
 } from "lucide-react";
 import KineticAd, { type KineticAdHandle } from "../../../components/ads/KineticAd";
-import { AD_AUDIO_TYPES, DEFAULT_AD, type AdAudioType, type AdData, type AdProductPreview } from "../../../lib/ad-types";
+import {
+  AD_ANIMATION_SPEEDS,
+  AD_ANIMATION_STYLES,
+  AD_AUDIO_TYPES,
+  AD_FILTER_PRESETS,
+  AD_IMAGE_POSITIONS,
+  AD_TEXT_EFFECTS,
+  DEFAULT_AD,
+  type AdAnimationSpeed,
+  type AdAnimationStyle,
+  type AdAudioType,
+  type AdCustomImage,
+  type AdData,
+  type AdFilterPreset,
+  type AdImagePosition,
+  type AdProductPreview,
+  type AdTextEffect
+} from "../../../lib/ad-types";
 import styles from "./ads.module.css";
 
 type CatalogProduct = AdProductPreview;
@@ -57,6 +75,18 @@ function parseAd(value: unknown): AdData | null {
       }];
     })
     : [];
+  const customImages = Array.isArray(value.customImages)
+    ? value.customImages.flatMap((entry): AdCustomImage[] => {
+      if (!isRecord(entry) || typeof entry.url !== "string") return [];
+      return [{
+        url: entry.url,
+        position: parseChoice(entry.position, AD_IMAGE_POSITIONS, "foreground"),
+        x: typeof entry.x === "number" ? entry.x : 50,
+        y: typeof entry.y === "number" ? entry.y : 50,
+        scale: typeof entry.scale === "number" ? entry.scale : 1
+      }];
+    })
+    : [];
   const audioType = typeof value.audioType === "string" && AD_AUDIO_TYPES.some((type) => type === value.audioType)
     ? value.audioType as AdAudioType
     : "punchy-beat";
@@ -78,6 +108,17 @@ function parseAd(value: unknown): AdData | null {
     audioType,
     beatSync: value.beatSync === true,
     volume: typeof value.volume === "number" ? value.volume : DEFAULT_AD.volume,
+    customImages,
+    animationStyle: parseChoice(value.animationStyle, AD_ANIMATION_STYLES, DEFAULT_AD.animationStyle),
+    animationSpeed: parseChoice(value.animationSpeed, AD_ANIMATION_SPEEDS, DEFAULT_AD.animationSpeed),
+    textEffect: parseChoice(value.textEffect, AD_TEXT_EFFECTS, DEFAULT_AD.textEffect),
+    filterPreset: parseChoice(value.filterPreset, AD_FILTER_PRESETS, DEFAULT_AD.filterPreset),
+    customBg: typeof value.customBg === "string" ? value.customBg : DEFAULT_AD.customBg,
+    overlayOpacity: typeof value.overlayOpacity === "number" ? value.overlayOpacity : DEFAULT_AD.overlayOpacity,
+    brightness: typeof value.brightness === "number" ? value.brightness : DEFAULT_AD.brightness,
+    contrast: typeof value.contrast === "number" ? value.contrast : DEFAULT_AD.contrast,
+    blurAmount: typeof value.blurAmount === "number" ? value.blurAmount : DEFAULT_AD.blurAmount,
+    goldTintOpacity: typeof value.goldTintOpacity === "number" ? value.goldTintOpacity : DEFAULT_AD.goldTintOpacity,
     isActive: value.isActive === true,
     placement: "homepage",
     createdAt: typeof value.createdAt === "string" ? value.createdAt : undefined,
@@ -95,6 +136,12 @@ function linesToText(lines: string[]): string {
 
 function textToLines(text: string): string[] {
   return text.split(",").map((line) => line.trim()).filter(Boolean);
+}
+
+function parseChoice<T extends readonly string[]>(value: unknown, choices: T, fallback: T[number]): T[number] {
+  return typeof value === "string" && choices.some((choice) => choice === value)
+    ? value as T[number]
+    : fallback;
 }
 
 function fileAsDataUrl(file: File): Promise<string> {
@@ -124,6 +171,7 @@ export default function AdminAdsPage() {
   const [playingAudio, setPlayingAudio] = useState(false);
   const playerRef = useRef<KineticAdHandle>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   const adminHeaders = useCallback((): HeadersInit => {
     const key = sessionStorage.getItem("zavimart-admin-key")?.trim();
@@ -234,6 +282,41 @@ export default function AdminAdsPage() {
     } catch (uploadError) {
       setError(uploadError instanceof Error ? uploadError.message : "Could not read audio file.");
     }
+  }
+
+  async function uploadCustomImages(files: FileList | File[]) {
+    const selected = Array.from(files);
+    if (!selected.length) return;
+    if (draft.customImages.length + selected.length > 4) {
+      setError("An ad can contain up to 4 custom images.");
+      return;
+    }
+    const invalidFile = selected.find((file) =>
+      !/^image\/(?:jpeg|png|webp|gif)$/i.test(file.type) || file.size > 350_000
+    );
+    if (invalidFile) {
+      setError("Choose JPG, PNG, WebP, or GIF images no larger than 350 KB each.");
+      return;
+    }
+    try {
+      const images = await Promise.all(selected.map(async (file) => ({
+        url: await fileAsDataUrl(file),
+        position: "foreground" as AdImagePosition,
+        x: 50,
+        y: 50,
+        scale: 1
+      })));
+      updateDraft("customImages", [...draft.customImages, ...images]);
+      setError("");
+    } catch (uploadError) {
+      setError(uploadError instanceof Error ? uploadError.message : "Could not read the selected images.");
+    }
+  }
+
+  function updateCustomImage(index: number, patch: Partial<AdCustomImage>) {
+    updateDraft("customImages", draft.customImages.map((image, imageIndex) =>
+      imageIndex === index ? { ...image, ...patch } : image
+    ));
   }
 
   async function saveAd(event: FormEvent<HTMLFormElement>) {
@@ -531,7 +614,156 @@ export default function AdminAdsPage() {
                   </section>
 
                   <section className={styles.formSection}>
-                    <h3><span>04</span> Brand and call to action</h3>
+                    <h3><span>04</span> Visual Studio</h3>
+                    <div
+                      className={styles.imageDropzone}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => imageInputRef.current?.click()}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") imageInputRef.current?.click();
+                      }}
+                      onDragOver={(event) => event.preventDefault()}
+                      onDrop={(event) => {
+                        event.preventDefault();
+                        void uploadCustomImages(event.dataTransfer.files);
+                      }}
+                    >
+                      <input
+                        ref={imageInputRef}
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp,image/gif"
+                        multiple
+                        hidden
+                        onChange={(event) => {
+                          void uploadCustomImages(event.currentTarget.files ?? []);
+                          event.currentTarget.value = "";
+                        }}
+                      />
+                      <Upload size={18} />
+                      <span>Upload Custom Picture</span>
+                      <small>Drop up to 4 JPG, PNG, WebP, or GIF files · 350 KB each</small>
+                    </div>
+                    {draft.customImages.map((image, index) => (
+                      <div className={styles.customImageEditor} key={`${image.url.slice(0, 64)}-${index}`}>
+                        <img src={image.url} alt={`Custom ad layer ${index + 1}`} />
+                        <div className={styles.customImageControls}>
+                          <label className={styles.field}>
+                            <span>Layer position</span>
+                            <select
+                              value={image.position}
+                              onChange={(event) => updateCustomImage(index, { position: event.target.value as AdImagePosition })}
+                            >
+                              <option value="background">Background</option>
+                              <option value="foreground">Foreground</option>
+                              <option value="floating">Floating</option>
+                            </select>
+                          </label>
+                          <label className={styles.rangeControl}>
+                            <span>X position <b>{image.x}%</b></span>
+                            <input type="range" min="0" max="100" value={image.x} onChange={(event) => updateCustomImage(index, { x: Number(event.target.value) })} />
+                          </label>
+                          <label className={styles.rangeControl}>
+                            <span>Y position <b>{image.y}%</b></span>
+                            <input type="range" min="0" max="100" value={image.y} onChange={(event) => updateCustomImage(index, { y: Number(event.target.value) })} />
+                          </label>
+                          <label className={styles.rangeControl}>
+                            <span>Scale <b>{Math.round(image.scale * 100)}%</b></span>
+                            <input type="range" min="25" max="200" value={Math.round(image.scale * 100)} onChange={(event) => updateCustomImage(index, { scale: Number(event.target.value) / 100 })} />
+                          </label>
+                        </div>
+                        <button
+                          type="button"
+                          className={styles.removeImage}
+                          onClick={() => updateDraft("customImages", draft.customImages.filter((_, imageIndex) => imageIndex !== index))}
+                          aria-label={`Remove custom image ${index + 1}`}
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
+                    ))}
+                    <label className={styles.field}>
+                      <span>Custom background <small>HTTPS image, hex color, or CSS gradient</small></span>
+                      <input
+                        value={draft.customBg}
+                        onChange={(event) => updateDraft("customBg", event.target.value)}
+                        placeholder="https://... or linear-gradient(...)"
+                        maxLength={2048}
+                      />
+                    </label>
+                    <div className={styles.twoFields}>
+                      <label className={styles.field}>
+                        <span>Animation style</span>
+                        <select value={draft.animationStyle} onChange={(event) => updateDraft("animationStyle", event.target.value as AdAnimationStyle)}>
+                          <option value="kinetic-shopify">Kinetic Shopify</option>
+                          <option value="fade-up">Fade Up</option>
+                          <option value="zoom-in">Zoom In</option>
+                          <option value="slide-left">Slide Left</option>
+                          <option value="typewriter">Typewriter</option>
+                          <option value="bounce">Bounce</option>
+                          <option value="rotate-3d">Rotate 3D</option>
+                        </select>
+                      </label>
+                      <label className={styles.field}>
+                        <span>Animation speed</span>
+                        <select value={draft.animationSpeed} onChange={(event) => updateDraft("animationSpeed", event.target.value as AdAnimationSpeed)}>
+                          <option value="slow">Slow</option>
+                          <option value="normal">Normal</option>
+                          <option value="fast">Fast</option>
+                          <option value="beat-sync">Beat Sync</option>
+                        </select>
+                      </label>
+                    </div>
+                    <label className={styles.field}>
+                      <span>Text effect</span>
+                      <select value={draft.textEffect} onChange={(event) => updateDraft("textEffect", event.target.value as AdTextEffect)}>
+                        <option value="none">None</option>
+                        <option value="glow-gold">Glow Gold</option>
+                        <option value="stroke">Stroke</option>
+                        <option value="shadow-3d">Shadow 3D</option>
+                        <option value="gradient-gold">Gradient Gold</option>
+                      </select>
+                    </label>
+                    <div className={styles.filterGrid} aria-label="Visual filter presets">
+                      {AD_FILTER_PRESETS.map((preset) => (
+                        <button
+                          type="button"
+                          key={preset}
+                          className={`${styles.filterCard} ${draft.filterPreset === preset ? styles.filterSelected : ""}`}
+                          onClick={() => updateDraft("filterPreset", preset as AdFilterPreset)}
+                          aria-pressed={draft.filterPreset === preset}
+                        >
+                          <span className={`${styles.filterSample} ${styles[`filterSample-${preset}`]}`} />
+                          <span>{preset.replaceAll("-", " ")}</span>
+                        </button>
+                      ))}
+                    </div>
+                    <div className={styles.visualRanges}>
+                      <label className={styles.rangeControl}>
+                        <span>Brightness <b>{draft.brightness}%</b></span>
+                        <input type="range" min="0" max="200" value={draft.brightness} onChange={(event) => updateDraft("brightness", Number(event.target.value))} />
+                      </label>
+                      <label className={styles.rangeControl}>
+                        <span>Contrast <b>{draft.contrast}%</b></span>
+                        <input type="range" min="0" max="200" value={draft.contrast} onChange={(event) => updateDraft("contrast", Number(event.target.value))} />
+                      </label>
+                      <label className={styles.rangeControl}>
+                        <span>Blur <b>{draft.blurAmount}px</b></span>
+                        <input type="range" min="0" max="20" value={draft.blurAmount} onChange={(event) => updateDraft("blurAmount", Number(event.target.value))} />
+                      </label>
+                      <label className={styles.rangeControl}>
+                        <span>Gold tint opacity <b>{draft.goldTintOpacity}%</b></span>
+                        <input type="range" min="0" max="100" value={draft.goldTintOpacity} onChange={(event) => updateDraft("goldTintOpacity", Number(event.target.value))} />
+                      </label>
+                      <label className={styles.rangeControl}>
+                        <span>Dark overlay <b>{draft.overlayOpacity}%</b></span>
+                        <input type="range" min="0" max="100" value={draft.overlayOpacity} onChange={(event) => updateDraft("overlayOpacity", Number(event.target.value))} />
+                      </label>
+                    </div>
+                  </section>
+
+                  <section className={styles.formSection}>
+                    <h3><span>05</span> Brand and call to action</h3>
                     <div className={styles.twoFields}>
                       <label className={styles.field}><span>CTA text</span><input value={draft.ctaText} onChange={(event) => updateDraft("ctaText", event.target.value)} required maxLength={60} /></label>
                       <label className={styles.field}><span>CTA link</span><input value={draft.ctaLink} onChange={(event) => updateDraft("ctaLink", event.target.value)} required maxLength={2048} /></label>

@@ -1,11 +1,84 @@
 "use client";
 
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, type TargetAndTransition, type Transition } from "framer-motion";
 import { Howl } from "howler";
 import { ShoppingBag, Volume2, VolumeX } from "lucide-react";
-import { DEFAULT_AD, normalizeAdLines, type AdData, type AdProductPreview, type KineticAdInput } from "../../lib/ad-types";
+import {
+  DEFAULT_AD,
+  normalizeAdLines,
+  type AdAnimationSpeed,
+  type AdAnimationStyle,
+  type AdData,
+  type AdProductPreview,
+  type AdTextEffect,
+  type KineticAdInput
+} from "../../lib/ad-types";
 import styles from "./KineticAd.module.css";
+
+function getAnimationVariants(
+  style: AdAnimationStyle,
+  speed: AdAnimationSpeed,
+  beatSync: boolean,
+  index: number
+): { initial: TargetAndTransition; animate: TargetAndTransition; transition: Transition } {
+  const duration = (speed === "slow" ? 1.15 : speed === "fast" ? 0.38 : speed === "beat-sync" && beatSync ? 0.42 : 0.68);
+  const base = { opacity: 0 };
+  let initial: TargetAndTransition = base;
+  let animate: TargetAndTransition = { opacity: 1 };
+  let transition: Transition = { duration, delay: Math.min(index * 0.035, 0.18), ease: "easeOut" };
+
+  switch (style) {
+    case "fade-up":
+      initial = { ...base, y: 42 };
+      animate = { opacity: 1, y: 0 };
+      break;
+    case "zoom-in":
+      initial = { ...base, scale: 0.5 };
+      animate = { opacity: 1, scale: 1 };
+      break;
+    case "slide-left":
+      initial = { ...base, x: 56 };
+      animate = { opacity: 1, x: 0 };
+      break;
+    case "typewriter":
+      initial = { ...base, clipPath: "inset(0 100% 0 0)" };
+      animate = { opacity: 1, clipPath: "inset(0 0% 0 0)" };
+      break;
+    case "bounce":
+      initial = { ...base, y: -38, scale: 0.75 };
+      animate = { opacity: 1, y: 0, scale: 1 };
+      transition = { type: "spring", stiffness: 240, damping: 13, delay: Math.min(index * 0.035, 0.18) };
+      break;
+    case "rotate-3d":
+      initial = { ...base, rotateY: 85, scale: 0.88 };
+      animate = { opacity: 1, rotateY: 0, scale: 1 };
+      transition = { duration, delay: Math.min(index * 0.035, 0.18), ease: "easeOut" };
+      break;
+    case "kinetic-shopify":
+      initial = { ...base, y: 34, scale: 0.78 };
+      animate = { opacity: 1, y: 0, scale: 1 };
+      break;
+  }
+
+  return { initial, animate, transition };
+}
+
+function textEffectClass(effect: AdTextEffect): string {
+  switch (effect) {
+    case "glow-gold": return styles.textGlow;
+    case "stroke": return styles.textStroke;
+    case "shadow-3d": return styles.textShadow3d;
+    case "gradient-gold": return styles.textGradient;
+    default: return "";
+  }
+}
+
+function getCustomBackground(value: string): React.CSSProperties {
+  if (!value) return {};
+  if (/^https:\/\//i.test(value)) return { backgroundImage: `url("${value}")`, backgroundPosition: "center", backgroundSize: "cover" };
+  return { background: value };
+}
 
 const PRESET_AUDIO: Record<Exclude<AdData["audioType"], "custom">, string> = {
   "punchy-beat": "/sounds/punchy-beat.wav",
@@ -60,6 +133,16 @@ const KineticAd = forwardRef<KineticAdHandle, KineticAdProps>(function KineticAd
   );
   const audioType = normalizedAd.audioType === "custom" ? "punchy-beat" : normalizedAd.audioType;
   const audioUrl = normalizedAd.audioUrl || PRESET_AUDIO[audioType];
+  const customImages = normalizedAd.customImages ?? [];
+  const backdropFilter = [
+    `brightness(${normalizedAd.brightness / 100})`,
+    `contrast(${normalizedAd.contrast / 100})`,
+    `blur(${normalizedAd.blurAmount}px)`,
+    normalizedAd.filterPreset === "blur-bg" ? "blur(10px)" : "",
+    normalizedAd.filterPreset === "luxury-dark" ? "brightness(0.8) contrast(1.2)" : "",
+    normalizedAd.filterPreset === "grayscale-luxury" ? "grayscale(1)" : "",
+    normalizedAd.filterPreset === "vintage" ? "sepia(0.5)" : ""
+  ].filter(Boolean).join(" ");
 
   useImperativeHandle(ref, () => ({
     playWithSound() {
@@ -193,8 +276,41 @@ const KineticAd = forwardRef<KineticAdHandle, KineticAdProps>(function KineticAd
   const cssVars = {
     "--ad-bg": normalizedAd.bgColor,
     "--ad-text": normalizedAd.textColor,
-    "--ad-gold": normalizedAd.goldColor
+    "--ad-gold": normalizedAd.goldColor,
+    "--ad-overlay-opacity": normalizedAd.overlayOpacity / 100,
+    "--ad-gold-tint-opacity": normalizedAd.filterPreset === "gold-tint"
+      ? normalizedAd.goldTintOpacity / 100
+      : 0
   } as React.CSSProperties;
+
+  function renderWord(line: string, index: number, key: string, className = "") {
+    const motionProps = getAnimationVariants(
+      normalizedAd.animationStyle,
+      normalizedAd.animationSpeed,
+      normalizedAd.beatSync,
+      index
+    );
+    return (
+      <motion.span key={key} className={className} {...motionProps}>
+        {normalizedAd.animationStyle === "typewriter"
+          ? Array.from(line).map((character, characterIndex) => (
+            <motion.span
+              key={`${character}-${characterIndex}`}
+              className={styles.typewriterCharacter}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{
+                duration: normalizedAd.animationSpeed === "fast" ? 0.12 : 0.2,
+                delay: index * 0.04 + characterIndex * 0.035
+              }}
+            >
+              {character}
+            </motion.span>
+          ))
+          : line}
+      </motion.span>
+    );
+  }
 
   return (
     <section
@@ -202,9 +318,42 @@ const KineticAd = forwardRef<KineticAdHandle, KineticAdProps>(function KineticAd
       style={cssVars}
       aria-label="Animated Zavi Mart advertisement"
     >
-      <div className={styles.glow} aria-hidden="true" />
-      <div className={styles.beatFlash} style={{ opacity: normalizedAd.beatSync ? Math.max(0, 1 - (elapsed % 0.5) * 8) * 0.16 : 0 }} />
       <audio ref={audioRef} src={audioUrl} preload="auto" loop muted aria-hidden="true" />
+      <div className={styles.backdropLayer} style={{ filter: backdropFilter }} aria-hidden="true">
+        <div className={styles.customBackground} style={getCustomBackground(normalizedAd.customBg)} />
+        {customImages.filter((image) => image.position === "background").map((image, index) => (
+          <img
+            key={`background-${index}`}
+            className={styles.backgroundImage}
+            src={image.url}
+            alt=""
+            style={{ objectPosition: `${image.x}% ${image.y}%`, transform: `scale(${image.scale})` }}
+          />
+        ))}
+      </div>
+      <div className={styles.glow} aria-hidden="true" />
+      {normalizedAd.filterPreset === "gold-tint" && <div className={styles.goldTint} aria-hidden="true" />}
+      {normalizedAd.filterPreset === "cinematic" && <div className={styles.vignette} aria-hidden="true" />}
+      {normalizedAd.overlayOpacity > 0 && <div className={styles.dimOverlay} aria-hidden="true" />}
+      <div
+        className={styles.beatFlash}
+        style={{ opacity: normalizedAd.beatSync ? Math.max(0, 1 - (elapsed % 0.5) * 8) * 0.16 : 0 }}
+        aria-hidden="true"
+      />
+      {customImages.filter((image) => image.position !== "background").map((image, index) => (
+        <img
+          key={`overlay-${index}`}
+          className={`${styles.customImage} ${image.position === "floating" ? styles.floatingImage : styles.foregroundImage}`}
+          src={image.url}
+          alt=""
+          aria-hidden="true"
+          style={{
+            left: `${image.x}%`,
+            top: `${image.y}%`,
+            transform: `translate(-50%, -50%) scale(${image.scale})`
+          }}
+        />
+      ))}
       <AnimatePresence mode="wait">
         {elapsed < 3 && (
           <motion.div
@@ -215,17 +364,10 @@ const KineticAd = forwardRef<KineticAdHandle, KineticAdProps>(function KineticAd
             exit={{ opacity: 0, scale: 1.04 }}
             transition={{ duration: 0.22 }}
           >
-            <div className={styles.words}>
-              {normalizedAd.titleLines.slice(0, firstCount).map((line, index) => (
-                <motion.span
-                  key={`${line}-${index}`}
-                  initial={{ opacity: 0, y: 36, scale: 0.78 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  transition={{ type: "spring", stiffness: 220, damping: 18 }}
-                >
-                  {line}
-                </motion.span>
-              ))}
+            <div className={`${styles.words} ${textEffectClass(normalizedAd.textEffect)} ${normalizedAd.filterPreset === "neon-glow" ? styles.textNeonGlow : ""}`}>
+              {normalizedAd.titleLines.slice(0, firstCount).map((line, index) =>
+                renderWord(line, index, `title-${line}-${index}`)
+              )}
             </div>
             {featuredProduct && (
               <motion.a
@@ -262,18 +404,10 @@ const KineticAd = forwardRef<KineticAdHandle, KineticAdProps>(function KineticAd
                 />
               ))}
             </div>
-            <div className={styles.words}>
-              {normalizedAd.secondLines.slice(0, secondCount).map((line, index) => (
-                <motion.span
-                  key={`${line}-${index}`}
-                  className={index === secondCount - 1 ? styles.goldWord : ""}
-                  initial={{ opacity: 0, y: 22, scale: 0.8 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  transition={{ type: "spring", stiffness: 240, damping: 20 }}
-                >
-                  {line}
-                </motion.span>
-              ))}
+            <div className={`${styles.words} ${textEffectClass(normalizedAd.textEffect)} ${normalizedAd.filterPreset === "neon-glow" ? styles.textNeonGlow : ""}`}>
+              {normalizedAd.secondLines.slice(0, secondCount).map((line, index) =>
+                renderWord(line, index, `momentum-${line}-${index}`, index === secondCount - 1 ? styles.goldWord : "")
+              )}
             </div>
           </motion.div>
         )}
@@ -286,18 +420,10 @@ const KineticAd = forwardRef<KineticAdHandle, KineticAdProps>(function KineticAd
             exit={{ opacity: 0, scale: 1.06 }}
             transition={{ duration: 0.24 }}
           >
-            <div className={styles.words}>
-              {normalizedAd.finalLines.slice(0, finalCount).map((line, index) => (
-                <motion.span
-                  key={`${line}-${index}`}
-                  className={index === normalizedAd.finalLines.length - 1 ? styles.goldWord : ""}
-                  initial={{ opacity: 0, scale: 0.65 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ type: "spring", stiffness: 200, damping: 16 }}
-                >
-                  {line}
-                </motion.span>
-              ))}
+            <div className={`${styles.words} ${textEffectClass(normalizedAd.textEffect)} ${normalizedAd.filterPreset === "neon-glow" ? styles.textNeonGlow : ""}`}>
+              {normalizedAd.finalLines.slice(0, finalCount).map((line, index) =>
+                renderWord(line, index, `final-${line}-${index}`, index === normalizedAd.finalLines.length - 1 ? styles.goldWord : "")
+              )}
             </div>
           </motion.div>
         )}

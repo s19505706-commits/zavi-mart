@@ -1,6 +1,17 @@
 import mongoose from "mongoose";
 import { revalidatePath } from "next/cache";
-import { AD_AUDIO_TYPES, type AdData, type AdProductPreview } from "../../../../lib/ad-types";
+import {
+  AD_ANIMATION_SPEEDS,
+  AD_ANIMATION_STYLES,
+  AD_AUDIO_TYPES,
+  AD_FILTER_PRESETS,
+  AD_IMAGE_POSITIONS,
+  AD_TEXT_EFFECTS,
+  DEFAULT_AD,
+  type AdData,
+  type AdCustomImage,
+  type AdProductPreview
+} from "../../../../lib/ad-types";
 import { ApiError, handleApiError, isRecord, readJsonBody, requireAdmin } from "../../../../lib/api-utils";
 import { connectToDatabase } from "../../../../lib/mongodb";
 import Ad from "../../../../lib/models/Ad";
@@ -15,6 +26,44 @@ function parseLines(value: unknown, label: string): string[] {
     throw new ApiError(`${label} must contain 1 to 8 lines, each no longer than 60 characters.`, 400);
   }
   return value.map((line) => (line as string).trim());
+}
+
+function parseEnum<T extends readonly string[]>(value: unknown, allowed: T, fallback: T[number], label: string): T[number] {
+  if (value === undefined) return fallback;
+  if (typeof value !== "string" || !allowed.includes(value)) {
+    throw new ApiError(`Choose a supported ${label}.`, 400);
+  }
+  return value as T[number];
+}
+
+function parseRange(value: unknown, fallback: number, min: number, max: number, label: string): number {
+  const parsed = value === undefined ? fallback : Number(value);
+  if (!Number.isFinite(parsed) || parsed < min || parsed > max) {
+    throw new ApiError(`${label} must be between ${min} and ${max}.`, 400);
+  }
+  return parsed;
+}
+
+function parseCustomImages(value: unknown): AdCustomImage[] {
+  if (value === undefined) return [];
+  if (!Array.isArray(value) || value.length > 4) {
+    throw new ApiError("Upload up to 4 custom images.", 400);
+  }
+  return value.map((entry) => {
+    if (!isRecord(entry) || typeof entry.url !== "string" || entry.url.length > 500_000 ||
+        !(entry.url.startsWith("https://") ||
+          /^data:image\/(?:png|jpeg|webp|gif);base64,[a-z\d+/]+=*$/i.test(entry.url))) {
+      throw new ApiError("Custom images must be secure image URLs or supported image uploads under 350 KB.", 400);
+    }
+    const position = parseEnum(entry.position, AD_IMAGE_POSITIONS, "foreground", "image position");
+    return {
+      url: entry.url,
+      position,
+      x: parseRange(entry.x, 50, 0, 100, "Image X position"),
+      y: parseRange(entry.y, 50, 0, 100, "Image Y position"),
+      scale: parseRange(entry.scale, 1, 0.25, 2, "Image scale")
+    };
+  });
 }
 
 function parseAdInput(value: unknown): Omit<AdData, "id" | "productDetails" | "createdAt" | "updatedAt"> {
@@ -57,6 +106,13 @@ function parseAdInput(value: unknown): Omit<AdData, "id" | "productDetails" | "c
   if (!ctaLink.startsWith("/") && !/^https:\/\/[^\s]+$/i.test(ctaLink)) {
     throw new ApiError("CTA link must be a local path or an HTTPS URL.", 400);
   }
+  const customBg = typeof value.customBg === "string" ? value.customBg.trim() : "";
+  if (customBg.length > 2048 ||
+      (customBg !== "" && !/^#[\da-f]{3,8}$/i.test(customBg) &&
+        !/^(?:linear|radial)-gradient\([\w\s,#.%()-]+\)$/i.test(customBg) &&
+        !/^https:\/\/[^\s"'<>]+$/i.test(customBg))) {
+    throw new ApiError("Custom background must be a hex color, CSS gradient, or HTTPS image URL.", 400);
+  }
   return {
     titleLines,
     secondLines,
@@ -72,6 +128,17 @@ function parseAdInput(value: unknown): Omit<AdData, "id" | "productDetails" | "c
     audioType: audioType as AdData["audioType"],
     beatSync: value.beatSync === true,
     volume,
+    customImages: parseCustomImages(value.customImages),
+    animationStyle: parseEnum(value.animationStyle, AD_ANIMATION_STYLES, DEFAULT_AD.animationStyle, "animation style"),
+    animationSpeed: parseEnum(value.animationSpeed, AD_ANIMATION_SPEEDS, DEFAULT_AD.animationSpeed, "animation speed"),
+    textEffect: parseEnum(value.textEffect, AD_TEXT_EFFECTS, DEFAULT_AD.textEffect, "text effect"),
+    filterPreset: parseEnum(value.filterPreset, AD_FILTER_PRESETS, DEFAULT_AD.filterPreset, "filter preset"),
+    customBg,
+    overlayOpacity: parseRange(value.overlayOpacity, DEFAULT_AD.overlayOpacity, 0, 100, "Overlay opacity"),
+    brightness: parseRange(value.brightness, DEFAULT_AD.brightness, 0, 200, "Brightness"),
+    contrast: parseRange(value.contrast, DEFAULT_AD.contrast, 0, 200, "Contrast"),
+    blurAmount: parseRange(value.blurAmount, DEFAULT_AD.blurAmount, 0, 20, "Blur"),
+    goldTintOpacity: parseRange(value.goldTintOpacity, DEFAULT_AD.goldTintOpacity, 0, 100, "Gold tint opacity"),
     isActive: value.isActive === true,
     placement: "homepage"
   };
@@ -101,6 +168,17 @@ function serializeAd(ad: Record<string, unknown>, productsById = new Map<string,
     audioType: ad.audioType as AdData["audioType"],
     beatSync: ad.beatSync as boolean,
     volume: ad.volume as number,
+    customImages: Array.isArray(ad.customImages) ? ad.customImages as AdCustomImage[] : [],
+    animationStyle: ad.animationStyle as AdData["animationStyle"] ?? DEFAULT_AD.animationStyle,
+    animationSpeed: ad.animationSpeed as AdData["animationSpeed"] ?? DEFAULT_AD.animationSpeed,
+    textEffect: ad.textEffect as AdData["textEffect"] ?? DEFAULT_AD.textEffect,
+    filterPreset: ad.filterPreset as AdData["filterPreset"] ?? DEFAULT_AD.filterPreset,
+    customBg: typeof ad.customBg === "string" ? ad.customBg : DEFAULT_AD.customBg,
+    overlayOpacity: typeof ad.overlayOpacity === "number" ? ad.overlayOpacity : DEFAULT_AD.overlayOpacity,
+    brightness: typeof ad.brightness === "number" ? ad.brightness : DEFAULT_AD.brightness,
+    contrast: typeof ad.contrast === "number" ? ad.contrast : DEFAULT_AD.contrast,
+    blurAmount: typeof ad.blurAmount === "number" ? ad.blurAmount : DEFAULT_AD.blurAmount,
+    goldTintOpacity: typeof ad.goldTintOpacity === "number" ? ad.goldTintOpacity : DEFAULT_AD.goldTintOpacity,
     isActive: ad.isActive as boolean,
     placement: "homepage",
     createdAt: ad.createdAt instanceof Date ? ad.createdAt.toISOString() : undefined,

@@ -1,12 +1,30 @@
 export const AD_AUDIO_TYPES = ["punchy-beat", "luxury-tick", "deep-bass", "custom"] as const;
 
 export type AdAudioType = (typeof AD_AUDIO_TYPES)[number];
+export const AD_ANIMATION_STYLES = ["kinetic-shopify", "fade-up", "zoom-in", "slide-left", "typewriter", "bounce", "rotate-3d"] as const;
+export type AdAnimationStyle = (typeof AD_ANIMATION_STYLES)[number];
+export const AD_ANIMATION_SPEEDS = ["slow", "normal", "fast", "beat-sync"] as const;
+export type AdAnimationSpeed = (typeof AD_ANIMATION_SPEEDS)[number];
+export const AD_TEXT_EFFECTS = ["none", "glow-gold", "stroke", "shadow-3d", "gradient-gold"] as const;
+export type AdTextEffect = (typeof AD_TEXT_EFFECTS)[number];
+export const AD_FILTER_PRESETS = ["none", "luxury-dark", "gold-tint", "blur-bg", "grayscale-luxury", "vintage", "neon-glow", "cinematic"] as const;
+export type AdFilterPreset = (typeof AD_FILTER_PRESETS)[number];
+export const AD_IMAGE_POSITIONS = ["background", "foreground", "floating"] as const;
+export type AdImagePosition = (typeof AD_IMAGE_POSITIONS)[number];
 
 export type AdProductPreview = {
   id: string;
   title: string;
   image: string;
   price: number;
+};
+
+export type AdCustomImage = {
+  url: string;
+  position: AdImagePosition;
+  x: number;
+  y: number;
+  scale: number;
 };
 
 export type KineticAdInput = Partial<Omit<AdData, "titleLines" | "secondLines" | "finalLines" | "products" | "productDetails">> & {
@@ -34,6 +52,17 @@ export type AdData = {
   audioType: AdAudioType;
   beatSync: boolean;
   volume: number;
+  customImages: AdCustomImage[];
+  animationStyle: AdAnimationStyle;
+  animationSpeed: AdAnimationSpeed;
+  textEffect: AdTextEffect;
+  filterPreset: AdFilterPreset;
+  customBg: string;
+  overlayOpacity: number;
+  brightness: number;
+  contrast: number;
+  blurAmount: number;
+  goldTintOpacity: number;
   isActive: boolean;
   placement: "homepage";
   createdAt?: string;
@@ -68,6 +97,17 @@ export const DEFAULT_AD: AdData = {
   audioType: "punchy-beat",
   beatSync: true,
   volume: 80,
+  customImages: [],
+  animationStyle: "kinetic-shopify",
+  animationSpeed: "normal",
+  textEffect: "none",
+  filterPreset: "none",
+  customBg: "",
+  overlayOpacity: 0,
+  brightness: 100,
+  contrast: 100,
+  blurAmount: 0,
+  goldTintOpacity: 20,
   isActive: false,
   placement: "homepage"
 };
