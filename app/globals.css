@@ -11,6 +11,9 @@
   --rose: #e11d48;
   --green: #16a34a;
   --amber: #f59e0b;
+  --gold: #d4af37;
+  --gold-glow: rgba(212, 175, 55, 0.4);
+  --gold-light: #f5e6a3;
 }
 
 * {
@@ -1190,6 +1193,28 @@ a:focus-visible {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
   }
+}
+
+.hero-glow {
+  background:
+    radial-gradient(ellipse at top right, rgba(212, 175, 55, 0.15), transparent 60%),
+    radial-gradient(ellipse at bottom left, rgba(212, 175, 55, 0.08), transparent 60%);
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeUp {
+  animation: fadeUp 800ms ease-out both;
 }
 
 .panel-backdrop {

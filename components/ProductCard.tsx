@@ -149,8 +149,9 @@ export default function ProductCard({
           ) : (
             <span className={styles.noImage}>No image available</span>
           )}
+          <span className={styles.imageGlow} aria-hidden="true" />
           {product.badge && <span className={styles.badge}>{product.badge}</span>}
-          {discountPercent > 0 && <span className={styles.discountBadge}>{discountPercent}% OFF</span>}
+          {discountPercent > 0 && <span className={styles.discountBadge}>-{discountPercent}%</span>}
           {images.length > 1 && isHovered && (
             <div className={styles.dots} aria-label={`Image ${currentIndex + 1} of ${images.length}`}>
               {images.map((image, index) => (
@@ -184,8 +185,8 @@ export default function ProductCard({
           <h3 className={styles.title}>{product.title}</h3>
         </Link>
         <p className={styles.price}>
-          Rs {price.toLocaleString("en-PK")}
-          {discountPercent > 0 && <del>Rs {originalPrice?.toLocaleString("en-PK")}</del>}
+          Rs. {price.toLocaleString("en-PK")}
+          {discountPercent > 0 && <del>Rs. {originalPrice?.toLocaleString("en-PK")}</del>}
         </p>
         <p className={styles.availability}>Available From ZaviMart</p>
         {productHref.startsWith("/hot-deal/") ? (
