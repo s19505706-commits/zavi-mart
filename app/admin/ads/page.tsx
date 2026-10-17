@@ -5,6 +5,7 @@ import {
   Download,
   Image as ImageIcon,
   LoaderCircle,
+  Maximize2,
   Megaphone,
   Music2,
   Pencil,
@@ -93,6 +94,7 @@ function parseAd(value: unknown): AdData | null {
   return {
     ...DEFAULT_AD,
     id: typeof value.id === "string" ? value.id : undefined,
+    campaignName: typeof value.campaignName === "string" ? value.campaignName : DEFAULT_AD.campaignName,
     titleLines: strings(value.titleLines, DEFAULT_AD.titleLines),
     secondLines: strings(value.secondLines, DEFAULT_AD.secondLines),
     finalLines: strings(value.finalLines, DEFAULT_AD.finalLines),
@@ -172,6 +174,8 @@ export default function AdminAdsPage() {
   const playerRef = useRef<KineticAdHandle>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
+  const formColumnRef = useRef<HTMLDivElement>(null);
+  const playerFrameRef = useRef<HTMLDivElement>(null);
 
   const adminHeaders = useCallback((): HeadersInit => {
     const key = sessionStorage.getItem("zavimart-admin-key")?.trim();
@@ -238,6 +242,9 @@ export default function AdminAdsPage() {
     setNotice("");
     setError("");
     setModalOpen(true);
+    requestAnimationFrame(() => {
+      if (formColumnRef.current) formColumnRef.current.scrollTop = 0;
+    });
   }
 
   function openEditAd(ad: AdData) {
@@ -251,6 +258,9 @@ export default function AdminAdsPage() {
     setNotice("");
     setError("");
     setModalOpen(true);
+    requestAnimationFrame(() => {
+      if (formColumnRef.current) formColumnRef.current.scrollTop = 0;
+    });
   }
 
   function updateDraft<K extends keyof AdData>(key: K, value: AdData[K]) {
@@ -281,6 +291,15 @@ export default function AdminAdsPage() {
       setNotice(`Loaded ${file.name}. Save the ad to store its audio.`);
     } catch (uploadError) {
       setError(uploadError instanceof Error ? uploadError.message : "Could not read audio file.");
+    }
+  }
+
+  async function previewFullscreen() {
+    if (!playerFrameRef.current) return;
+    try {
+      await playerFrameRef.current.requestFullscreen();
+    } catch (fullscreenError) {
+      setError(fullscreenError instanceof Error ? fullscreenError.message : "Could not open the full-screen preview.");
     }
   }
 
@@ -495,9 +514,19 @@ export default function AdminAdsPage() {
             </header>
             <form onSubmit={(event) => void saveAd(event)} className={styles.editorForm}>
               <div className={styles.editorContent}>
-                <div className={styles.formColumn}>
+                <div className={styles.formColumn} ref={formColumnRef}>
                   <section className={styles.formSection}>
                     <h3><span>01</span> Story beats</h3>
+                    <label className={styles.field}>
+                      <span>Campaign name</span>
+                      <input
+                        value={draft.campaignName}
+                        onChange={(event) => updateDraft("campaignName", event.target.value)}
+                        placeholder="e.g. Summer collection launch"
+                        maxLength={100}
+                        required
+                      />
+                    </label>
                     <label className={styles.field}>
                       <span>Opening words <small>comma-separated</small></span>
                       <input type="text" value={openingWords} onChange={(event) => setOpeningWords(event.target.value)} placeholder="e.g. WHAT, EVER, YOU, BUY" required />
@@ -514,7 +543,7 @@ export default function AdminAdsPage() {
 
                   <section className={styles.formSection}>
                     <div className={styles.sectionHeading}>
-                      <h3><span>02</span> Featured products</h3>
+                      <h3><span>02</span> Product Selection</h3>
                       <small>{draft.products.length} selected</small>
                     </div>
                     {draft.products.length > 0 && (
@@ -569,6 +598,7 @@ export default function AdminAdsPage() {
                         <option value="luxury-tick">Luxury Tick</option>
                         <option value="deep-bass">Deep Bass Drop</option>
                         <option value="custom">Upload Custom MP3</option>
+                        <option value="none">No Audio</option>
                       </select>
                     </label>
                     {draft.audioType === "custom" && (
@@ -579,6 +609,17 @@ export default function AdminAdsPage() {
                         </button>
                         {draft.audioUrl.startsWith("data:audio/") && <span className={styles.uploadedLabel}>Custom track ready</span>}
                       </div>
+                    )}
+                    {draft.audioType === "custom" && (
+                      <label className={styles.field}>
+                        <span>Custom audio URL <small>Optional HTTPS or local sound URL</small></span>
+                        <input
+                          type="url"
+                          value={draft.audioUrl.startsWith("data:") ? "" : draft.audioUrl}
+                          onChange={(event) => updateDraft("audioUrl", event.target.value)}
+                          placeholder="https://example.com/audio.mp3"
+                        />
+                      </label>
                     )}
                     <div className={styles.audioControls}>
                       <label className={styles.volumeControl}>
@@ -599,6 +640,7 @@ export default function AdminAdsPage() {
                     <button
                       type="button"
                       className={styles.secondaryButton}
+                      disabled={draft.audioType === "none"}
                       onClick={() => {
                         if (playingAudio) {
                           playerRef.current?.stop();
@@ -774,11 +816,6 @@ export default function AdminAdsPage() {
                       <label><span>Text</span><input type="color" value={draft.textColor} onChange={(event) => updateDraft("textColor", event.target.value)} /></label>
                       <label><span>Gold accent</span><input type="color" value={draft.goldColor} onChange={(event) => updateDraft("goldColor", event.target.value)} /></label>
                     </div>
-                    <label className={styles.syncToggle}>
-                      <input type="checkbox" checked={draft.isActive} onChange={(event) => updateDraft("isActive", event.target.checked)} />
-                      <span className={styles.switch} />
-                      <span>Publish as active homepage ad</span>
-                    </label>
                   </section>
                 </div>
 
@@ -787,7 +824,7 @@ export default function AdminAdsPage() {
                     <div><h3>Live preview</h3><p>10-second story · sound starts muted</p></div>
                     <span>PREVIEW</span>
                   </div>
-                  <div className={styles.playerFrame}>
+                  <div className={styles.playerFrame} ref={playerFrameRef}>
                     <KineticAd ref={playerRef} adData={previewAd} />
                   </div>
                   <p className={styles.previewHint}>Tap the sound button in the preview or use Play audio preview to hear the track.</p>
@@ -797,6 +834,14 @@ export default function AdminAdsPage() {
               </div>
               <footer className={styles.editorFooter}>
                 {error && <p className={styles.error} role="alert">{error}</p>}
+                <label className={styles.syncToggle}>
+                  <input type="checkbox" checked={draft.isActive} onChange={(event) => updateDraft("isActive", event.target.checked)} />
+                  <span className={styles.switch} />
+                  <span>Set Live</span>
+                </label>
+                <button type="button" className={styles.secondaryButton} onClick={() => void previewFullscreen()}>
+                  <Maximize2 size={15} /> Preview fullscreen
+                </button>
                 <button type="button" className={styles.secondaryButton} onClick={() => {
                   playerRef.current?.stop();
                   setModalOpen(false);

@@ -165,6 +165,7 @@ export default function HomePage() {
           : [];
         const parsedAd: AdData = {
           ...DEFAULT_AD,
+          campaignName: typeof ad.campaignName === "string" ? ad.campaignName : DEFAULT_AD.campaignName,
           titleLines: lines(ad.titleLines, ["WHAT", "EVER", "YOU", "BUY"]),
           secondLines: lines(ad.secondLines, ["SELL", "MORE", "MORE", "MORE"]),
           finalLines: lines(ad.finalLines, ["THE", "WORLD'S", "BEST", "CHECKOUT"]),
@@ -177,7 +178,8 @@ export default function HomePage() {
           textColor: typeof ad.textColor === "string" ? ad.textColor : "#FFFFFF",
           goldColor: typeof ad.goldColor === "string" ? ad.goldColor : "#D4AF37",
           audioUrl: typeof ad.audioUrl === "string" ? ad.audioUrl : "",
-          audioType: ad.audioType === "luxury-tick" || ad.audioType === "deep-bass" || ad.audioType === "custom"
+          audioType: ad.audioType === "luxury-tick" || ad.audioType === "deep-bass" ||
+            ad.audioType === "custom" || ad.audioType === "none"
             ? ad.audioType
             : "punchy-beat",
           beatSync: ad.beatSync !== false,

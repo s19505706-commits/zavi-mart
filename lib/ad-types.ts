@@ -1,4 +1,4 @@
-export const AD_AUDIO_TYPES = ["punchy-beat", "luxury-tick", "deep-bass", "custom"] as const;
+export const AD_AUDIO_TYPES = ["punchy-beat", "luxury-tick", "deep-bass", "custom", "none"] as const;
 
 export type AdAudioType = (typeof AD_AUDIO_TYPES)[number];
 export const AD_ANIMATION_STYLES = ["kinetic-shopify", "fade-up", "zoom-in", "slide-left", "typewriter", "bounce", "rotate-3d"] as const;
@@ -37,6 +37,7 @@ export type KineticAdInput = Partial<Omit<AdData, "titleLines" | "secondLines" |
 
 export type AdData = {
   id?: string;
+  campaignName: string;
   titleLines: string[];
   secondLines: string[];
   finalLines: string[];
@@ -82,6 +83,7 @@ export function normalizeAdLines(value: unknown, fallback: string[]): string[] {
 }
 
 export const DEFAULT_AD: AdData = {
+  campaignName: "New campaign",
   titleLines: ["WHAT", "EVER", "YOU", "SELL"],
   secondLines: ["SELL", "MORE", "MORE", "MORE", "MORE"],
   finalLines: ["THE", "WORLD'S", "BEST", "CHECKOUT"],

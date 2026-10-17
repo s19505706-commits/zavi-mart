@@ -80,7 +80,7 @@ function getCustomBackground(value: string): React.CSSProperties {
   return { background: value };
 }
 
-const PRESET_AUDIO: Record<Exclude<AdData["audioType"], "custom">, string> = {
+const PRESET_AUDIO: Record<Exclude<AdData["audioType"], "custom" | "none">, string> = {
   "punchy-beat": "/sounds/punchy-beat.wav",
   "luxury-tick": "/sounds/luxury-tick.wav",
   "deep-bass": "/sounds/deep-bass.wav"
@@ -131,8 +131,10 @@ const KineticAd = forwardRef<KineticAdHandle, KineticAdProps>(function KineticAd
   const productDetails = [...suppliedProductDetails, ...fetchedProductDetails].filter((product, index, all) =>
     all.findIndex((entry) => entry.id === product.id) === index
   );
-  const audioType = normalizedAd.audioType === "custom" ? "punchy-beat" : normalizedAd.audioType;
-  const audioUrl = normalizedAd.audioUrl || PRESET_AUDIO[audioType];
+  const audioType = normalizedAd.audioType === "custom" || normalizedAd.audioType === "none"
+    ? "punchy-beat"
+    : normalizedAd.audioType;
+  const audioUrl = normalizedAd.audioType === "none" ? "" : normalizedAd.audioUrl || PRESET_AUDIO[audioType];
   const customImages = normalizedAd.customImages ?? [];
   const backdropFilter = [
     `brightness(${normalizedAd.brightness / 100})`,
@@ -207,6 +209,18 @@ const KineticAd = forwardRef<KineticAdHandle, KineticAdProps>(function KineticAd
     setElapsed(0);
     clockRef.current = 0;
     setHtmlAudioFallback(false);
+    if (normalizedAd.audioType === "none") {
+      const startedAt = performance.now();
+      let frame = 0;
+      const tick = (now: number) => {
+        const normalized = ((now - startedAt) / 1000) % 10;
+        clockRef.current = normalized;
+        setElapsed(normalized);
+        frame = window.requestAnimationFrame(tick);
+      };
+      frame = window.requestAnimationFrame(tick);
+      return () => window.cancelAnimationFrame(frame);
+    }
     const player = new Howl({
       src: [audioUrl],
       html5: true,
@@ -318,7 +332,7 @@ const KineticAd = forwardRef<KineticAdHandle, KineticAdProps>(function KineticAd
       style={cssVars}
       aria-label="Animated Zavi Mart advertisement"
     >
-      <audio ref={audioRef} src={audioUrl} preload="auto" loop muted aria-hidden="true" />
+      {audioUrl && <audio ref={audioRef} src={audioUrl} preload="auto" loop muted aria-hidden="true" />}
       <div className={styles.backdropLayer} style={{ filter: backdropFilter }} aria-hidden="true">
         <div className={styles.customBackground} style={getCustomBackground(normalizedAd.customBg)} />
         {customImages.filter((image) => image.position === "background").map((image, index) => (
@@ -442,7 +456,7 @@ const KineticAd = forwardRef<KineticAdHandle, KineticAdProps>(function KineticAd
         )}
       </AnimatePresence>
       {!compact && <div className={styles.progress} style={{ transform: `scaleX(${elapsed / 10})` }} />}
-      {showControls && (
+      {showControls && normalizedAd.audioType !== "none" && (
         <button
           type="button"
           className={styles.soundButton}

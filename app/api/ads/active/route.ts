@@ -67,6 +67,7 @@ export async function GET() {
       normalizeAdLines(field, fallback);
     const result: AdData = {
       id: String(ad._id),
+      campaignName: typeof ad.campaignName === "string" ? ad.campaignName : DEFAULT_AD.campaignName,
       titleLines: rawLines(ad.titleLines, DEFAULT_AD.titleLines),
       secondLines: rawLines(ad.secondLines, DEFAULT_AD.secondLines),
       finalLines: rawLines(ad.finalLines, DEFAULT_AD.finalLines),
@@ -80,7 +81,7 @@ export async function GET() {
       goldColor: typeof ad.goldColor === "string" ? ad.goldColor : DEFAULT_AD.goldColor,
       audioUrl: typeof ad.audioUrl === "string" ? ad.audioUrl : DEFAULT_AD.audioUrl,
       audioType: typeof ad.audioType === "string" &&
-        ["punchy-beat", "luxury-tick", "deep-bass", "custom"].includes(ad.audioType)
+        ["punchy-beat", "luxury-tick", "deep-bass", "custom", "none"].includes(ad.audioType)
         ? ad.audioType as AdData["audioType"]
         : DEFAULT_AD.audioType,
       beatSync: ad.beatSync !== false,

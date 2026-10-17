@@ -435,24 +435,33 @@
 
 .editorForm {
   display: flex;
+  flex: 1 1 auto;
+  overflow: hidden;
   min-height: 0;
   flex-direction: column;
 }
 
 .editorContent {
   display: grid;
+  flex: 1 1 auto;
   min-height: 0;
   grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
   gap: 22px;
-  overflow: auto;
+  overflow: hidden;
   padding: 22px 24px;
 }
 
 .formColumn {
   display: flex;
   min-width: 0;
+  min-height: 0;
   flex-direction: column;
   gap: 14px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding-right: 6px;
+  scrollbar-color: rgb(212 175 55 / 45%) #111;
+  scrollbar-width: thin;
 }
 
 .formSection {
@@ -679,61 +688,70 @@
 }
 
 .selectedProducts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
 }
 
 .selectedProducts button {
-  display: flex;
+  position: relative;
+  display: grid;
+  min-width: 0;
+  grid-template-columns: 45px minmax(0, 1fr) 18px;
   max-width: 100%;
-  min-height: 30px;
+  min-height: 58px;
   align-items: center;
-  gap: 6px;
-  padding: 3px 8px 3px 4px;
-  border: 1px solid rgb(212 175 55 / 20%);
-  border-radius: 999px;
-  background: rgb(212 175 55 / 7%);
+  gap: 7px;
+  padding: 6px;
+  border: 1px solid rgb(212 175 55 / 22%);
+  border-radius: 10px;
+  background: #0a0a0a;
   color: #e5d393;
   font-size: 0.63rem;
+  text-align: left;
   cursor: pointer;
 }
 
 .selectedProducts img {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
+  width: 45px;
+  height: 45px;
+  border-radius: 7px;
   background: white;
   object-fit: contain;
 }
 
 .selectedProducts span {
   overflow: hidden;
-  max-width: 130px;
+  max-width: 100%;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
 }
 
 .productPicker {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   max-height: 230px;
-  flex-direction: column;
   gap: 5px;
   overflow-y: auto;
   padding-right: 3px;
 }
 
 .productPicker > button {
-  display: flex;
-  min-height: 54px;
-  align-items: center;
-  gap: 9px;
-  padding: 5px 8px;
+  display: grid;
+  min-width: 0;
+  min-height: 124px;
+  grid-template-rows: 18px minmax(50px, 1fr) auto;
+  justify-items: center;
+  gap: 5px;
+  padding: 7px;
   border: 1px solid transparent;
   border-radius: 10px;
   background: #0b0b0b;
   color: #d4d4d8;
-  text-align: left;
+  text-align: center;
   cursor: pointer;
 }
 
@@ -762,8 +780,8 @@
 
 .productImage {
   display: grid;
-  width: 40px;
-  height: 40px;
+  width: 52px;
+  height: 52px;
   flex: 0 0 auto;
   place-items: center;
   overflow: hidden;
@@ -781,11 +799,13 @@
 .productName {
   display: flex;
   min-width: 0;
+  width: 100%;
   flex-direction: column;
   overflow: hidden;
   font-size: 0.73rem;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .productName small {
@@ -987,7 +1007,7 @@
 
 .editorFooter {
   flex: 0 0 auto;
-  justify-content: flex-end;
+  justify-content: flex-start;
   gap: 10px;
   padding: 14px 24px;
   border-top: 1px solid rgb(255 255 255 / 7%);
@@ -999,18 +1019,59 @@
   padding: 8px 11px;
 }
 
+.editorFooter > .syncToggle {
+  margin-right: auto;
+}
+
+.editorFooter > .secondaryButton,
+.editorFooter > .primaryButton {
+  flex: 0 0 auto;
+}
+
+.editorFooter .syncToggle > span:last-child {
+  color: #e5d393;
+  font-weight: 700;
+}
+
+.editorFooter .primaryButton {
+  min-width: 140px;
+}
+
+.playerFrame:fullscreen {
+  width: 100vw;
+  height: 100vh;
+  border: 0;
+  border-radius: 0;
+}
+
+.playerFrame:fullscreen > section {
+  border-radius: 0;
+}
+
 @media (max-width: 850px) {
   .editor {
     max-height: none;
   }
 
+  .editorForm {
+    overflow: visible;
+  }
+
   .editorContent {
+    display: flex;
+    flex-direction: column;
+    overflow: visible;
     grid-template-columns: 1fr;
+  }
+
+  .formColumn {
+    overflow: visible;
+    padding-right: 0;
   }
 
   .previewColumn {
     position: static;
-    grid-row: 1;
+    grid-row: auto;
   }
 
   .playerFrame {
@@ -1102,7 +1163,17 @@
   .editorFooter {
     position: sticky;
     bottom: 0;
+    flex-wrap: wrap;
     padding: 12px 14px;
+  }
+
+  .editorFooter > .syncToggle {
+    width: 100%;
+    margin-right: 0;
+  }
+
+  .editorFooter > .secondaryButton {
+    margin-left: auto;
   }
 
   .editorFooter .error {

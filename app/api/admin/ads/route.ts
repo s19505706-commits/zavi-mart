@@ -114,6 +114,7 @@ function parseAdInput(value: unknown): Omit<AdData, "id" | "productDetails" | "c
     throw new ApiError("Custom background must be a hex color, CSS gradient, or HTTPS image URL.", 400);
   }
   return {
+    campaignName: requiredText(value.campaignName, "New campaign", "Campaign name", 100),
     titleLines,
     secondLines,
     finalLines,
@@ -150,6 +151,7 @@ function serializeAd(ad: Record<string, unknown>, productsById = new Map<string,
     : [];
   return {
     id: String(ad._id),
+    campaignName: typeof ad.campaignName === "string" ? ad.campaignName : DEFAULT_AD.campaignName,
     titleLines: ad.titleLines as string[],
     secondLines: ad.secondLines as string[],
     finalLines: ad.finalLines as string[],

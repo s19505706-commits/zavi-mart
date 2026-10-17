@@ -9,6 +9,7 @@ import {
 } from "../ad-types";
 
 const adSchema = new mongoose.Schema({
+  campaignName: { type: String, required: true, trim: true, maxlength: 100, default: "New campaign" },
   titleLines: {
     type: [{ type: String, trim: true, maxlength: 60 }],
     default: ["WHAT", "EVER", "YOU", "SELL"],
