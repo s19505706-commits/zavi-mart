@@ -144,7 +144,7 @@ export default function CartPage() {
             <ShoppingCart size={34} strokeWidth={2.2} />
             <span className="store-brand-cart-accent" />
           </span>
-          <span className="store-brand-name">ZaviMart</span>
+          <span className="store-brand-name"><span>Zavi</span><span>Mart</span></span>
         </Link>
         <Link className="cart-header-link" href="/">Continue shopping</Link>
       </header>

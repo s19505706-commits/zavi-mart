@@ -437,7 +437,7 @@ export default function HomePage() {
             <ShoppingCart size={34} strokeWidth={2.2} />
             <span className="store-brand-cart-accent" />
           </span>
-          <span className="store-brand-name">ZaviMart</span>
+          <span className="store-brand-name"><span>Zavi</span><span>Mart</span></span>
         </a>
         <StoreSearch value={searchQuery} onChange={setSearchQuery} />
         <div className="header-actions">
